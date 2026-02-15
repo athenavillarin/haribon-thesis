@@ -95,6 +95,12 @@ MASK_CONFIGS = {
         "test_window_days": 90,  # 3-month test windows
         "num_splits": 4,
         "description": "Rolling-origin cross-validation: progressive train/test splits"
+    },
+    "rolling_origin_180": {
+        "type": "rolling_origin",
+        "test_window_days": 180,  # 6-month test windows
+        "num_splits": 4,
+        "description": "Rolling-origin cross-validation: progressive train/test splits with 180-day test windows"
     }
 }
 
