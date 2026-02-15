@@ -1,0 +1,111 @@
+{
+  "config": {
+    "type": "block",
+    "block_length": 7,
+    "num_blocks_per_location": 8,
+    "description": "7-day consecutive gaps simulating week-long outages"
+  },
+  "stats": {
+    "total_cells": 43830,
+    "masked_cells": 1680,
+    "original_nan_cells": 2860,
+    "per_variable": {
+      "CHL": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 112,
+        "mask_rate": 3.83
+      },
+      "mlotst": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 112,
+        "mask_rate": 3.83
+      },
+      "no3": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 112,
+        "mask_rate": 3.83
+      },
+      "o2": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 112,
+        "mask_rate": 3.83
+      },
+      "po4": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 112,
+        "mask_rate": 3.83
+      },
+      "so": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 112,
+        "mask_rate": 3.83
+      },
+      "thetao": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 112,
+        "mask_rate": 3.83
+      },
+      "uo": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 112,
+        "mask_rate": 3.83
+      },
+      "vo": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 112,
+        "mask_rate": 3.83
+      },
+      "NDVI_daily": {
+        "total": 2922,
+        "original_nan": 28,
+        "artificially_masked": 112,
+        "mask_rate": 3.87
+      },
+      "NDVI_raw": {
+        "total": 2922,
+        "original_nan": 2800,
+        "artificially_masked": 112,
+        "mask_rate": 91.8
+      },
+      "precip_mm_day": {
+        "total": 2922,
+        "original_nan": 8,
+        "artificially_masked": 112,
+        "mask_rate": 3.84
+      },
+      "wind_speed_ms": {
+        "total": 2922,
+        "original_nan": 8,
+        "artificially_masked": 112,
+        "mask_rate": 3.84
+      },
+      "wind_u_ms": {
+        "total": 2922,
+        "original_nan": 8,
+        "artificially_masked": 112,
+        "mask_rate": 3.84
+      },
+      "wind_v_ms": {
+        "total": 2922,
+        "original_nan": 8,
+        "artificially_masked": 112,
+        "mask_rate": 3.84
+      }
+    },
+    "overall_mask_rate": 4.1
+  },
+  "metadata": {
+    "generated_at": "2026-02-15T21:37:29.962727",
+    "random_seed": 42,
+    "source_file": "Task1_Combined_Baseline_Daily.csv"
+  }
+}

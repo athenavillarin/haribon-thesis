@@ -1,0 +1,124 @@
+{
+  "config": {
+    "type": "cross_variable",
+    "variables_to_mask": [
+      "CHL",
+      "NDVI_daily",
+      "NDVI_raw"
+    ],
+    "mask_periods": [
+      {
+        "start": "2020-06-01",
+        "end": "2020-06-30"
+      },
+      {
+        "start": "2021-08-01",
+        "end": "2021-09-15"
+      }
+    ],
+    "description": "Entire variable columns missing for specific periods (sensor failures)"
+  },
+  "stats": {
+    "total_cells": 43830,
+    "masked_cells": 456,
+    "original_nan_cells": 2860,
+    "per_variable": {
+      "CHL": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 152,
+        "mask_rate": 5.2
+      },
+      "mlotst": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 0,
+        "mask_rate": 0.0
+      },
+      "no3": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 0,
+        "mask_rate": 0.0
+      },
+      "o2": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 0,
+        "mask_rate": 0.0
+      },
+      "po4": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 0,
+        "mask_rate": 0.0
+      },
+      "so": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 0,
+        "mask_rate": 0.0
+      },
+      "thetao": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 0,
+        "mask_rate": 0.0
+      },
+      "uo": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 0,
+        "mask_rate": 0.0
+      },
+      "vo": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 0,
+        "mask_rate": 0.0
+      },
+      "NDVI_daily": {
+        "total": 2922,
+        "original_nan": 28,
+        "artificially_masked": 152,
+        "mask_rate": 5.25
+      },
+      "NDVI_raw": {
+        "total": 2922,
+        "original_nan": 2800,
+        "artificially_masked": 152,
+        "mask_rate": 124.59
+      },
+      "precip_mm_day": {
+        "total": 2922,
+        "original_nan": 8,
+        "artificially_masked": 0,
+        "mask_rate": 0.0
+      },
+      "wind_speed_ms": {
+        "total": 2922,
+        "original_nan": 8,
+        "artificially_masked": 0,
+        "mask_rate": 0.0
+      },
+      "wind_u_ms": {
+        "total": 2922,
+        "original_nan": 8,
+        "artificially_masked": 0,
+        "mask_rate": 0.0
+      },
+      "wind_v_ms": {
+        "total": 2922,
+        "original_nan": 8,
+        "artificially_masked": 0,
+        "mask_rate": 0.0
+      }
+    },
+    "overall_mask_rate": 1.11
+  },
+  "metadata": {
+    "generated_at": "2026-02-15T21:37:30.954686",
+    "random_seed": 42,
+    "source_file": "Task1_Combined_Baseline_Daily.csv"
+  }
+}

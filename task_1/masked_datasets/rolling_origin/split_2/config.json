@@ -1,0 +1,114 @@
+{
+  "config": {
+    "type": "rolling_origin",
+    "test_window_days": 90,
+    "num_splits": 4,
+    "description": "Rolling-origin cross-validation: progressive train/test splits",
+    "cutoff_date": "2020-07-02",
+    "test_start": "2020-07-03",
+    "test_end": "2020-09-30"
+  },
+  "stats": {
+    "total_cells": 43830,
+    "masked_cells": 2700,
+    "original_nan_cells": 2860,
+    "per_variable": {
+      "CHL": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 180,
+        "mask_rate": 6.16
+      },
+      "mlotst": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 180,
+        "mask_rate": 6.16
+      },
+      "no3": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 180,
+        "mask_rate": 6.16
+      },
+      "o2": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 180,
+        "mask_rate": 6.16
+      },
+      "po4": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 180,
+        "mask_rate": 6.16
+      },
+      "so": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 180,
+        "mask_rate": 6.16
+      },
+      "thetao": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 180,
+        "mask_rate": 6.16
+      },
+      "uo": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 180,
+        "mask_rate": 6.16
+      },
+      "vo": {
+        "total": 2922,
+        "original_nan": 0,
+        "artificially_masked": 180,
+        "mask_rate": 6.16
+      },
+      "NDVI_daily": {
+        "total": 2922,
+        "original_nan": 28,
+        "artificially_masked": 180,
+        "mask_rate": 6.22
+      },
+      "NDVI_raw": {
+        "total": 2922,
+        "original_nan": 2800,
+        "artificially_masked": 180,
+        "mask_rate": 147.54
+      },
+      "precip_mm_day": {
+        "total": 2922,
+        "original_nan": 8,
+        "artificially_masked": 180,
+        "mask_rate": 6.18
+      },
+      "wind_speed_ms": {
+        "total": 2922,
+        "original_nan": 8,
+        "artificially_masked": 180,
+        "mask_rate": 6.18
+      },
+      "wind_u_ms": {
+        "total": 2922,
+        "original_nan": 8,
+        "artificially_masked": 180,
+        "mask_rate": 6.18
+      },
+      "wind_v_ms": {
+        "total": 2922,
+        "original_nan": 8,
+        "artificially_masked": 180,
+        "mask_rate": 6.18
+      }
+    },
+    "overall_mask_rate": 6.59
+  },
+  "metadata": {
+    "generated_at": "2026-02-15T21:37:31.116772",
+    "random_seed": 42,
+    "source_file": "Task1_Combined_Baseline_Daily.csv"
+  }
+}
