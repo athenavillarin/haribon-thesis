@@ -4,7 +4,7 @@ HARIBON Red Tide Validation Study — Task 1: Baseline Data Extraction
 ==============================================================================
 Purpose:
     Extract Level-4 Gap-Free Marine Data from the Copernicus Marine Service
-    (CMS) for coastal sites in Capiz, Philippines (2019–2022).
+    (CMS) for coastal sites (2019–2022).
 
 Strategy — "Server-Side Subset & Local Mean":
     1. For each polygon site, compute the geographic Bounding Box.

@@ -4,7 +4,7 @@ HARIBON Red Tide Validation Study — Task 2: Atmospheric & Land Context Data
 ==============================================================================
 Purpose:
     Extract Rainfall, Wind, and Vegetation (NDVI) data from Google Earth Engine
-    for the same coastal polygon sites in Capiz, Philippines (2019–2022).
+    for the same coastal polygon sites (2019–2022).
 
 Key Design Decisions:
     1. SEAMLESS INTEGRATION: Output CSV has the exact same structure as Part 1
