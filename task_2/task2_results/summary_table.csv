@@ -1,0 +1,3 @@
+method_name,rmse_mean,rmse_std,rmse_min,rmse_max,mae_mean,mae_std,mae_min,mae_max,r2_mean,r2_std,r2_min,r2_max
+Climatological Substitution,1.363,2.4061,0.0,15.526,0.998,1.5924,0.0,9.748,-2.6942,36.6109,-510.5908,0.9002
+Linear Interpolation,1.5058,3.152,0.0001,20.0029,0.9865,1.8679,0.0,9.9521,-0.006,1.8869,-22.4857,0.9999
