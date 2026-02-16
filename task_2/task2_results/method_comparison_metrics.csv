@@ -1,0 +1,17 @@
+method_name,mask_type,rmse_mean,rmse_std,mae_mean,mae_std,r2_mean,r2_std
+Climatological Substitution,block_14day,1.164,1.6067,0.8757,1.1473,0.3792,0.2853
+Climatological Substitution,block_7day,1.3207,2.2432,1.0082,1.5949,0.1317,0.6972
+Climatological Substitution,cross_variable,0.1809,0.2358,0.1225,0.1608,0.3405,0.2144
+Climatological Substitution,random_10,1.4833,2.6447,1.0595,1.7246,0.3915,0.2861
+Climatological Substitution,random_20,1.3432,2.1919,0.984,1.5022,0.4342,0.2187
+Climatological Substitution,rolling_origin,1.3548,2.5402,1.0027,1.6868,-8.777,66.4799
+Climatological Substitution,rolling_origin_180,1.4597,2.5945,1.0517,1.6748,-0.6616,7.3792
+Climatological Substitution,seasonal,1.386,2.4662,1.0044,1.6063,0.3808,0.2117
+Linear Interpolation,block_14day,1.2416,2.2334,0.8503,1.5851,0.4919,0.4431
+Linear Interpolation,block_7day,1.2733,2.9542,0.8246,1.8673,0.556,0.5237
+Linear Interpolation,cross_variable,0.2844,0.3988,0.1991,0.2795,-0.3589,1.1614
+Linear Interpolation,random_10,1.161,3.3914,0.6695,1.9162,0.7645,0.4126
+Linear Interpolation,random_20,1.0461,2.8157,0.6123,1.6297,0.6973,0.5438
+Linear Interpolation,rolling_origin,1.5552,3.2839,1.0617,1.9879,0.0336,0.7102
+Linear Interpolation,rolling_origin_180,1.9465,3.4595,1.2764,1.9383,-0.7972,3.1075
+Linear Interpolation,seasonal,1.0903,2.9854,0.6722,1.8285,0.54,1.0607
