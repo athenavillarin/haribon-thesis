@@ -1,0 +1,12 @@
+,,rmse,rmse,rmse,rmse,mae,mae,mae,mae,r2,r2,r2,r2
+,,mean,std,min,max,mean,std,min,max,mean,std,min,max
+method,method_name,,,,,,,,,,,,
+advection,Advection-Based,1.2799,2.0301,0.0004,8.1104,0.9781,1.482,0.0004,5.5655,-480.5132,3716.909,-32453.0625,0.9562
+cross_location_knn,Cross-Location KNN,,,,,,,,,,,,
+cross_location_regression,Cross-Location Linear Regression,0.9446,1.797,0.0041,8.2717,0.6679,1.1562,0.0031,5.0632,0.4785,0.7258,-3.8995,0.9887
+distance_weighted,Distance-Weighted Average,1.4671,2.0301,0.0069,8.1104,1.1399,1.4871,0.003,5.5655,-55.2354,441.9243,-3803.6639,0.9562
+eof_pca,EOF/PCA Spatial Modes,1.1057,2.1543,0.0,11.6602,0.7528,1.3721,0.0,7.1206,-0.9259,4.6857,-29.0786,1.0
+hybrid_adaptive,Hybrid: Gap-Type Adaptive,1.4862,3.1807,0.0,21.0585,1.0131,1.8778,0.0,10.4244,-0.7224,4.747,-70.6942,1.0
+hybrid_ensemble,Hybrid: Temporal-Spatial Ensemble,9.9111,27.6749,0.0002,142.7493,9.1057,27.5467,0.0002,142.7401,-863.4764,6645.1744,-90214.3349,0.9947
+hybrid_sequential,Hybrid: Sequential Temporal->Spatial,1.4549,3.1757,0.0,21.0585,0.9887,1.9048,0.0,10.4244,-0.4605,4.2435,-70.6942,1.0
+kriging,Spatial Kriging,0.8854,1.699,0.0051,7.4498,0.6363,1.1208,0.0034,5.0711,-10.3035,88.0639,-756.989,0.9894
