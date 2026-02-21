@@ -1,0 +1,9 @@
+Gap Pattern,Best Method,RMSE,MAE,R²,Source
+block_14day,Spatial Kriging,0.8758,0.6706,0.0321,Task 3
+block_7day,Spatial Kriging,0.8479,0.6339,-50.0385,Task 3
+cross_variable,Climatological Substitution,0.1809,0.1225,0.3405,Task 2
+random_10,Spatial Kriging,0.8882,0.6364,-1.3361,Task 3
+random_20,Spatial Kriging,0.8767,0.6045,0.5599,Task 3
+rolling_origin,Advection-Based,0.0115,0.0112,-93.2491,Task 3
+rolling_origin_180,Advection-Based,0.0143,0.0141,-8133.9979,Task 3
+seasonal,Spatial Kriging,0.9384,0.6361,-0.0458,Task 3

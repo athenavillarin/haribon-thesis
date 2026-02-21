@@ -1,0 +1,12 @@
+Method,Task,Type,Variable Domain,Best Gap Pattern,Imputation RMSE,Imputation MAE,Imputation R²,XGBoost RMSE,XGBoost MAE,XGBoost R²,XGBoost F1-Score,XGBoost AUC,XGBoost Rank
+Climatological Substitution,Task 2,Temporal,Atmospheric,Seasonal / long block,1.363,0.998,-2.6942,0.4177,0.3405,-1.3912,0.2688,0.6801,9.0
+Linear Interpolation,Task 2,Temporal,Marine,Short random (≤7 d),1.5058,0.9865,-0.006,0.3034,0.2128,-0.0738,0.0,0.5974,1.0
+Spatial Kriging,Task 3,Spatial,Marine,All spatial gap types,0.8854,0.6363,-10.3035,,,,,,
+Cross-Location Linear Regression,Task 3,Spatial,Both,Block & cross-variable,0.9446,0.6679,0.4785,0.3146,0.2317,-0.1432,0.0,0.453,8.0
+EOF/PCA Spatial Modes,Task 3,Spatial,Atmospheric,Block & seasonal,1.1057,0.7528,-0.9259,0.3146,0.2317,-0.1432,0.0,0.453,7.0
+Advection-Based,Task 3,Spatial,Marine,Block (physical continuity),1.2799,0.9781,-480.5132,0.3136,0.2319,-0.1346,0.0,0.471,4.0
+Distance-Weighted Average,Task 3,Spatial,Both,Block & random,1.4671,1.1399,-55.2354,0.3142,0.2322,-0.1391,0.0,0.476,5.0
+Cross-Location KNN,Task 3,Spatial,Both,Block & cross-variable,,,,0.3146,0.2317,-0.1432,0.0,0.453,6.0
+Hybrid: Sequential Temporal->Spatial,Task 3,Hybrid,Both,Block >7 d,1.4549,0.9887,-0.4605,0.3041,0.2136,-0.0791,0.0,0.608,3.0
+Hybrid: Gap-Type Adaptive,Task 3,Hybrid,Both,Mixed / block >7 d,1.4862,1.0131,-0.7224,0.3041,0.2136,-0.0791,0.0,0.608,2.0
+Hybrid: Temporal-Spatial Ensemble,Task 3,Hybrid,Both,N/A (unstable),9.9111,9.1057,-863.4764,,,,,,
