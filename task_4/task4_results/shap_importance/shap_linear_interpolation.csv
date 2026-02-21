@@ -1,0 +1,16 @@
+feature,mean_abs_shap,method
+so_Roxas_roll30mean,0.087224476,linear_interpolation
+CHL_Gigantes_roll7mean,0.048126165,linear_interpolation
+CHL_anomaly_Gigantes,0.03314071,linear_interpolation
+CHL_Gigantes_roll30mean,0.023838658,linear_interpolation
+so_Roxas_roll7mean,0.022703031,linear_interpolation
+CHL_Gigantes_roll14mean,0.021128261,linear_interpolation
+Delta_thetao,0.018032288,linear_interpolation
+CHL_Gigantes_roll30std,0.010129851,linear_interpolation
+mlotst_Gigantes,0.009524099,linear_interpolation
+Delta_uo,0.005620444,linear_interpolation
+Delta_po4,0.0055195456,linear_interpolation
+thetao_Gigantes,0.0055101477,linear_interpolation
+o2_Roxas,0.004294287,linear_interpolation
+CHL_Gigantes_roll14std,0.0042750603,linear_interpolation
+so_Roxas_roll30std,0.0035656015,linear_interpolation
