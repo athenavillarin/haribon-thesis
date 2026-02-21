@@ -1,0 +1,16 @@
+feature,mean_abs_shap,method
+CHL_Gigantes_roll7mean,0.07781392,advection
+so_Roxas_roll30mean,0.050957143,advection
+CHL_anomaly_Gigantes,0.032279074,advection
+CHL_Gigantes_roll14mean,0.03001762,advection
+so_Roxas_roll7mean,0.023869382,advection
+CHL_Gigantes_roll30mean,0.023127155,advection
+Delta_thetao,0.019590013,advection
+CHL_Gigantes_roll30std,0.009675373,advection
+thetao_Roxas_roll14std,0.0079207,advection
+CHL_Roxas,0.007054674,advection
+Delta_uo,0.0068231984,advection
+mlotst_Gigantes,0.0066592568,advection
+thetao_Gigantes,0.0054894933,advection
+so_Gigantes,0.005365535,advection
+thetao_Gigantes_roll14std,0.0051268097,advection

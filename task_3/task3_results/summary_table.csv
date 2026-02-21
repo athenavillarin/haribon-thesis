@@ -1,0 +1,10 @@
+method_name,rmse,mae,r2,missing_count
+Spatial Kriging,0.8854,0.6363,-10.3035,28941
+Cross-Location Linear Regression,0.9446,0.6679,0.4785,30233
+EOF/PCA Spatial Modes,1.1057,0.7528,-0.9259,25329
+Advection-Based,1.2799,0.9781,-480.5132,26976
+Hybrid: Sequential Temporal->Spatial,1.4549,0.9887,-0.4605,57729
+Distance-Weighted Average,1.4671,1.1399,-55.2354,28941
+Hybrid: Gap-Type Adaptive,1.4862,1.0131,-0.7224,51564
+Hybrid: Temporal-Spatial Ensemble,9.9111,9.1057,-863.4764,28941
+Cross-Location KNN,,,,42906
