@@ -1,0 +1,10 @@
+method,method_name,type,rmse,mae,r2,n_samples,rmse_rank,improvement_vs_best_standalone
+kriging,Spatial Kriging,Standalone,0.8854,0.6363,-10.3035,420,1.0,0.0
+cross_location_regression,Cross-Location Linear Regression,Standalone,0.9446,0.6679,0.4785,420,2.0,-6.69
+eof_pca,EOF/PCA Spatial Modes,Standalone,1.1057,0.7528,-0.9259,420,3.0,-24.88
+advection,Advection-Based,Standalone,1.2799,0.9781,-480.5132,420,4.0,-44.56
+hybrid_sequential,Hybrid: Sequential Temporal->Spatial,Hybrid/Ensemble,1.4549,0.9887,-0.4605,420,5.0,-64.32
+distance_weighted,Distance-Weighted Average,Standalone,1.4671,1.1399,-55.2354,420,6.0,-65.7
+hybrid_adaptive,Hybrid: Gap-Type Adaptive,Hybrid/Ensemble,1.4862,1.0131,-0.7224,420,7.0,-67.86
+hybrid_ensemble,Hybrid: Temporal-Spatial Ensemble,Hybrid/Ensemble,9.9111,9.1057,-863.4764,420,8.0,-1019.39
+cross_location_knn,Cross-Location KNN,Standalone,,,,420,,

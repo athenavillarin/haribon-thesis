@@ -858,6 +858,64 @@ def run_imputation_analysis():
     summary.to_csv(os.path.join(OUTPUT_DIR, SUMMARY_FILE))
     print(f"  Saved summary table to {SUMMARY_FILE}")
     
+    # Hybrid performance comparison
+    print("\nGenerating hybrid performance comparison...")
+    hybrid_methods = ['hybrid_sequential', 'hybrid_ensemble', 'hybrid_adaptive']
+    standalone_methods = [m for m in results_df['method'].unique() if m not in hybrid_methods]
+    
+    hybrid_comparison = []
+    
+    # Calculate average metrics for each hybrid method
+    for hybrid in hybrid_methods:
+        hybrid_data = results_df[results_df['method'] == hybrid]
+        if len(hybrid_data) > 0:
+            hybrid_metrics = {
+                'method': hybrid,
+                'method_name': hybrid_data['method_name'].iloc[0],
+                'type': 'Hybrid/Ensemble',
+                'rmse': hybrid_data['rmse'].mean(),
+                'mae': hybrid_data['mae'].mean(),
+                'r2': hybrid_data['r2'].mean(),
+                'n_samples': len(hybrid_data)
+            }
+            hybrid_comparison.append(hybrid_metrics)
+    
+    # Calculate average metrics for standalone methods
+    for standalone in standalone_methods:
+        standalone_data = results_df[results_df['method'] == standalone]
+        if len(standalone_data) > 0:
+            standalone_metrics = {
+                'method': standalone,
+                'method_name': standalone_data['method_name'].iloc[0],
+                'type': 'Standalone',
+                'rmse': standalone_data['rmse'].mean(),
+                'mae': standalone_data['mae'].mean(),
+                'r2': standalone_data['r2'].mean(),
+                'n_samples': len(standalone_data)
+            }
+            hybrid_comparison.append(standalone_metrics)
+    
+    # Create comparison dataframe and calculate improvement
+    if hybrid_comparison:
+        hybrid_df = pd.DataFrame(hybrid_comparison).round(4)
+        
+        # Add rank by RMSE
+        hybrid_df['rmse_rank'] = hybrid_df['rmse'].rank()
+        
+        # Calculate improvement over best standalone
+        best_standalone_rmse = hybrid_df[hybrid_df['type'] == 'Standalone']['rmse'].min()
+        hybrid_df['improvement_vs_best_standalone'] = (
+            (best_standalone_rmse - hybrid_df['rmse']) / best_standalone_rmse * 100
+        ).round(2)
+        
+        # Sort by RMSE
+        hybrid_df = hybrid_df.sort_values('rmse')
+        
+        # Save
+        hybrid_path = os.path.join(OUTPUT_DIR, HYBRID_FILE)
+        hybrid_df.to_csv(hybrid_path, index=False)
+        print(f"  Saved hybrid performance comparison to {HYBRID_FILE}")
+    
     print(f"\n{'='*70}")
     print("Task 3 Spatial Imputation Complete!")
     print(f"{'='*70}")
