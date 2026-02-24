@@ -1,0 +1,12 @@
+Method,Task,Type,Imputation RMSE,Imputation MAE,Imputation R²,XGBoost RMSE,XGBoost MAE,XGBoost R²,XGBoost F1,XGBoost AUC,AUC Rank
+Climatological Substitution,Task 2,Temporal,1.363,0.998,-2.6942,0.417749,0.340537,-1.391154,0.268838,0.680069,1
+Hybrid: Gap-Type Adaptive,Task 3,Hybrid,1.4862,1.0131,-0.7224,0.304107,0.213608,-0.079079,0.0,0.608043,2
+Hybrid: Sequential Temporal->Spatial,Task 3,Hybrid,1.4549,0.9887,-0.4605,0.304107,0.213608,-0.079079,0.0,0.608043,2
+Linear Interpolation,Task 2,Temporal,1.5058,0.9865,-0.006,0.30343,0.212802,-0.073841,0.0,0.597442,4
+Distance-Weighted Average,Task 3,Spatial,1.4671,1.1399,-55.2354,0.314198,0.232164,-0.139146,0.0,0.476009,5
+Advection-Based,Task 3,Spatial,1.2799,0.9781,-480.5132,0.313598,0.231859,-0.134597,0.0,0.470968,6
+Cross-Location KNN,Task 3,Spatial,,,,0.314615,0.231677,-0.143205,0.0,0.45305,7
+Cross-Location Linear Regression,Task 3,Spatial,0.9446,0.6679,0.4785,0.314615,0.231677,-0.143205,0.0,0.45305,7
+EOF/PCA Spatial Modes,Task 3,Spatial,1.1057,0.7528,-0.9259,0.314615,0.231677,-0.143205,0.0,0.45305,7
+Hybrid: Temporal-Spatial Ensemble,Task 3,Hybrid,9.9111,9.1057,-863.4764,,,,,,
+Spatial Kriging,Task 3,Spatial,0.8854,0.6363,-10.3035,,,,,,

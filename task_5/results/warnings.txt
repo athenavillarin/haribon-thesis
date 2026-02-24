@@ -1,0 +1,5 @@
+Task 5 warnings / missing-data log
+
+- Missing XGBoost metrics for method: Spatial Kriging
+- Missing imputation metrics for method: Cross-Location KNN
+- Missing XGBoost metrics for method: Hybrid: Temporal-Spatial Ensemble

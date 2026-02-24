@@ -1,0 +1,37 @@
+method_name,split_num,auc,note
+Advection-Based,1,0.5149253731343284,
+Advection-Based,2,0.5,
+Advection-Based,3,0.3470588235294117,Split 3 AUC may be uninformative (very low/zero bloom-event prevalence).
+Advection-Based,4,0.5218894009216589,
+Climatological Substitution,1,0.6800778715120052,
+Climatological Substitution,2,0.6789413118527042,
+Climatological Substitution,3,0.6705882352941176,Split 3 AUC may be uninformative (very low/zero bloom-event prevalence).
+Climatological Substitution,4,0.6906682027649769,
+Cross-Location KNN,1,0.5149253731343284,
+Cross-Location KNN,2,0.4620253164556961,
+Cross-Location KNN,3,0.3470588235294117,Split 3 AUC may be uninformative (very low/zero bloom-event prevalence).
+Cross-Location KNN,4,0.4881912442396314,
+Cross-Location Linear Regression,1,0.5149253731343284,
+Cross-Location Linear Regression,2,0.4620253164556961,
+Cross-Location Linear Regression,3,0.3470588235294117,Split 3 AUC may be uninformative (very low/zero bloom-event prevalence).
+Cross-Location Linear Regression,4,0.4881912442396314,
+Distance-Weighted Average,1,0.5149253731343284,
+Distance-Weighted Average,2,0.5,
+Distance-Weighted Average,3,0.3470588235294117,Split 3 AUC may be uninformative (very low/zero bloom-event prevalence).
+Distance-Weighted Average,4,0.5420506912442397,
+EOF/PCA Spatial Modes,1,0.5149253731343284,
+EOF/PCA Spatial Modes,2,0.4620253164556961,
+EOF/PCA Spatial Modes,3,0.3470588235294117,Split 3 AUC may be uninformative (very low/zero bloom-event prevalence).
+EOF/PCA Spatial Modes,4,0.4881912442396314,
+Hybrid: Gap-Type Adaptive,1,0.7709279688513951,
+Hybrid: Gap-Type Adaptive,2,0.7508630609896433,
+Hybrid: Gap-Type Adaptive,3,0.1505882352941176,Split 3 AUC may be uninformative (very low/zero bloom-event prevalence).
+Hybrid: Gap-Type Adaptive,4,0.7597926267281105,
+Hybrid: Sequential Temporal->Spatial,1,0.7709279688513951,
+Hybrid: Sequential Temporal->Spatial,2,0.7508630609896433,
+Hybrid: Sequential Temporal->Spatial,3,0.1505882352941176,Split 3 AUC may be uninformative (very low/zero bloom-event prevalence).
+Hybrid: Sequential Temporal->Spatial,4,0.7597926267281105,
+Linear Interpolation,1,0.7796885139519791,
+Linear Interpolation,2,0.7520138089758343,
+Linear Interpolation,3,0.1,Split 3 AUC may be uninformative (very low/zero bloom-event prevalence).
+Linear Interpolation,4,0.7580645161290323,
