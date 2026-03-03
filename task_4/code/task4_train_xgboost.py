@@ -3,7 +3,7 @@
 XGBoost Training Pipeline
 ==============================================================================
 Purpose:
-    For each of the 9 imputation methods sourced from Tasks 2 & 3, apply
+    For each of the 11 imputation methods sourced from Tasks 2 & 3, apply
     the method to each rolling-origin split, engineer features, train an
     XGBoost regression model, and evaluate downstream CHL prediction quality.
 
@@ -19,7 +19,7 @@ Validation framework:
 
 Output written to:
     task4_results/xgboost_results_per_split.csv
-    task4_results/shap_importance/shap_<method>.csv
+    task4_results/feature_importance/feature_importance_<method>.csv
 
 ==============================================================================
 """
@@ -99,7 +99,7 @@ VARIABLES_TO_IMPUTE: List[str] = [
 
 LOCATIONS: List[str] = ["Gigantes Polygon", "Roxas Polygon"]
 
-# 9 imputation methods: key → display name
+# 11 imputation methods: key → display name
 IMPUTATION_METHODS: Dict[str, str] = {
     "linear_interpolation":        "Linear Interpolation",
     "climatological":              "Climatological Substitution",
@@ -108,7 +108,9 @@ IMPUTATION_METHODS: Dict[str, str] = {
     "distance_weighted":           "Distance-Weighted Average",
     "advection":                   "Advection-Based",
     "eof_pca":                     "EOF/PCA Spatial Modes",
+    "kriging":                     "Spatial Kriging",
     "hybrid_sequential":           "Hybrid: Sequential Temporal→Spatial",
+    "hybrid_ensemble":             "Hybrid: Temporal-Spatial Ensemble",
     "hybrid_adaptive":             "Hybrid: Gap-Type Adaptive",
 }
 
@@ -118,8 +120,8 @@ SPLIT_TYPE: str = "rolling_origin"       # Task 1 folder
 # CHL threshold for post-hoc bloom classification (µg/L)
 BLOOM_THRESHOLD: float = 1.0
 
-# Top N SHAP features to persist per method
-TOP_N_SHAP: int = 15
+# Top N features to persist per method
+TOP_N_FEATURES: int = 15
 
 # XGBoost hyperparameters
 XGB_PARAMS: Dict = {
@@ -138,7 +140,7 @@ XGB_PARAMS: Dict = {
 # Output paths (relative to task_4/)
 OUTPUT_DIR        = _TASK4_DIR / "task4_results"
 PER_SPLIT_CSV     = OUTPUT_DIR / "xgboost_results_per_split.csv"
-SHAP_DIR          = OUTPUT_DIR / "shap_importance"
+FEAT_IMP_DIR      = OUTPUT_DIR / "feature_importance"
 
 
 # ---------------------------------------------------------------------------
@@ -216,7 +218,23 @@ def apply_imputation(
         return t2_impute_dataset(masked_data, baseline_data, t2_key)
 
     # ── Task 3 spatial / hybrid methods ───────────────────────────────────
-    result = masked_data.copy()
+    # Sort by Location_Name then Date and reset the integer index so each
+    # location's rows form a contiguous block [0, 1, …, N_loc-1].
+    # Task 3 functions filter the DataFrame internally with a boolean mask
+    # and then call pd.merge(), which always returns a fresh [0, 1, …] index.
+    # When the input has alternating Gigantes/Roxas rows the filtered subset
+    # has non-contiguous indices [0, 2, 4, …] which pandas cannot align with
+    # the merged result, causing "IndexingError: Unalignable boolean Series".
+    # Resetting the index here fixes this without touching Task 3 code.
+    masked_clean = (
+        masked_data.sort_values(["Location_Name", "Date"])
+        .reset_index(drop=True)
+    )
+    baseline_clean = (
+        baseline_data.sort_values(["Location_Name", "Date"])
+        .reset_index(drop=True)
+    )
+    result = masked_clean.copy()
 
     for location in LOCATIONS:
         loc_mask = result["Location_Name"] == location
@@ -225,36 +243,44 @@ def apply_imputation(
             try:
                 if method_key == "cross_location_regression":
                     imputed = cross_location_regression_impute(
-                        masked_data, var, baseline_data, location
+                        masked_clean, var, baseline_clean, location
                     )
                 elif method_key == "cross_location_knn":
                     imputed = cross_location_knn_impute(
-                        masked_data, var, baseline_data, location
+                        masked_clean, var, baseline_clean, location
                     )
                 elif method_key == "distance_weighted":
                     imputed = distance_weighted_impute(
-                        masked_data, var, baseline_data, location
+                        masked_clean, var, baseline_clean, location
                     )
                 elif method_key == "advection":
                     imputed = advection_impute(
-                        masked_data, var, baseline_data, location
+                        masked_clean, var, baseline_clean, location
                     )
                 elif method_key == "eof_pca":
                     imputed = eof_pca_impute(
-                        masked_data, var, baseline_data, location
+                        masked_clean, var, baseline_clean, location
+                    )
+                elif method_key == "kriging":
+                    imputed = kriging_impute(
+                        masked_clean, var, baseline_clean, location
                     )
                 elif method_key == "hybrid_sequential":
                     imputed = hybrid_sequential_impute(
-                        masked_data, var, baseline_data, location
+                        masked_clean, var, baseline_clean, location
+                    )
+                elif method_key == "hybrid_ensemble":
+                    imputed = hybrid_ensemble_impute(
+                        masked_clean, var, baseline_clean, location
                     )
                 elif method_key == "hybrid_adaptive":
                     imputed = hybrid_adaptive_impute(
-                        masked_data, var, baseline_data, location, mask_type
+                        masked_clean, var, baseline_clean, location, mask_type
                     )
                 else:
                     # Unrecognised method — leave as-is (forward-fill fallback)
                     imputed = (
-                        masked_data[masked_data["Location_Name"] == location][var]
+                        masked_clean[masked_clean["Location_Name"] == location][var]
                         .ffill()
                         .bfill()
                     )
@@ -322,16 +348,19 @@ def train_xgboost(
 # SHAP importance
 # ---------------------------------------------------------------------------
 
-def compute_shap_importance(
+def compute_feature_importance(
     model: xgb.XGBRegressor,
     X_test: pd.DataFrame,
-    top_n: int = TOP_N_SHAP,
+    top_n: int = TOP_N_FEATURES,
 ) -> pd.DataFrame:
     """
-    Compute mean absolute SHAP values on X_test and return the top-N features.
+    Compute feature importance scores on X_test and return the top-N features.
 
-    Uses TreeExplainer when shap is importable (fast, exact for tree models).
-    Falls back to XGBoost native gain-based importance otherwise.
+    Attempts SHAP TreeExplainer first (mean absolute Shapley values — exact for
+    tree models).  Falls back to XGBoost native gain-based importance when shap
+    is not installed or fails.  The column is labelled 'mean_abs_importance' in
+    both cases; callers should NOT assume this is SHAP unless shap is confirmed
+    installed.
 
     Args:
         model  : Trained XGBRegressor.
@@ -339,7 +368,7 @@ def compute_shap_importance(
         top_n  : Number of top features to return.
 
     Returns:
-        DataFrame with columns ['feature', 'mean_abs_shap'] sorted descending.
+        DataFrame with columns ['feature', 'mean_abs_importance'] sorted descending.
     """
     try:
         import shap as _shap  # lazy import — only runs when this function is called
@@ -354,8 +383,8 @@ def compute_shap_importance(
         )
 
     importance_df = (
-        pd.DataFrame({"feature": X_test.columns, "mean_abs_shap": mean_abs})
-        .sort_values("mean_abs_shap", ascending=False)
+        pd.DataFrame({"feature": X_test.columns, "mean_abs_importance": mean_abs})
+        .sort_values("mean_abs_importance", ascending=False)
         .head(top_n)
         .reset_index(drop=True)
     )
@@ -511,10 +540,10 @@ def run_one_split(
             f"F1={metrics['f1']:.4f}  AUC={metrics['auc']:.4f}"
         )
 
-        # 8. SHAP on test set
-        shap_df = compute_shap_importance(model, X_test)
-        shap_df["method"]    = method_key
-        shap_df["split_num"] = split_num
+        # 8. Feature importance on test set
+        feat_imp_df = compute_feature_importance(model, X_test)
+        feat_imp_df["method"]    = method_key
+        feat_imp_df["split_num"] = split_num
 
         return {
             "method_key":    method_key,
@@ -526,7 +555,7 @@ def run_one_split(
             "n_train":       len(X_tr),
             "n_test":        len(aligned),
             **metrics,
-            "_shap_df":      shap_df,   # internal; stripped before saving
+            "_feat_imp_df":  feat_imp_df,   # internal; stripped before saving
         }
 
     except Exception as exc:
@@ -548,7 +577,7 @@ def run_all(
     train XGBoost, evaluate, and persist results.
 
     Args:
-        methods: Subset of IMPUTATION_METHODS to run (default: all 9).
+        methods: Subset of IMPUTATION_METHODS to run (default: all 11).
 
     Returns:
         per_split_df : DataFrame with one row per method × split.
@@ -557,7 +586,7 @@ def run_all(
         methods = IMPUTATION_METHODS
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    SHAP_DIR.mkdir(parents=True, exist_ok=True)
+    FEAT_IMP_DIR.mkdir(parents=True, exist_ok=True)
 
     print("\nLoading baseline data...")
     baseline_data = load_baseline()
@@ -565,7 +594,7 @@ def run_all(
           f"{baseline_data['Date'].min().date()} → {baseline_data['Date'].max().date()}")
 
     all_results: List[Dict] = []
-    all_shap:    Dict[str, List[pd.DataFrame]] = {k: [] for k in methods}
+    all_feat_imp: Dict[str, List[pd.DataFrame]] = {k: [] for k in methods}
 
     total = len(methods) * NUM_SPLITS
     done  = 0
@@ -580,24 +609,24 @@ def run_all(
             done += 1
 
             if result is not None:
-                shap_df = result.pop("_shap_df")
-                all_shap[method_key].append(shap_df)
+                feat_imp_df = result.pop("_feat_imp_df")
+                all_feat_imp[method_key].append(feat_imp_df)
                 all_results.append(result)
 
-        # Save aggregated SHAP for this method
-        if all_shap[method_key]:
-            combined_shap = (
-                pd.concat(all_shap[method_key])
-                .groupby("feature")["mean_abs_shap"]
+        # Save aggregated feature importance for this method
+        if all_feat_imp[method_key]:
+            combined_imp = (
+                pd.concat(all_feat_imp[method_key])
+                .groupby("feature")["mean_abs_importance"]
                 .mean()
                 .sort_values(ascending=False)
-                .head(TOP_N_SHAP)
+                .head(TOP_N_FEATURES)
                 .reset_index()
             )
-            combined_shap["method"] = method_key
-            shap_path = SHAP_DIR / f"shap_{method_key}.csv"
-            combined_shap.to_csv(shap_path, index=False)
-            print(f"  → SHAP saved: {shap_path.name}")
+            combined_imp["method"] = method_key
+            imp_path = FEAT_IMP_DIR / f"feature_importance_{method_key}.csv"
+            combined_imp.to_csv(imp_path, index=False)
+            print(f"  → Feature importance saved: {imp_path.name}")
 
     # Persist per-split results
     per_split_df = pd.DataFrame(all_results)
