@@ -1,0 +1,16 @@
+feature,mean_abs_importance,method
+CHL_Gigantes_lag1,0.050420046,cross_location_knn
+CHL_Gigantes_roll7mean,0.049904805,cross_location_knn
+so_Roxas_roll30mean,0.048653282,cross_location_knn
+CHL_Roxas_roll14mean,0.026609441,cross_location_knn
+CHL_Gigantes_roll30mean,0.024935707,cross_location_knn
+CHL_Roxas_roll30std,0.022867577,cross_location_knn
+CHL_anomaly_Gigantes,0.02258328,cross_location_knn
+so_Roxas_roll7mean,0.016618,cross_location_knn
+CHL_Gigantes_roll14mean,0.01061895,cross_location_knn
+Delta_thetao,0.007790565,cross_location_knn
+mlotst_Gigantes,0.0075599905,cross_location_knn
+CHL_Roxas,0.00653385,cross_location_knn
+CHL_Gigantes_roll30std,0.0061570494,cross_location_knn
+Delta_vo,0.0053330017,cross_location_knn
+thetao_Roxas_roll30std,0.0052504535,cross_location_knn

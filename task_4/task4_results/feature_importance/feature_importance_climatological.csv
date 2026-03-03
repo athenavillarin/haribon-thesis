@@ -1,0 +1,16 @@
+feature,mean_abs_importance,method
+CHL_anomaly_Gigantes,0.13036169,climatological
+CHL_Gigantes_lag1,0.110524535,climatological
+so_Roxas_roll30mean,0.07063549,climatological
+CHL_Gigantes_roll30mean,0.062390864,climatological
+CHL_Gigantes_roll7mean,0.047837287,climatological
+CHL_Gigantes_roll14mean,0.014463094,climatological
+Delta_thetao,0.0134117305,climatological
+so_Roxas_roll7mean,0.0116670225,climatological
+wind_v_ms_Gigantes,0.009882299,climatological
+mlotst_Gigantes,0.009684992,climatological
+thetao_Gigantes,0.009502458,climatological
+CHL_Roxas_roll30std,0.009374714,climatological
+wind_v_ms_Roxas,0.0070068426,climatological
+Delta_uo,0.006150411,climatological
+o2_Roxas,0.005849393,climatological
