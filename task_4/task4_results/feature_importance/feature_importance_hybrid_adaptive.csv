@@ -1,0 +1,16 @@
+feature,mean_abs_importance,method
+CHL_anomaly_Gigantes,0.077340916,hybrid_adaptive
+so_Roxas_roll30mean,0.07581493,hybrid_adaptive
+CHL_Gigantes_lag1,0.045714647,hybrid_adaptive
+CHL_Gigantes_roll7mean,0.037405044,hybrid_adaptive
+CHL_Gigantes_roll30mean,0.033779465,hybrid_adaptive
+so_Roxas_roll7mean,0.016365705,hybrid_adaptive
+CHL_Roxas_roll30std,0.009909373,hybrid_adaptive
+CHL_Gigantes_roll14mean,0.009492056,hybrid_adaptive
+Delta_thetao,0.008268231,hybrid_adaptive
+thetao_Gigantes,0.0064658625,hybrid_adaptive
+CHL_Gigantes_roll30std,0.005743269,hybrid_adaptive
+so_Gigantes,0.0049632885,hybrid_adaptive
+mlotst_Gigantes,0.0046040094,hybrid_adaptive
+Delta_CHL,0.0042052423,hybrid_adaptive
+CHL_Roxas,0.0041775084,hybrid_adaptive

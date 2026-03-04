@@ -10,9 +10,10 @@ Purpose:
 Feature Groups:
     1. Spatial Differences  — ΔX = X_Gigantes − X_Roxas for all 15 variables
     2. Rolling Statistics   — 7d, 14d, 30d mean & std for CHL, SST, Salinity
-    3. Calendar Features    — day-of-year, month, is_habagat boolean
-    4. Derived Indices      — CHL anomaly, SST stress indicator
-    5. Imputation Flags     — binary was_imputed_<var> from mask.csv
+    3. Lag Features         — CHL and SST at t−1, t−7, t−14, t−30 (both locations)
+    4. Calendar Features    — day-of-year, month, is_habagat boolean
+    5. Derived Indices      — CHL anomaly, SST stress indicator
+    6. Imputation Flags     — binary was_imputed_<var> from mask.csv
 
 Input:
     imputed_df  : long-format DataFrame after imputation
@@ -49,6 +50,12 @@ ROLLING_VARS: list[str] = ["CHL", "thetao", "so"]
 
 # Rolling window sizes (days)
 ROLLING_WINDOWS: list[int] = [7, 14, 30]
+
+# Variables for which explicit lag features are computed
+LAG_VARS: list[str] = ["CHL", "thetao"]
+
+# Lag offsets in days — capture autocorrelation at key timescales
+LAG_DAYS: list[int] = [1, 7, 14, 30]
 
 # SST threshold for thermal stress (°C)
 SST_STRESS_THRESHOLD: float = 29.5
@@ -147,6 +154,45 @@ def add_rolling_features(wide: pd.DataFrame) -> pd.DataFrame:
                 wide[f"{col}_roll{win}std"] = (
                     series.rolling(win, min_periods=1).std().fillna(0.0)
                 )
+    return wide
+
+
+# ---------------------------------------------------------------------------
+# Step 3b: Lag features
+# ---------------------------------------------------------------------------
+
+def add_lag_features(wide: pd.DataFrame) -> pd.DataFrame:
+    """
+    Append explicit lag columns for CHL and SST at both locations.
+
+    Lag features capture autocorrelation at ecologically meaningful
+    timescales: 1-day persistence, 7-day weekly cycle, 14-day fortnightly
+    tidal cycle, and 30-day monthly/seasonal baseline.
+
+    All lags use .shift(n) — strictly backward-looking, no look-ahead.
+    NaN values at the start of each series (before sufficient history
+    exists) are filled with the series mean to avoid propagating NaN
+    into the feature matrix.
+
+    Args:
+        wide: Wide-format DataFrame after add_rolling_features().
+
+    Returns:
+        wide with additional <var>_<loc>_lag<n> columns.
+    """
+    wide = wide.copy()
+    for var in LAG_VARS:
+        for loc in ("Gigantes", "Roxas"):
+            col = f"{var}_{loc}"
+            if col not in wide.columns:
+                continue
+            series = wide[col]
+            for lag in LAG_DAYS:
+                lag_col = f"{col}_lag{lag}"
+                lagged = series.shift(lag)
+                # Fill NaN at series start with column mean to avoid
+                # propagating missing values into the model
+                wide[lag_col] = lagged.fillna(lagged.mean())
     return wide
 
 
@@ -272,9 +318,10 @@ def build_feature_matrix(
         1. Pivot long → wide
         2. Spatial differences
         3. Rolling statistics (no look-ahead)
-        4. Calendar features
-        5. Derived domain indices
-        6. Imputation flags
+        4. Lag features (CHL & SST at t−1, t−7, t−14, t−30)
+        5. Calendar features
+        6. Derived domain indices
+        7. Imputation flags
 
     Args:
         imputed_df : Fully imputed long-format DataFrame.
@@ -288,6 +335,7 @@ def build_feature_matrix(
     wide = pivot_to_wide(imputed_df)
     wide = add_spatial_differences(wide)
     wide = add_rolling_features(wide)
+    wide = add_lag_features(wide)
     wide = add_calendar_features(wide)
     wide = add_derived_indices(wide)
     wide = add_imputation_flags(wide, mask_df)

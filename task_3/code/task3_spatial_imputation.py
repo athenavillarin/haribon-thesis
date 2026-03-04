@@ -224,13 +224,17 @@ def cross_location_regression_impute(data, variable, baseline_data, location):
     missing_mask = result.isna()
     
     if missing_mask.sum() > 0:
-        predict_data = merged.loc[missing_mask, feature_cols]
-        predict_mask = predict_data.notna().all(axis=1)
-        
-        if predict_mask.sum() > 0:
-            predictions = model.predict(predict_data.loc[predict_mask].values)
-            result.loc[missing_mask & predict_mask] = predictions
-    
+        # merged has a fresh 0-based index from pd.merge(); use positional
+        # indexing to avoid "Unalignable boolean Series" when data_loc's
+        # index is non-zero-based (e.g. Roxas rows after Task 4 sort+reset).
+        missing_pos = np.where(missing_mask.values)[0]
+        predict_data = merged.iloc[missing_pos][feature_cols]
+        predict_mask_arr = predict_data.notna().all(axis=1).values
+
+        if predict_mask_arr.sum() > 0:
+            predictions = model.predict(predict_data.iloc[predict_mask_arr].values)
+            result.iloc[missing_pos[predict_mask_arr]] = predictions
+
     return result
 
 def cross_location_knn_impute(data, variable, baseline_data, location):
@@ -284,14 +288,14 @@ def cross_location_knn_impute(data, variable, baseline_data, location):
             
             # Get K nearest neighbors
             k_indices = np.argsort(combined_distances)[:KNN_K]
-            k_weights = 1 / (combined_distances[k_indices] + 1e-10)
+            k_weights = 1 / (combined_distances.iloc[k_indices] + 1e-10)
             k_weights /= k_weights.sum()
             
             # Weighted average
             k_values = train_data.iloc[k_indices][variable].values
             if not np.isnan(k_values).all():
-                result.loc[idx] = np.average(k_values[~np.isnan(k_values)], 
-                                            weights=k_weights[~np.isnan(k_values)])
+                result.loc[idx] = np.average(k_values[~np.isnan(k_values)],
+                                             weights=k_weights.values[~np.isnan(k_values)])
     
     return result
 
@@ -314,7 +318,8 @@ def distance_weighted_impute(data, variable, baseline_data, location):
     
     # Simple approach: use other location's value directly
     # (since we only have 2 locations, distance weighting is binary)
-    result.loc[missing_mask] = merged.loc[missing_mask, f'{variable}_other'].values
+    # merged has 0-based index from pd.merge(); use .values positional access
+    result.loc[missing_mask] = merged[f'{variable}_other'].values[missing_mask.values]
     
     return result
 
@@ -349,8 +354,10 @@ def advection_impute(data, variable, baseline_data, location):
         return distance_weighted_impute(data, variable, baseline_data, location)
     
     # Estimate optimal lag from cross-correlation on baseline data
-    baseline_merged = pd.merge(baseline_loc[['Date', variable, velocity_var]], 
-                               baseline_other[['Date', variable, velocity_var]], 
+    # Deduplicate columns in case variable == velocity_var (e.g. wind_speed_ms)
+    lag_cols = list(dict.fromkeys(['Date', variable, velocity_var]))
+    baseline_merged = pd.merge(baseline_loc[lag_cols],
+                               baseline_other[lag_cols],
                                on='Date', suffixes=('_loc', '_other'))
     
     # Find best lag (0 to 7 days)
@@ -376,8 +383,10 @@ def advection_impute(data, variable, baseline_data, location):
     missing_mask = result.isna()
     
     # Shift other location by optimal lag
+    # merged has 0-based index from pd.merge(); use .values to avoid
+    # "Unalignable boolean Series" when missing_mask has a different index
     lagged_values = merged[f'{variable}_other'].shift(best_lag)
-    result.loc[missing_mask] = lagged_values.loc[missing_mask]
+    result.loc[missing_mask] = lagged_values.values[missing_mask.values]
     
     return result
 
@@ -482,7 +491,8 @@ def kriging_impute(data, variable, baseline_data, location):
     missing_mask = result.isna()
     
     # Kriging prediction: Y_loc = mean_loc + weight * (Y_other - mean_other)
-    other_values = merged.loc[missing_mask, f'{variable}_other']
+    # merged has 0-based index from pd.merge(); use .values positional access
+    other_values = merged[f'{variable}_other'].values[missing_mask.values]
     kriging_pred = mean_loc + weight * (other_values - mean_other)
     result.loc[missing_mask] = kriging_pred
     
@@ -577,8 +587,13 @@ def hybrid_ensemble_impute(data, variable, baseline_data, location):
     
     for idx in missing_idx:
         w = weights[idx]
-        t_val = temporal_pred.loc[idx] if not np.isnan(temporal_pred.loc[idx]) else 0
-        s_val = spatial_pred.loc[idx] if not np.isnan(spatial_pred.loc[idx]) else 0
+        # temporal_pred is from data_loc (reset_index) → 0-based, .loc[idx] is fine
+        # spatial_pred is from cross_location_regression_impute(data, ...) which uses
+        # data's original index → use .values[idx] to stay positional
+        t_val_raw = temporal_pred.loc[idx]
+        s_val_raw = spatial_pred.values[idx]
+        t_val = t_val_raw if not np.isnan(t_val_raw) else 0
+        s_val = s_val_raw if not np.isnan(s_val_raw) else 0
         
         if not np.isnan(t_val) and not np.isnan(s_val):
             result.loc[idx] = w * t_val + (1 - w) * s_val
@@ -593,9 +608,21 @@ def hybrid_adaptive_impute(data, variable, baseline_data, location, mask_type):
     """
     Hybrid 3: Gap-Type Adaptive
     Select method based on gap pattern type.
+
+    Strategy selection logic:
+        random        → Linear interpolation (short scattered gaps)
+        block         → Cross-location regression (contiguous block, other
+                        location available as reference)
+        seasonal      → Climatology blended with cross-location regression
+        cross_variable→ EOF/PCA (structure across variables, not time)
+        rolling_origin→ Climatological substitution (long contiguous window
+                        with BOTH locations masked simultaneously; neither
+                        interpolation nor spatial cross-reference is viable)
+        default (else)→ Measure actual gap size and choose accordingly:
+                        short (≤7d) → interpolation, long → climatology
     """
     data_loc = data[data['Location_Name'] == location].copy().reset_index(drop=True)
-    
+
     # Select method based on mask type
     if 'random' in mask_type:
         # Random gaps: use temporal interpolation
@@ -605,21 +632,45 @@ def hybrid_adaptive_impute(data, variable, baseline_data, location, mask_type):
         result = cross_location_regression_impute(data, variable, baseline_data, location)
     elif 'seasonal' in mask_type:
         # Seasonal gaps: climatology + spatial adjustment
-        clim_result = climatological_impute(data_loc, variable, 
-                                           baseline_data[baseline_data['Location_Name'] == location])
+        clim_result = climatological_impute(data_loc, variable,
+                                            baseline_data[baseline_data['Location_Name'] == location])
         spatial_result = cross_location_regression_impute(data, variable, baseline_data, location)
-        
+
         # Average climatology and spatial
         result = data_loc[variable].copy()
         missing_mask = result.isna()
-        result.loc[missing_mask] = (clim_result.loc[missing_mask] + spatial_result.loc[missing_mask]) / 2
+        result.loc[missing_mask] = (
+            clim_result.loc[missing_mask] + spatial_result.loc[missing_mask]
+        ) / 2
     elif 'cross_variable' in mask_type:
         # Cross-variable gaps: use PCA
         result = eof_pca_impute(data, variable, baseline_data, location)
+    elif 'rolling_origin' in mask_type:
+        # Rolling-origin gaps: long contiguous window, both locations masked.
+        # Cross-location methods cannot access the reference location.
+        # Interpolation cannot extrapolate 90+ days reliably.
+        # Climatological substitution (day-of-year historical mean) is the
+        # only method with sufficient information to fill these gaps.
+        result = climatological_impute(
+            data_loc, variable,
+            baseline_data[baseline_data['Location_Name'] == location]
+        )
     else:
-        # Default: sequential hybrid
-        result = hybrid_sequential_impute(data, variable, baseline_data, location)
-    
+        # Default: measure actual gap structure and choose adaptively.
+        missing_mask = data_loc[variable].isna()
+        gap_sizes = calculate_gap_sizes(missing_mask)
+        max_gap = max(gap_sizes.values()) if gap_sizes else 0
+
+        if max_gap <= 7:
+            # Short gaps: interpolation handles these well
+            result = linear_interpolation_impute(data_loc, variable)
+        else:
+            # Longer gaps: climatology is more robust than extrapolation
+            result = climatological_impute(
+                data_loc, variable,
+                baseline_data[baseline_data['Location_Name'] == location]
+            )
+
     return result
 
 def calculate_gap_sizes(missing_mask):

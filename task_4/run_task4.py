@@ -2,7 +2,7 @@
 ==============================================================================
 Usage:
     cd task_4
-    python run_task4.py                         # run all 9 methods
+    python run_task4.py                         # run all 11 methods
     python run_task4.py --methods linear_interpolation hybrid_adaptive
     python run_task4.py --evaluate-only         # re-aggregate existing results
     python run_task4.py --help
@@ -11,8 +11,9 @@ Output:
     task4_results/
     ├── xgboost_results_per_split.csv   — per method × split metrics
     ├── xgboost_results_summary.csv     — method-level summary (Task 5 input)
-    └── shap_importance/
-        └── shap_<method>.csv           — top-15 SHAP features per method
+    └── feature_importance/
+        └── feature_importance_<method>.csv  — top-15 features per method
+                                               (gain-based; SHAP if shap installed)
 
 ==============================================================================
 """
@@ -56,7 +57,7 @@ def parse_args() -> argparse.Namespace:
         choices=list(IMPUTATION_METHODS.keys()),
         metavar="METHOD",
         help=(
-            "Imputation methods to evaluate (default: all 9).\n"
+            "Imputation methods to evaluate (default: all 11).\n"
             "Choices:\n"
             + "\n".join(f"  {k}" for k in IMPUTATION_METHODS)
         ),
