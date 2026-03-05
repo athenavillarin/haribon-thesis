@@ -1,0 +1,14 @@
+XGBoost Best Hyperparameters
+==================================================
+
+Best Cross-Validation AUC: 0.9254
+
+Best Parameters:
+  subsample: 0.8
+  scale_pos_weight: 20
+  n_estimators: 300
+  min_child_weight: 3
+  max_depth: 3
+  learning_rate: 0.05
+  gamma: 0.4
+  colsample_bytree: 1.0
