@@ -39,10 +39,15 @@ print(f"[OK] Extracted Month from Date column")
 df = df.sort_values(['Location_Name', 'Date']).reset_index(drop=True)
 print(f"[OK] Sorted by Location_Name and Date")
 
-# Fill missing red_tide values with 0 (non-bloom days) and convert to integer
-df['red_tide'] = df['red_tide'].fillna(0).astype(int)
-print(f"[OK] Filled missing red_tide values with 0")
-print(f"  Red tide distribution: {df['red_tide'].value_counts().to_dict()}")
+# Drop rows where red_tide_label is unavailable (required for supervised training)
+before_drop = len(df)
+df = df.dropna(subset=['red_tide_label']).reset_index(drop=True)
+print(f"[OK] Dropped {before_drop - len(df)} rows with missing red_tide_label ({len(df)} rows remaining)")
+
+# Binary conversion: red_tide_label >= 0.5 → 1 (bloom), else 0
+df['red_tide_binary'] = (df['red_tide_label'] >= 0.5).astype(int)
+print(f"[OK] Binarized red_tide_label using threshold=0.5")
+print(f"  Binary class distribution: {df['red_tide_binary'].value_counts().to_dict()}")
 print()
 
 # ============================================================================
@@ -50,8 +55,8 @@ print()
 # ============================================================================
 print("Step 2: Applying Hybrid: Gap-Type Adaptive imputation...")
 
-# Identify feature columns (exclude target, Date, Location, Month)
-feature_cols = [col for col in df.columns if col not in ['red_tide', 'Date', 'Location_Name', 'Month']]
+# Identify feature columns (exclude target columns, Date, Location, Month)
+feature_cols = [col for col in df.columns if col not in ['red_tide', 'red_tide_label', 'red_tide_binary', 'Date', 'Location_Name', 'Month']]
 print(f"  Feature columns to impute: {len(feature_cols)}")
 print(f"  Features: {', '.join(feature_cols[:5])}..." if len(feature_cols) > 5 else f"  Features: {', '.join(feature_cols)}")
 
@@ -112,13 +117,13 @@ print()
 print("Step 3: Preparing features and target...")
 
 # Define X and y
-X = df.drop(['red_tide', 'Date', 'Location_Name', 'Month'], axis=1)
-y = df['red_tide']
+X = df.drop(['red_tide', 'red_tide_label', 'red_tide_binary', 'Date', 'Location_Name', 'Month'], axis=1)
+y = df['red_tide_binary']
 
 print(f"[OK] X shape: {X.shape}")
 print(f"[OK] y shape: {y.shape}")
 print(f"[OK] Feature columns: {list(X.columns)}")
-print(f"[OK] Class distribution: {y.value_counts().to_dict()}")
+print(f"[OK] Class distribution (binary, threshold=0.5): {y.value_counts().to_dict()}")
 print(f"[OK] Class imbalance ratio: {(y == 0).sum() / (y == 1).sum():.2f}:1 (non-bloom:bloom)")
 print()
 
@@ -133,8 +138,7 @@ print()
 xgb_model = XGBClassifier(
     objective='binary:logistic',
     eval_metric='auc',
-    random_state=42,
-    use_label_encoder=False
+    random_state=42
 )
 
 # Hyperparameter search grid
