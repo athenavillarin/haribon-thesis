@@ -1,0 +1,97 @@
+﻿========================================================================
+HARIBON Objective 2 -- Task 5: Ensemble Model
+========================================================================
+Dataset   : C:\Users\meagie\Desktop\haribon-thesis\final_compiled_dataset\Combined_Labeled.csv
+Splits    : [1, 2, 3, 4]
+Strategies: ['soft_vote', 'weighted_avg', 'stacked']
+Transformer scenario: hybrid_adaptive
+========================================================================
+
+[Phase 1] Loading data and building splits...
+  Loaded 28,016 rows | 4 splits active
+  Split 1: train <=2019-12-31 | test 2020-01-01 to 2020-12-31 | n_train=12,441 | n_test=2,484 | bloom_rate=0.057
+  Split 2: train <=2020-12-31 | test 2021-01-01 to 2021-12-31 | n_train=14,925 | n_test=2,505 | bloom_rate=0.196
+  Split 3: train <=2021-12-31 | test 2022-01-01 to 2022-12-31 | n_train=17,430 | n_test=2,476 | bloom_rate=0.317
+  Split 4: train <=2022-12-31 | test 2023-01-01 to 2023-12-31 | n_train=19,906 | n_test=2,504 | bloom_rate=0.412
+
+[Phase 2] Running per-model inference...
+
+  Split 1 (2020-01-01 to 2020-12-31)
+python : 2026-03-07 13:21:30.583352: I tensorflow/core/util/port.cc:153] 
+oneDNN custom operations are on. You may see slightly different numerical 
+results due to floating-point round-off errors from different computation 
+orders. To turn them off, set the environment variable 
+`TF_ENABLE_ONEDNN_OPTS=0`.
+At line:1 char:90
++ ... NG="utf-8"; python run_ensemble.py --transformer-scenario hybrid_adap ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (2026-03-07 13:2...ONEDNN_OPTS=0`. 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+2026-03-07 13:21:34.978219: I tensorflow/core/util/port.cc:153] oneDNN custom 
+operations are on. You may see slightly different numerical results due to 
+floating-point round-off errors from different computation orders. To turn 
+them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2026-03-07 13:21:37.081641: I 
+tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is 
+optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: SSE3 SSE4.1 SSE4.2 AVX AVX2 FMA, in 
+other operations, rebuild TensorFlow with the appropriate compiler flags.
+2026-03-07 13:21:37.562135: E tensorflow/core/util/util.cc:131] oneDNN 
+supports DT_BOOL only on platforms with AVX-512. Falling back to the default 
+Eigen-based implementation if present.
+  [lstm]        OK (2484 samples)
+  [gru]         OK (2484 samples)
+  [transformer] OK (2484 samples)
+  [xgboost]     OK (2484 samples)
+
+  Split 2 (2021-01-01 to 2021-12-31)
+  [lstm]        OK (2505 samples)
+  [gru]         OK (2505 samples)
+  [transformer] OK (2505 samples)
+  [xgboost]     OK (2505 samples)
+
+  Split 3 (2022-01-01 to 2022-12-31)
+  [lstm]        OK (2476 samples)
+  [gru]         OK (2476 samples)
+  [transformer] OK (2476 samples)
+  [xgboost]     OK (2476 samples)
+
+  Split 4 (2023-01-01 to 2023-12-31)
+  [lstm]        OK (2504 samples)
+  [gru]         OK (2504 samples)
+  [transformer] OK (2504 samples)
+  [xgboost]     OK (2504 samples)
+
+[Phase 3] Applying ensemble strategies...
+
+[Phase 4] Computing metrics...
+  Saved: C:\Users\meagie\Desktop\haribon-thesis\ensemble_model\results\ensemble_per_split_metrics.csv
+  Saved: C:\Users\meagie\Desktop\haribon-thesis\ensemble_model\results\ensemble_summary.csv
+  Saved: C:\Users\meagie\Desktop\haribon-thesis\ensemble_model\results\obj2_model_comparison_final.csv
+
+========================================================================
+ENSEMBLE RESULTS -- Per-model & strategy (mean +/- std, sorted by AUC)
+========================================================================
+ rank_auc   source         name  accuracy_mean  precision_mean  recall_mean  f1_mean  auc_mean  n_splits
+        1    model         lstm       0.793218        0.725465     0.222741 0.332070  0.881377         4
+        2    model          gru       0.777919        0.694469     0.142120 0.229742  0.874853         4
+        3 ensemble weighted_avg       0.777357        0.903816     0.117255 0.202158  0.861479         4
+        4 ensemble      stacked       0.755351        0.621091     0.661608 0.435916  0.847827         4
+        5 ensemble    soft_vote       0.775436        0.899651     0.107231 0.182909  0.843343         4
+        6    model      xgboost       0.770023        0.580999     0.151465 0.231667  0.665961         4
+        7    model  transformer       0.758306        0.132837     0.082202 0.101558  0.505714         4
+
+========================================================================
+OBJECTIVE 2 FINAL MODEL COMPARISON
+========================================================================
+ rank                               model  auc_mean  auc_std  f1_mean  f1_std  accuracy_mean  n_splits                                                         notes
+    1             Ensemble (weighted_avg)    0.8615   0.0997   0.2022  0.0630         0.7774         4          Best ensemble strategy by AUC across 4 common splits
+    2 XGBoost (Hybrid: Gap-Type Adaptive)    0.7942   0.1427   0.1863  0.2425            NaN         4 Task 4 downstream XGBoost evaluation (best imputation method)
+    3                         Transformer    0.7758   0.0959   0.2534  0.2942         0.6967         4    native_masking scenario (best per transformer_summary.csv)
+    4                                LSTM    0.6497   0.1954   0.5185  0.0516         0.7559         4                  Splits 1-4 of 6 rolling-origin yearly splits
+    5                                 GRU    0.6182   0.1219   0.5415  0.0440         0.7532         4                  Splits 1-4 of 6 rolling-origin yearly splits
+
+Γÿà  Best model: Ensemble (weighted_avg)  |  AUC = 0.8615
+========================================================================
