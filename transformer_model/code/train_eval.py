@@ -54,6 +54,7 @@ def train_and_evaluate_split(
     y_test: np.ndarray,
     config: TrainConfig,
     random_seed: int = 42,
+    return_model: bool = False,
 ) -> Dict[str, float]:
     """Train one Transformer model and evaluate on one split."""
     torch, nn = import_torch()
@@ -164,4 +165,6 @@ def train_and_evaluate_split(
             "positive_rate_test": float(np.mean(y_test)) if len(y_test) > 0 else np.nan,
         }
     )
+    if return_model:
+        return metrics, model  # type: ignore[return-value]
     return metrics

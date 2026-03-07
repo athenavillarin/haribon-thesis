@@ -49,6 +49,7 @@ SCENARIOS = ["hybrid_adaptive", "native_masking"]
 NUM_SPLITS = 4
 
 RESULTS_DIR = _THIS_DIR / "results"
+SAVED_MODELS_DIR = _THIS_DIR / "saved_model"
 PER_SPLIT_CSV = RESULTS_DIR / "transformer_per_split_metrics.csv"
 SUMMARY_CSV = RESULTS_DIR / "transformer_summary.csv"
 DELTA_CSV = RESULTS_DIR / "transformer_hybrid_vs_native.csv"
@@ -86,6 +87,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    SAVED_MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
     cfg = TrainConfig(
         epochs=args.epochs,
@@ -149,7 +151,15 @@ def main() -> None:
                 y_test=ds["y_test"],
                 config=cfg,
                 random_seed=42 + split_cfg.split_num,
+                return_model=True,
             )
+
+            # Unpack (metrics, model) when return_model=True
+            if isinstance(metrics, tuple):
+                metrics, trained_model = metrics
+                torch, _ = __import__("transformer_core", fromlist=["import_torch"]).import_torch()
+                model_path = SAVED_MODELS_DIR / f"transformer_{scenario}_split{split_cfg.split_num}.pt"
+                torch.save(trained_model.state_dict(), model_path)
 
             row = {
                 "scenario": scenario,
