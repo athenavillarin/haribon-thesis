@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, * {
+    font-family: 'Quicksand', sans-serif !important;
+  }
+}
+
+body {
+  margin: 0;
+  width: 100%;
+}
+
+.custom-pin-icon {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+}
+
+@media (max-width: 1024px) {
+  h2 {
+    font-size: 20px;
+  }
+}
+
+p {
+  margin: 0;
+}
+
+code,
+.counter {
+  font-family: monospace;
+  display: inline-flex;
+  border-radius: 4px;
+  color: #333;
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: #f4f4f4;
+}

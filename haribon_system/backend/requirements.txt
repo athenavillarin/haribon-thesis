@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-multipart
+xgboost
+scikit-learn
+pandas
+numpy
+joblib
+python-dotenv
+earthengine-api
+requests
+sqlalchemy
+psycopg2-binary
