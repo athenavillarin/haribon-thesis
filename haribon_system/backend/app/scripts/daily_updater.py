@@ -1,0 +1,626 @@
+import json
+import pandas as pd
+import sys
+from pathlib import Path
+from datetime import datetime, timedelta
+import numpy as np
+
+backend_dir = Path(__file__).resolve().parent.parent.parent
+system_dir = backend_dir.parent 
+project_root = system_dir.parent
+
+sys.path.append(str(backend_dir))
+sys.path.append(str(system_dir))
+sys.path.append(str(project_root / "haribon_system"))
+
+
+from app.core.config import settings
+from app.services.copernicus_fallback_service import get_copernicus_fallback_for_location
+
+try:
+    from app.core.database import SessionLocal
+    from app.models.forecast import DailyForecast
+except Exception as db_import_error:
+    SessionLocal = None
+    DailyForecast = None
+    print(f"[WARN] Database persistence disabled in updater: {db_import_error}")
+
+try:
+    from app.services.gee_service import get_environmental_data_for_feature
+except Exception as gee_import_error:
+    get_environmental_data_for_feature = None
+    print(f"[WARN] GEE service unavailable; forecasts will use non-GEE fallback data: {gee_import_error}")
+
+
+def load_ml_components(historical_df: pd.DataFrame):
+    """Load the production XGBoost model and feature names.
+
+    This replaces the older haribon_model_v2 + scaler pipeline and instead
+    uses the tuned XGBoost model trained in xgboost_model/train_xgboost_haribon.py.
+    """
+    from xgboost import XGBClassifier
+
+    xgb_dir = project_root / "xgboost_model" / "results"
+    model_path = xgb_dir / "best_xgboost_model.json"
+
+    print(f"Loading XGBoost model from {model_path}...")
+    model = XGBClassifier()
+    model.load_model(str(model_path))
+
+    feature_names = [
+        col
+        for col in historical_df.columns
+        if col
+        not in [
+            "red_tide",
+            "red_tide_label",
+            "red_tide_binary",
+            "Date",
+            "Location_Name",
+            "Month",
+        ]
+    ]
+
+    print(f"XGBoost feature columns ({len(feature_names)}): {feature_names}")
+    return model, feature_names
+
+def load_historical_data():
+    """Load the historical dataset to direct feature engineering."""
+    data_path = project_root / "final_compiled_dataset" / "Combined_Labeled.csv"
+    if not data_path.exists():
+        possible_paths = [
+            Path("final_compiled_dataset/Combined_Labeled.csv"),
+            Path("../final_compiled_dataset/Combined_Labeled.csv"),
+            Path("../../final_compiled_dataset/Combined_Labeled.csv")
+        ]
+        for p in possible_paths:
+            if p.exists():
+                data_path = p
+                break
+    
+    print(f"Loading historical data from {data_path}...")
+    df = pd.read_csv(data_path)
+    df['Date'] = pd.to_datetime(df['Date'])
+    return df
+
+def get_latest_data_for_location(df, location_name):
+    """Get the latest available data row for a specific location."""
+    loc_df = df[df['Location_Name'] == location_name].sort_values('Date')
+    if loc_df.empty:
+        return None
+    return loc_df.iloc[-1]
+
+
+def _is_missing(value) -> bool:
+    """Return True if value is None/NaN-like."""
+    return value is None or pd.isna(value)
+
+
+def _build_feature_imputation_stats(historical_df: pd.DataFrame, feature_names: list[str]):
+    """Precompute climatological means used by training-time imputation logic."""
+    stats_df = historical_df.copy()
+    stats_df['Month'] = pd.to_datetime(stats_df['Date']).dt.month
+
+    loc_month_means = stats_df.groupby(['Location_Name', 'Month'])[feature_names].mean()
+    loc_means = stats_df.groupby('Location_Name')[feature_names].mean()
+    global_means = stats_df[feature_names].mean()
+
+    return loc_month_means, loc_means, global_means
+
+
+def _build_feature_row_with_fallbacks(
+    feature_names: list[str],
+    source_data: dict,
+    location: str,
+    month: int,
+    loc_month_means: pd.DataFrame,
+    loc_means: pd.DataFrame,
+    global_means: pd.Series,
+):
+    """Create one model input row, filling missing values with training-style fallbacks."""
+    row = {}
+    observed_non_missing = 0
+
+    for col in feature_names:
+        raw_val = source_data.get(col, np.nan)
+        if not _is_missing(raw_val):
+            row[col] = raw_val
+            observed_non_missing += 1
+            continue
+
+        # Fallback 1: climatological mean for this location+month
+        val = np.nan
+        if (location, month) in loc_month_means.index:
+            val = loc_month_means.loc[(location, month), col]
+
+        # Fallback 2: location-wide mean
+        if _is_missing(val) and location in loc_means.index:
+            val = loc_means.loc[location, col]
+
+        # Fallback 3: global mean
+        if _is_missing(val):
+            val = global_means.get(col, np.nan)
+
+        row[col] = val
+
+    return row, observed_non_missing
+
+
+def _compute_recent_red_tide_signal(
+    historical_df: pd.DataFrame,
+    location: str,
+    reference_date: datetime,
+) -> dict:
+    loc_df = historical_df[historical_df["Location_Name"] == location].copy()
+    if loc_df.empty or "red_tide_label" not in loc_df.columns:
+        return {
+            "has_signal": False,
+            "days_since_last_positive": None,
+            "recent_positive_rate_90d": None,
+            "recent_positive_rate_365d": None,
+        }
+
+    loc_df["Date"] = pd.to_datetime(loc_df["Date"], errors="coerce")
+    loc_df = loc_df.dropna(subset=["Date", "red_tide_label"])
+    if loc_df.empty:
+        return {
+            "has_signal": False,
+            "days_since_last_positive": None,
+            "recent_positive_rate_90d": None,
+            "recent_positive_rate_365d": None,
+        }
+
+    loc_df = loc_df[loc_df["Date"] <= pd.to_datetime(reference_date)]
+    if loc_df.empty:
+        return {
+            "has_signal": False,
+            "days_since_last_positive": None,
+            "recent_positive_rate_90d": None,
+            "recent_positive_rate_365d": None,
+        }
+
+    loc_df = loc_df.sort_values("Date")
+    loc_df["positive"] = (loc_df["red_tide_label"] >= 0.5).astype(int)
+
+    cutoff_90 = pd.to_datetime(reference_date) - pd.Timedelta(days=90)
+    cutoff_365 = pd.to_datetime(reference_date) - pd.Timedelta(days=365)
+    recent_90 = loc_df[loc_df["Date"] >= cutoff_90]
+    recent_365 = loc_df[loc_df["Date"] >= cutoff_365]
+
+    rate_90 = float(recent_90["positive"].mean()) if not recent_90.empty else None
+    rate_365 = float(recent_365["positive"].mean()) if not recent_365.empty else None
+
+    positive_rows = loc_df[loc_df["positive"] == 1]
+    days_since_last_positive = None
+    if not positive_rows.empty:
+        last_positive_date = positive_rows.iloc[-1]["Date"]
+        days_since_last_positive = int((pd.to_datetime(reference_date) - last_positive_date).days)
+
+    has_signal = False
+    if days_since_last_positive is not None and days_since_last_positive <= 90:
+        has_signal = True
+    if rate_90 is not None and rate_90 >= 0.15:
+        has_signal = True
+    if rate_365 is not None and rate_365 >= 0.10:
+        has_signal = True
+
+    return {
+        "has_signal": has_signal,
+        "days_since_last_positive": days_since_last_positive,
+        "recent_positive_rate_90d": round(rate_90, 3) if rate_90 is not None else None,
+        "recent_positive_rate_365d": round(rate_365, 3) if rate_365 is not None else None,
+    }
+
+def safe_float(val, decimals=2):
+    """Safely convert value to float, handling NaN/None."""
+    try:
+        f_val = float(val)
+        if pd.isna(f_val) or np.isnan(f_val):
+            return None
+        return round(f_val, decimals)
+    except (ValueError, TypeError):
+        return None
+
+
+def _map_gee_to_model_inputs(gee_data: dict) -> dict:
+    """Map GEE environmental outputs to the XGBoost model's input columns.
+
+    - SST (°C)        -> thetao
+    - Salinity (PSU)  -> so
+    - Rainfall_mm     -> precip_mm_day
+    - Chlorophyll_a_proxy (log10 ratio) -> CHL (approximate mg/m3 proxy)
+    - NDVI            -> NDVI_daily, NDVI_raw
+    - Wind_u_ms       -> wind_u_ms
+    - Wind_v_ms       -> wind_v_ms
+    - Wind_speed_ms   -> wind_speed_ms
+    """
+    if not gee_data:
+        return {}
+
+    mapped = {}
+
+    sst = gee_data.get("SST")
+    if sst is not None:
+        mapped["thetao"] = float(sst)
+
+    sal = gee_data.get("Salinity")
+    if sal is not None:
+        mapped["so"] = float(sal)
+
+    rain = gee_data.get("Rainfall_mm")
+    if rain is not None:
+        mapped["precip_mm_day"] = float(rain)
+
+    chl_proxy = gee_data.get("Chlorophyll_a_proxy")
+    if chl_proxy is not None:
+        try:
+            mapped["CHL"] = abs(float(chl_proxy)) * 10.0
+        except (TypeError, ValueError):
+            pass
+
+    ndvi = gee_data.get("NDVI")
+    if ndvi is not None:
+        try:
+            ndvi_val = float(ndvi)
+            mapped["NDVI_daily"] = ndvi_val
+            mapped["NDVI_raw"] = ndvi_val
+        except (TypeError, ValueError):
+            pass
+
+    wind_speed = gee_data.get("Wind_speed_ms")
+    if wind_speed is not None:
+        try:
+            mapped["wind_speed_ms"] = float(wind_speed)
+        except (TypeError, ValueError):
+            pass
+
+    wind_u = gee_data.get("Wind_u_ms")
+    if wind_u is not None:
+        try:
+            mapped["wind_u_ms"] = float(wind_u)
+        except (TypeError, ValueError):
+            pass
+
+    wind_v = gee_data.get("Wind_v_ms")
+    if wind_v is not None:
+        try:
+            mapped["wind_v_ms"] = float(wind_v)
+        except (TypeError, ValueError):
+            pass
+
+    return mapped
+
+def run_daily_update_with_5day_forecast():
+    """Generate today's forecast using the actual ML model and latest available data."""
+    print("Starting HARIBON v2.0 daily forecast update (ML-Powered)...")
+    
+    try:
+        historical_df = load_historical_data()
+        model, feature_names = load_ml_components(historical_df)
+        loc_month_means, loc_means, global_means = _build_feature_imputation_stats(historical_df, feature_names)
+    except Exception as e:
+        print(f"Failed to load ML components or data: {e}")
+        import traceback
+        traceback.print_exc()
+        return
+
+    locations = historical_df['Location_Name'].unique()
+    print(f"Generating forecasts for {len(locations)} locations: {locations}")
+
+    location_features = {}
+    try:
+        with open(settings.LOCATIONS_FILE_PATH, 'r') as f:
+            geojson = json.load(f)
+        for feat in geojson.get('features', []):
+            name = feat.get('properties', {}).get('Name')
+            if isinstance(name, str):
+                location_features[name] = feat
+        print(f"Loaded {len(location_features)} location features for GEE fetch.")
+    except Exception as exc:
+        print(f"[WARN] Could not load location features from {settings.LOCATIONS_FILE_PATH}: {exc}")
+
+    today = datetime.now()
+    today_str = today.strftime('%Y-%m-%d')
+    
+    forecasts = []
+
+    for location in locations:
+        if not isinstance(location, str):
+            continue
+        
+        latest_row = get_latest_data_for_location(historical_df, location)
+
+        if latest_row is None:
+            print(f"Skipping {location}: No data found")
+            continue
+        input_data = latest_row.to_dict()
+        input_data['Date'] = today_str
+
+        gee_feature = location_features.get(location)
+        gee_data = None
+        env_source = "historical_latest"
+        env_source_meta = {}
+        if gee_feature is not None and get_environmental_data_for_feature is not None:
+            try:
+                gee_data = get_environmental_data_for_feature(gee_feature, today_str)
+            except Exception as exc:
+                print(f"[WARN] GEE fetch failed for {location}: {exc}")
+
+        mapped_env = _map_gee_to_model_inputs(gee_data or {})
+        if mapped_env:
+            print(f"Using live GEE data for {location}: {mapped_env}")
+            input_data.update(mapped_env)
+            env_source = "gee_live"
+        else:
+            cms_fallback = get_copernicus_fallback_for_location(location, today_str)
+            if cms_fallback:
+                cms_env = {k: v for k, v in cms_fallback.items() if not k.startswith("_")}
+                input_data.update(cms_env)
+                mapped_env = cms_env
+                env_source = "copernicus_baseline"
+                env_source_meta = {
+                    "copernicus_source_date": cms_fallback.get("_source_date"),
+                    "copernicus_source_location": cms_fallback.get("_source_location"),
+                }
+                print(
+                    f"Using Copernicus fallback for {location} "
+                    f"(date={cms_fallback.get('_source_date')}): {cms_env}"
+                )
+        
+        try:
+            print(f"Running XGBoost inference for {location}...")
+
+            current_month = today.month
+            feature_row, observed_non_missing = _build_feature_row_with_fallbacks(
+                feature_names=feature_names,
+                source_data=input_data,
+                location=location,
+                month=current_month,
+                loc_month_means=loc_month_means,
+                loc_means=loc_means,
+                global_means=global_means,
+            )
+
+            critical_features = ['CHL', 'thetao', 'so', 'precip_mm_day']
+            critical_available = sum(
+                1 for key in critical_features if not _is_missing(input_data.get(key, np.nan))
+            )
+            critical_ratio = critical_available / len(critical_features)
+            observed_ratio = observed_non_missing / max(len(feature_names), 1)
+
+            X_new = pd.DataFrame([feature_row])
+            prob = float(model.predict_proba(X_new)[:, 1][0])
+            probability = prob
+
+            historical_signal = _compute_recent_red_tide_signal(
+                historical_df=historical_df,
+                location=location,
+                reference_date=today,
+            )
+
+            if probability >= 0.8:
+                risk_level = "High Risk"
+            elif probability >= 0.5:
+                risk_level = "Moderate Risk"
+            elif probability >= 0.2:
+                risk_level = "Low Risk"
+            else:
+                risk_level = "Very Low Risk"
+
+            base_confidence = 0.5 + abs(probability - 0.5)
+
+            data_limited = critical_ratio < 0.5 or observed_ratio < 0.7
+            if data_limited:
+                base_confidence = min(base_confidence, 0.65)
+                if risk_level == "Very Low Risk":
+                    risk_level = "Low Risk"
+
+            if historical_signal["has_signal"] and risk_level in {"Very Low Risk", "Low Risk"}:
+                risk_level = "Moderate Risk"
+                base_confidence = min(base_confidence, 0.70)
+
+            confidence = f"{base_confidence * 100:.1f}%"
+
+            if "High" in risk_level:
+                explanation = (
+                    "Elevated bloom risk driven by current chlorophyll, "
+                    "temperature, salinity, and wind conditions."
+                )
+            elif "Moderate" in risk_level:
+                explanation = (
+                    "Moderate bloom risk based on a combination of "
+                    "environmental factors; continue close monitoring."
+                )
+            elif "Low" in risk_level:
+                explanation = (
+                    "Low bloom risk under current environmental "
+                    "conditions, but routine monitoring is still advised."
+                )
+            else:
+                explanation = (
+                    "Very low bloom risk; environmental conditions are "
+                    "currently unfavorable for red tide development."
+                )
+
+            if data_limited:
+                explanation = (
+                    "Forecast generated with limited real-time environmental "
+                    "coverage; interpret risk conservatively and verify with "
+                    "local monitoring and BFAR advisories."
+                )
+            elif historical_signal["has_signal"]:
+                explanation = (
+                    "Moderate bloom risk retained due to persistent recent "
+                    "positive red tide history in this location."
+                )
+            
+            recommendations = []
+            if "High" in risk_level:
+                recommendations = [
+                    "HARMFUL ALGAL BLOOM DETECTED",
+                    "Do not harvest, buy, or eat shellfish from this area.",
+                    "Wait for official BFAR advisory before resuming activities."
+                ]
+            elif "Moderate" in risk_level:
+                recommendations = [
+                    "Elevated risk detected.",
+                    "Limit harvesting and monitor water color changes.",
+                    "Check for latest local advisories."
+                ]
+            else:
+                recommendations = [
+                    "Conditions are favorable.",
+                    "Shellfish harvesting is permitted.",
+                    "Continue regular monitoring."
+                ]
+
+            if data_limited:
+                recommendations = [
+                    "Data coverage is limited for key environmental inputs.",
+                    "Use this forecast as preliminary guidance only.",
+                    "Prioritize official advisories and on-site validation."
+                ]
+            
+            coords_map = {
+                "Gigantes Islands": {"lat": 11.5975, "lng": 123.3364},
+                "Batan Bay": {"lat": 11.5790, "lng": 122.4930},
+                "Sapian Bay": {"lat": 11.4936, "lng": 122.6186},
+                "Roxas City": {"lat": 11.5853, "lng": 122.7511},
+                "Dumanquillas Bay": {"lat": 7.697, "lng": 123.018},
+                "Matarinao Bay": {"lat": 11.23, "lng": 125.55},
+                "Pilar": {"lat": 11.504, "lng": 122.941},
+                "President Roxas": {"lat": 11.496, "lng": 122.914},
+            }
+            
+            curr_coords = coords_map.get(location, {"lat": 11.5, "lng": 122.5})
+
+            display_chl = mapped_env.get('CHL', latest_row.get('CHL')) if mapped_env else latest_row.get('CHL')
+            display_thetao = mapped_env.get('thetao', latest_row.get('thetao')) if mapped_env else latest_row.get('thetao')
+            display_so = mapped_env.get('so', latest_row.get('so')) if mapped_env else latest_row.get('so')
+            display_rain = mapped_env.get('precip_mm_day', latest_row.get('precip_mm_day')) if mapped_env else latest_row.get('precip_mm_day')
+            display_wind_speed = mapped_env.get('wind_speed_ms', latest_row.get('wind_speed_ms')) if mapped_env else latest_row.get('wind_speed_ms')
+            display_mld = mapped_env.get('mlotst', latest_row.get('mlotst')) if mapped_env else latest_row.get('mlotst')
+            display_ndvi = mapped_env.get('NDVI_daily', latest_row.get('NDVI_daily')) if mapped_env else latest_row.get('NDVI_daily')
+            display_wind_u = mapped_env.get('wind_u_ms', latest_row.get('wind_u_ms')) if mapped_env else latest_row.get('wind_u_ms')
+            display_wind_v = mapped_env.get('wind_v_ms', latest_row.get('wind_v_ms')) if mapped_env else latest_row.get('wind_v_ms')
+            display_uo = mapped_env.get('uo', latest_row.get('uo')) if mapped_env else latest_row.get('uo')
+            display_vo = mapped_env.get('vo', latest_row.get('vo')) if mapped_env else latest_row.get('vo')
+
+            forecast = {
+                "location": location,
+                "latitude": float(curr_coords["lat"]),
+                "longitude": float(curr_coords["lng"]),
+                "date": today_str,
+                "risk_level": risk_level,
+                "confidence": confidence,
+                "red_tide_probability": risk_level.split(" ")[0], # "High", "Moderate"
+                "recommendations": recommendations,
+                "contributing_factors": {
+                    "chl-a": safe_float(display_chl, 3),
+                    "sst": safe_float(display_thetao, 2),
+                    "salinity": safe_float(display_so, 2),
+                    "rainfall": safe_float(display_rain, 1),
+                },
+                "environmental_data": {
+                    "Chlorophyll-a": f"{safe_float(display_chl, 2)} mg/m3" if safe_float(display_chl, 2) is not None else "N/A",
+                    "Temperature": f"{safe_float(display_thetao, 2)} °C" if safe_float(display_thetao, 2) is not None else "N/A",
+                    "Salinity (PSU)": f"{safe_float(display_so, 2)} PSU" if safe_float(display_so, 2) is not None else "N/A",
+                    "MLD (m)": f"{safe_float(display_mld, 2)} m" if safe_float(display_mld, 2) is not None else "N/A",
+                    "Precipitation": f"{safe_float(display_rain, 2)} mm" if safe_float(display_rain, 2) is not None else "N/A",
+                    "NDVI": f"{safe_float(display_ndvi, 4)}" if safe_float(display_ndvi, 4) is not None else "N/A",
+                    "U-Wind Speed (m/s)": f"{safe_float(display_wind_u, 2)} m/s" if safe_float(display_wind_u, 2) is not None else "N/A",
+                    "V-Wind Speed (m/s)": f"{safe_float(display_wind_v, 2)} m/s" if safe_float(display_wind_v, 2) is not None else "N/A",
+                    "U-VEL (m/s)": f"{safe_float(display_uo, 3)} m/s" if safe_float(display_uo, 3) is not None else "N/A",
+                    "V-VEL (m/s)": f"{safe_float(display_vo, 3)} m/s" if safe_float(display_vo, 3) is not None else "N/A",
+                },
+                "data_quality": {
+                    "quality_score": round(observed_ratio, 2),
+                    "confidence_level": "Low" if data_limited else "High",
+                    "critical_features_available": critical_available,
+                    "critical_features_total": len(critical_features),
+                    "coverage_note": "limited" if data_limited else "sufficient",
+                    "environment_data_source": env_source,
+                    "historical_positive_signal": historical_signal["has_signal"],
+                    "days_since_last_positive": historical_signal["days_since_last_positive"],
+                    "recent_positive_rate_90d": historical_signal["recent_positive_rate_90d"],
+                    "recent_positive_rate_365d": historical_signal["recent_positive_rate_365d"],
+                    **env_source_meta,
+                },
+                "explanation": explanation
+            }
+
+            five_day = []
+            decay_factor = 0.9
+            horizon_conf_decay = 0.95
+
+            for i in range(1, 6):
+                future_date = today + timedelta(days=i)
+
+                future_prob = probability * (decay_factor ** i)
+
+                future_risk_label = "Low Risk"
+                if future_prob > 0.7:
+                    future_risk_label = "High Risk"
+                elif future_prob > 0.4:
+                    future_risk_label = "Moderate Risk"
+
+                future_conf_score = base_confidence * (horizon_conf_decay ** i)
+                if base_confidence > 0.7:
+                    future_conf_score = max(0.5, future_conf_score)
+                else:
+                    future_conf_score = max(0.0, future_conf_score)
+
+                day_forecast = {
+                    "forecast_day": i,
+                    "date": future_date.strftime('%Y-%m-%d'),
+                    "day_label": future_date.strftime('%a'),
+                    "risk_level": future_risk_label,
+                    "confidence": f"{future_conf_score * 100:.1f}%",
+                    "probability": future_risk_label.split(" ")[0]
+                }
+                five_day.append(day_forecast)
+                
+            forecast["five_day_forecast"] = five_day
+            forecasts.append(forecast)
+            
+            print(f"Generated forecast for {location}: {risk_level}")
+
+        except Exception as e:
+            print(f"Error generating forecast for {location}: {e}")
+            import traceback
+            traceback.print_exc()
+
+    output_data = {
+        "last_updated": datetime.now().isoformat(),
+        "system_version": "v2.0 (XGBoost)",
+        "forecasts": forecasts
+    }
+
+    processed_dir = settings.PROCESSED_DATA_DIR
+    processed_dir.mkdir(parents=True, exist_ok=True)
+
+    output_file = processed_dir / f"daily_forecast_{today_str}.json"
+
+    with open(output_file, 'w') as f:
+        json.dump(output_data, f, indent=2)
+
+    print(f"Forecast saved to: {output_file}")
+
+    if SessionLocal is not None and DailyForecast is not None:
+        try:
+            session = SessionLocal()
+            db_obj = DailyForecast(
+                forecast_date=today.date(),
+                system_version=output_data["system_version"],
+                payload=output_data,
+            )
+            session.add(db_obj)
+            session.commit()
+            session.close()
+            print("Daily forecast also stored in PostgreSQL (daily_forecasts table).")
+        except Exception as exc:
+            print(f"[WARN] Failed to store daily forecast in PostgreSQL: {exc}")
+
+
+if __name__ == "__main__":
+    run_daily_update_with_5day_forecast()
