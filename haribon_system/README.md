@@ -80,6 +80,7 @@ haribon_system/
 │   ├── app/
 │   │   ├── api/               # API endpoints (forecast, summary)
 │   │   ├── core/              # Configuration and schemas
+│   │   ├── models/            # SQLAlchemy database models
 │   │   ├── scripts/           # Data processing scripts
 │   │   └── services/          # Business logic services
 │   ├── main.py               # FastAPI entry point
@@ -95,6 +96,28 @@ haribon_system/
 └── frontend/                 # React dashboard (to be created)
 ```
 
+## 🗄️ Database Schema
+
+The system uses PostgreSQL with the following tables:
+
+### Core Tables
+- **`daily_forecasts`**: Stores complete forecast data as JSON payloads
+- **`location`**: Master list of monitored locations
+- **`historical_data`**: Historical environmental data and red tide occurrences
+- **`prediction_logs`**: Individual prediction records with environmental parameters
+
+### Table Relationships
+```
+location (1) ──── (many) historical_data
+location (1) ──── (many) prediction_logs
+```
+
+### Key Features
+- **Automatic Logging**: Predictions are automatically logged to `prediction_logs` during daily updates
+- **Historical Analysis**: `historical_data` enables trend analysis and model validation
+- **Data Integrity**: Foreign key constraints ensure referential integrity
+- **JSON Storage**: `daily_forecasts` preserves complete forecast context
+
 ---
 
 ## ▶️ Setup and Run
@@ -102,7 +125,32 @@ haribon_system/
 ### Prerequisites
 - Python 3.10+
 - Node.js 18+ (for frontend)
+- PostgreSQL 15+ (for data persistence)
 - Git
+
+### Database Setup (Optional but Recommended)
+
+1. **Install PostgreSQL**:
+   - Download from: https://www.postgresql.org/download/windows/
+   - Run the installer and set password for postgres user (remember this password)
+   - Keep default port (5432)
+
+2. **Configure Database Connection**:
+   ```bash
+   cd haribon_system/backend
+   # Edit .env file and update DATABASE_URL
+   # DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/haribon
+   ```
+
+3. **Create Database and Tables**:
+   ```bash
+   python -m app.scripts.setup_database
+   ```
+
+4. **Populate Historical Data (Optional)**:
+   ```bash
+   python -m app.scripts.populate_historical_data
+   ```
 
 ### 1) Backend Setup
 

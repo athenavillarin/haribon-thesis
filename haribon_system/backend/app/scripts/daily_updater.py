@@ -19,10 +19,12 @@ from app.services.copernicus_fallback_service import get_copernicus_fallback_for
 
 try:
     from app.core.database import SessionLocal
-    from app.models.forecast import DailyForecast
+    from app.models.forecast import DailyForecast, Location, PredictionLog
 except Exception as db_import_error:
     SessionLocal = None
     DailyForecast = None
+    Location = None
+    PredictionLog = None
     print(f"[WARN] Database persistence disabled in updater: {db_import_error}")
 
 try:
@@ -582,7 +584,35 @@ def run_daily_update_with_5day_forecast():
                 
             forecast["five_day_forecast"] = five_day
             forecasts.append(forecast)
-            
+
+            # Log prediction to database
+            if SessionLocal is not None and Location is not None and PredictionLog is not None:
+                try:
+                    session = SessionLocal()
+                    # Get location_id
+                    location_obj = session.query(Location).filter_by(location_name=location).first()
+                    if location_obj:
+                        # Extract confidence as float
+                        confidence_float = float(confidence.rstrip('%')) / 100.0 if confidence.endswith('%') else float(confidence)
+
+                        prediction_log = PredictionLog(
+                            location_id=location_obj.location_id,
+                            prediction_timestamp=datetime.now(),
+                            sst=safe_float(display_thetao),
+                            chlorophyll_a_proxy=safe_float(display_chl),
+                            rainfall_mm=safe_float(display_rain),
+                            salinity=safe_float(display_so),
+                            agriculture_pct=None,  # Not available in current system
+                            risk_level=risk_level,
+                            confidence_score=confidence_float
+                        )
+                        session.add(prediction_log)
+                        session.commit()
+                        print(f"Logged prediction for {location} to database")
+                    session.close()
+                except Exception as exc:
+                    print(f"[WARN] Failed to log prediction for {location}: {exc}")
+
             print(f"Generated forecast for {location}: {risk_level}")
 
         except Exception as e:

@@ -1,1 +1,1 @@
-from app.models.forecast import DailyForecast  # noqa: F401
+from app.models.forecast import DailyForecast, Location, HistoricalData, PredictionLog  # noqa: F401
