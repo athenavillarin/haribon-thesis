@@ -20,6 +20,58 @@ body {
   box-shadow: none !important;
 }
 
+.leaflet-tooltip.haribon-hover-popup {
+  background: #f3f4f6;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+  border: none;
+  padding: 0;
+}
+
+.leaflet-tooltip.haribon-hover-popup:before {
+  border-bottom-color: #f3f4f6;
+}
+
+.haribon-hover-popup-card {
+  width: 260px;
+  padding: 14px 14px 12px;
+  text-align: center;
+  color: #24353a;
+}
+
+.haribon-popup-overline {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7b80;
+  margin-bottom: 5px;
+  font-weight: 700;
+}
+
+.haribon-popup-title {
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.haribon-popup-risk {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.haribon-popup-message {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #36484d;
+  margin: 0;
+}
+
 h2 {
   font-size: 24px;
   line-height: 118%;

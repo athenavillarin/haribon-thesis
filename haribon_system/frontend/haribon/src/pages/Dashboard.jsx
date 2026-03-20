@@ -22,9 +22,14 @@ export default function Dashboard() {
       const data = await ApiService.getLatestForecast();
       setForecastData(data);
 
-      // If no location is set, default to first location in data
-      if (data.locations && data.locations.length > 0 && !selectedLocation) {
-        setSelectedLocation(data.locations[0]);
+      // Always rebind selectedLocation to the newest payload object to avoid stale UI fields.
+      if (data.locations && data.locations.length > 0) {
+        if (selectedLocation?.id) {
+          const refreshedSelected = data.locations.find((loc) => loc.id === selectedLocation.id);
+          setSelectedLocation(refreshedSelected || data.locations[0]);
+        } else {
+          setSelectedLocation(data.locations[0]);
+        }
       }
     } catch (err) {
       setError('Failed to load forecast data');
@@ -77,7 +82,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6 pb-4 pr-5 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-x-6 gap-y-3">
+    <div className="p-6 pb-4 pr-5 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-x-6 gap-y-3 lg:items-stretch">
       {/* Forecast Strip - spans both columns */}
       <div className="lg:col-span-2 -mt-2 mb-1">
         <ForecastStrip
@@ -88,7 +93,7 @@ export default function Dashboard() {
       </div>
 
       {/* Map Section */}
-      <div className="h-[653px] flex flex-col relative overflow-hidden rounded-xl shadow-sm border border-gray-100">
+      <div className="h-full min-h-[653px] flex flex-col relative overflow-hidden rounded-xl shadow-sm border border-gray-100">
         <MapSection
           forecastData={forecastData}
           selectedLocation={selectedLocation}
