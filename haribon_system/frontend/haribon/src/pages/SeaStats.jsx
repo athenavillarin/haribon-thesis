@@ -108,6 +108,7 @@ export default function SeaStats() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [timelineYear, setTimelineYear] = useState('');
+  const [parameterPage, setParameterPage] = useState(0);
   const { selectedLocation, setSelectedLocation } = useAppLocation();
 
   useEffect(() => {
@@ -216,6 +217,10 @@ export default function SeaStats() {
     }
   }, [availableTimelineYears, timelineYear]);
 
+  useEffect(() => {
+    setParameterPage(0);
+  }, [selectedLocation?.id]);
+
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -290,9 +295,9 @@ export default function SeaStats() {
     },
     {
       label: 'Salinity',
-      key: 'Salinity',
+      key: 'Salinity (PSU)',
       unit: 'PSU',
-      value: parseMetricValue(envData['Salinity']),
+      value: parseMetricValue(envData['Salinity (PSU)']),
       status: 'Live',
       severity: 'Below Normal',
       accent: 'text-sky-700 bg-sky-50 border-sky-200',
@@ -307,33 +312,77 @@ export default function SeaStats() {
       accent: 'text-emerald-700 bg-emerald-50 border-emerald-200',
     },
     {
-      label: 'Rainfall',
-      key: 'Rainfall_mm',
+      label: 'Precipitation',
+      key: 'Precipitation',
       unit: 'mm',
-      value: parseMetricValue(factorData.rainfall),
-      status: '24-hour Rainfall',
+      value: parseMetricValue(envData['Precipitation']),
+      status: '24-hour Precipitation',
       severity: 'Heavy Rain',
       accent: 'text-cyan-700 bg-cyan-50 border-cyan-200',
     },
     {
-      label: 'Nutrient Runoff',
-      key: 'Nutrient Runoff',
-      unit: 'kg/ha',
-      value: parseMetricValue(envData['Nutrient Runoff']) ?? parseMetricValue(envData['Agriculture_pct']),
-      status: 'From Agricultural Land',
-      severity: 'High Impact',
-      accent: 'text-orange-700 bg-orange-50 border-orange-200',
+      label: 'Mixed Layer Depth',
+      key: 'MLD (m)',
+      unit: 'm',
+      value: parseMetricValue(envData['MLD (m)']),
+      status: 'Live',
+      severity: 'Variable',
+      accent: 'text-indigo-700 bg-indigo-50 border-indigo-200',
     },
     {
-      label: 'Wind Speed',
-      key: 'Wind Speed',
+      label: 'NDVI',
+      key: 'NDVI',
+      unit: 'index',
+      value: parseMetricValue(envData['NDVI']),
+      status: 'Satellite',
+      severity: 'Baseline',
+      accent: 'text-lime-700 bg-lime-50 border-lime-200',
+    },
+    {
+      label: 'U-Wind Speed',
+      key: 'U-Wind Speed (m/s)',
       unit: 'm/s',
-      value: parseMetricValue(envData['Wind Speed']),
+      value: parseMetricValue(envData['U-Wind Speed (m/s)']),
       status: 'Live',
-      severity: 'Stable',
-      accent: 'text-slate-700 bg-slate-50 border-slate-200',
+      severity: 'Cross-shore',
+      accent: 'text-cyan-700 bg-cyan-50 border-cyan-200',
+    },
+    {
+      label: 'V-Wind Speed',
+      key: 'V-Wind Speed (m/s)',
+      unit: 'm/s',
+      value: parseMetricValue(envData['V-Wind Speed (m/s)']),
+      status: 'Live',
+      severity: 'Along-shore',
+      accent: 'text-cyan-700 bg-cyan-50 border-cyan-200',
+    },
+    {
+      label: 'U Current Velocity',
+      key: 'U-VEL (m/s)',
+      unit: 'm/s',
+      value: parseMetricValue(envData['U-VEL (m/s)']),
+      status: 'Marine current',
+      severity: 'Transport',
+      accent: 'text-blue-700 bg-blue-50 border-blue-200',
+    },
+    {
+      label: 'V Current Velocity',
+      key: 'V-VEL (m/s)',
+      unit: 'm/s',
+      value: parseMetricValue(envData['V-VEL (m/s)']),
+      status: 'Marine current',
+      severity: 'Transport',
+      accent: 'text-blue-700 bg-blue-50 border-blue-200',
     },
   ];
+
+  const cardsPerPage = 6;
+  const totalParameterPages = Math.max(1, Math.ceil(parameters.length / cardsPerPage));
+  const currentParameterPage = Math.min(parameterPage, totalParameterPages - 1);
+  const pagedParameters = parameters.slice(
+    currentParameterPage * cardsPerPage,
+    currentParameterPage * cardsPerPage + cardsPerPage
+  );
 
   const effectiveTrendArea = trendArea || (trendMode === 'timeline' ? selectedLocation?.id || '' : '');
 
@@ -453,25 +502,49 @@ export default function SeaStats() {
                   Live drivers derived from the latest forecast for the selected site
                 </p>
               </div>
-              {/* Area dropdown to match SeaStats design */}
-              <div className="w-[220px] hidden md:block shrink-0">
-                <select
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-haribon-dark/40"
-                  value={selectedLocation?.id || ''}
-                  onChange={(e) => {
-                    const loc = forecastData?.locations?.find((l) => l.id === e.target.value);
-                    if (loc) handleLocationChange(loc);
-                  }}
-                >
-                  <option value="" disabled>
-                    Select Area
-                  </option>
-                  {forecastData?.locations?.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name}
+              <div className="hidden md:flex items-center gap-3 shrink-0">
+                {totalParameterPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setParameterPage((prev) => Math.max(0, prev - 1))}
+                      disabled={currentParameterPage === 0}
+                      className="w-8 h-8 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Previous parameter page"
+                    >
+                      ←
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setParameterPage((prev) => Math.min(totalParameterPages - 1, prev + 1))}
+                      disabled={currentParameterPage >= totalParameterPages - 1}
+                      className="w-8 h-8 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Next parameter page"
+                    >
+                      →
+                    </button>
+                  </div>
+                )}
+
+                <div className="w-[220px]">
+                  <select
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-haribon-dark/40"
+                    value={selectedLocation?.id || ''}
+                    onChange={(e) => {
+                      const loc = forecastData?.locations?.find((l) => l.id === e.target.value);
+                      if (loc) handleLocationChange(loc);
+                    }}
+                  >
+                    <option value="" disabled>
+                      Select Area
                     </option>
-                  ))}
-                </select>
+                    {forecastData?.locations?.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -502,8 +575,32 @@ export default function SeaStats() {
 
             {selectedLocation && (
               <>
+                {totalParameterPages > 1 && (
+                  <div className="md:hidden flex items-center justify-between mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setParameterPage((prev) => Math.max(0, prev - 1))}
+                      disabled={currentParameterPage === 0}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      ← Back
+                    </button>
+                    <span className="text-[11px] text-gray-500">
+                      {currentParameterPage + 1} / {totalParameterPages}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setParameterPage((prev) => Math.min(totalParameterPages - 1, prev + 1))}
+                      disabled={currentParameterPage >= totalParameterPages - 1}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-4">
-                  {parameters.map((param) => {
+                  {pagedParameters.map((param) => {
                     const value = formatMetricValue(param.value, param.key === 'Nutrient Runoff' ? 2 : 1);
                     return (
                       <div
