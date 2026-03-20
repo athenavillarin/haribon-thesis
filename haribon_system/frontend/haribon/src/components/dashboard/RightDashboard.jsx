@@ -24,6 +24,7 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
   const todayStr = new Date().toISOString().split('T')[0];
 
   const environmentalData = selectedLocation.environmental_data || {};
+  const recommendationItems = selectedLocation?.today_forecast?.recommendations || [];
 
   const conditionItems = [];
 
@@ -71,6 +72,14 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
         <h3 className="text-sm font-bold text-gray-800 mb-3">Recommendations</h3>
         <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
             <ul className="space-y-2">
+            {recommendationItems.length > 0 && recommendationItems.map((text, idx) => (
+              <li key={`${selectedLocation.id || 'loc'}-rec-${idx}`} className="text-xs text-gray-600 flex gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
+                {text}
+              </li>
+            ))}
+            {recommendationItems.length === 0 && (
+              <>
                 {selectedLocation.risk_color === 'red' && (
                     <>
                     <li className="text-xs text-gray-600 flex gap-2">
@@ -99,18 +108,32 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
                     </li>
                     </>
                 )}
-                 {(selectedLocation.risk_color === 'orange' || selectedLocation.risk_color === 'yellow') && (
+                   {selectedLocation.risk_color === 'orange' && (
                     <>
                     <li className="text-xs text-gray-600 flex gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
-                         Elevated risk levels detected
+                       Elevated risk levels detected
                     </li>
                     <li className="text-xs text-gray-600 flex gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
-                         Proceed with caution for harvesting
+                       Limit harvesting and monitor local advisories closely
                     </li>
                     </>
                 )}
+                   {selectedLocation.risk_color === 'yellow' && (
+                    <>
+                    <li className="text-xs text-gray-600 flex gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
+                       Mild risk detected
+                    </li>
+                    <li className="text-xs text-gray-600 flex gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
+                       Harvest with caution and continue regular monitoring
+                    </li>
+                    </>
+                  )}
+                  </>
+                  )}
             </ul>
         </div>
       </div>

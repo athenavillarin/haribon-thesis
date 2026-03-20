@@ -56,6 +56,21 @@ function ForecastCard({ data, locationName, isSelected }) {
     }
   };
 
+  const getRiskAction = (color) => {
+    switch (color) {
+      case 'red':
+        return 'No Harvesting';
+      case 'orange':
+        return 'Limit Harvesting';
+      case 'yellow':
+        return 'Proceed with Caution';
+      case 'green':
+        return 'Safe to Harvest';
+      default:
+        return 'Monitor Conditions';
+    }
+  };
+
   // Parse date to easier format
   const dateObj = new Date(data.date);
   const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -79,7 +94,7 @@ function ForecastCard({ data, locationName, isSelected }) {
             {data.risk_level}
           </div>
           <div className={`text-[10px] font-bold ${getRiskColor(data.risk_color)} opacity-80`}>
-             {data.risk_color === 'green' ? 'Safe to Harvest' : 'Limit Harvesting'}
+             {getRiskAction(data.risk_color)}
           </div>
         </div>
       </div>

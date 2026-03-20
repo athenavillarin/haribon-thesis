@@ -14,6 +14,24 @@ export default function MapSection({ forecastData, selectedLocation, onLocationS
   const mapInstanceRef = useRef(null);
   const markersRef = useRef([]);
 
+  const getRiskMessage = (location) => {
+    const recs = location?.today_forecast?.recommendations || [];
+    if (recs.length > 0) {
+      return recs[0];
+    }
+
+    switch (location?.risk_color) {
+      case 'red':
+        return 'High algal activity detected. Monitor conditions closely and avoid harvesting or selling seafood.';
+      case 'orange':
+        return 'Elevated risk detected. Limit harvesting and monitor local advisories closely.';
+      case 'yellow':
+        return 'Mild risk detected. Harvest with caution and continue regular monitoring.';
+      default:
+        return 'Conditions are favorable. Continue routine monitoring.';
+    }
+  };
+
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
@@ -36,6 +54,19 @@ export default function MapSection({ forecastData, selectedLocation, onLocationS
         mapInstanceRef.current = null;
       }
     };
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || !mapInstanceRef.current) return;
+
+    const observer = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize({ animate: false });
+      }
+    });
+
+    observer.observe(mapRef.current);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -68,21 +99,28 @@ export default function MapSection({ forecastData, selectedLocation, onLocationS
                </svg>`,
         iconSize: [40, 40],
         iconAnchor: [20, 40],
-        popupAnchor: [0, -42]
+        popupAnchor: [0, 12]
       });
+
+      const popupHtml = `
+        <div class="haribon-hover-popup-card">
+          <p class="haribon-popup-overline">coastal waters of</p>
+          <h3 class="haribon-popup-title">${location.name}</h3>
+          <div class="haribon-popup-risk" style="background-color: ${pinColor}">${location.risk_level}</div>
+          <p class="haribon-popup-message">${getRiskMessage(location)}</p>
+        </div>
+      `;
 
       const marker = L.marker([location.coordinates.lat, location.coordinates.lng], { icon: customIcon })
         .addTo(map)
-        .bindPopup(`
-          <div class="p-2 font-quicksand">
-            <h3 class="font-bold text-lg text-gray-800">${location.name}</h3>
-            <div class="mt-1 flex items-center gap-2">
-              <span class="inline-block w-2 H-2 rounded-full" style="background-color: ${pinColor}"></span>
-              <p class="text-sm font-semibold" style="color: ${pinColor}">${location.risk_level}</p>
-            </div>
-            <p class="text-xs text-gray-500 mt-1">Confidence: ${location.confidence}</p>
-          </div>
-        `);
+        .bindTooltip(popupHtml, {
+          className: 'haribon-hover-popup',
+          direction: 'bottom',
+          offset: [0, 20],
+          opacity: 1,
+          interactive: false,
+          sticky: false,
+        });
 
       // Click handler
       marker.on('click', () => {
@@ -98,19 +136,6 @@ export default function MapSection({ forecastData, selectedLocation, onLocationS
       map.fitBounds(group.getBounds().pad(0.1));
     }
   }, [forecastData, onLocationSelect]);
-
-  // Highlight selected location
-  useEffect(() => {
-    if (!mapInstanceRef.current || !selectedLocation) return;
-
-    markersRef.current.forEach(marker => {
-      const markerLatLng = marker.getLatLng();
-      if (markerLatLng.lat === selectedLocation.coordinates.lat &&
-          markerLatLng.lng === selectedLocation.coordinates.lng) {
-        marker.openPopup();
-      }
-    });
-  }, [selectedLocation]);
 
   return (
     <div className="h-full w-full relative">

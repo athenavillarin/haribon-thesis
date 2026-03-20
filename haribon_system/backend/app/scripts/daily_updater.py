@@ -115,37 +115,139 @@ def _build_feature_row_with_fallbacks(
     source_data: dict,
     location: str,
     month: int,
+    reference_date: datetime,
+    historical_df: pd.DataFrame,
     loc_month_means: pd.DataFrame,
     loc_means: pd.DataFrame,
     global_means: pd.Series,
 ):
-    """Create one model input row, filling missing values with training-style fallbacks."""
+    """Create one model input row using a hybrid gap-type adaptive fallback strategy.
+
+    Priority for missing values:
+    1) short-gap temporal estimate from recent history
+    2) climatological mean for location+month
+    3) location-wide mean
+    4) global mean
+    """
     row = {}
     observed_non_missing = 0
+    imputation_sources = {}
+
+    loc_hist = historical_df[historical_df["Location_Name"] == location].copy()
+    if not loc_hist.empty:
+        loc_hist["Date"] = pd.to_datetime(loc_hist["Date"], errors="coerce")
+        loc_hist = loc_hist[loc_hist["Date"].notna()]
+
+    def _estimate_short_gap_temporal(col: str):
+        if loc_hist.empty or col not in loc_hist.columns:
+            return np.nan
+
+        series = loc_hist[["Date", col]].dropna(subset=[col]).sort_values("Date")
+        if series.empty:
+            return np.nan
+
+        target_ts = pd.to_datetime(reference_date)
+        series = series[series["Date"] <= target_ts]
+        if series.empty:
+            return np.nan
+
+        last_date = series.iloc[-1]["Date"]
+        gap_days = int((target_ts.normalize() - pd.to_datetime(last_date).normalize()).days)
+        if gap_days < 0 or gap_days > 14:
+            return np.nan
+
+        # For very short gaps, persistence is more stable than extrapolation.
+        if gap_days <= 2:
+            return series.iloc[-1][col]
+
+        # For short/medium gaps, use a simple trend from recent observations.
+        recent = series.tail(5)
+        if len(recent) < 2:
+            return series.iloc[-1][col]
+
+        x = (recent["Date"] - recent["Date"].min()).dt.days.astype(float).values
+        y = recent[col].astype(float).values
+
+        if np.allclose(x, x[0]):
+            return y[-1]
+
+        slope, intercept = np.polyfit(x, y, 1)
+        target_x = float((target_ts - recent["Date"].min()).days)
+        est = float(intercept + slope * target_x)
+
+        y_min = float(np.min(y))
+        y_max = float(np.max(y))
+        pad = 0.25 * max(abs(y_max - y_min), 1e-6)
+        est = min(max(est, y_min - pad), y_max + pad)
+        return est
 
     for col in feature_names:
         raw_val = source_data.get(col, np.nan)
         if not _is_missing(raw_val):
             row[col] = raw_val
             observed_non_missing += 1
+            imputation_sources[col] = "observed"
             continue
 
-        # Fallback 1: climatological mean for this location+month
+        # Fallback 1: temporal estimate for short gaps (hybrid gap-type adaptive)
         val = np.nan
+        val = _estimate_short_gap_temporal(col)
+        if not _is_missing(val):
+            row[col] = val
+            imputation_sources[col] = "temporal_short_gap"
+            continue
+
+        # Fallback 2: climatological mean for this location+month
         if (location, month) in loc_month_means.index:
             val = loc_month_means.loc[(location, month), col]
+            if not _is_missing(val):
+                row[col] = val
+                imputation_sources[col] = "climatological_location_month"
+                continue
 
-        # Fallback 2: location-wide mean
+        # Fallback 3: location-wide mean
         if _is_missing(val) and location in loc_means.index:
             val = loc_means.loc[location, col]
+            if not _is_missing(val):
+                row[col] = val
+                imputation_sources[col] = "climatological_location"
+                continue
 
-        # Fallback 3: global mean
+        # Fallback 4: global mean
         if _is_missing(val):
             val = global_means.get(col, np.nan)
 
         row[col] = val
+        imputation_sources[col] = "climatological_global"
 
-    return row, observed_non_missing
+    return row, observed_non_missing, imputation_sources
+
+
+def _select_display_value(
+    col: str,
+    mapped_env: dict,
+    input_data: dict,
+    feature_row: dict,
+    latest_row: pd.Series,
+):
+    """Choose display value in priority order: live/fallback env, raw input, imputed row, latest historical."""
+    value = mapped_env.get(col, np.nan) if mapped_env else np.nan
+    if not _is_missing(value):
+        return value
+
+    value = input_data.get(col, np.nan)
+    if not _is_missing(value):
+        return value
+
+    value = feature_row.get(col, np.nan)
+    if not _is_missing(value):
+        return value
+
+    value = latest_row.get(col, np.nan)
+    if not _is_missing(value):
+        return value
+
+    return None
 
 
 def _compute_recent_red_tide_signal(
@@ -373,11 +475,13 @@ def run_daily_update_with_5day_forecast():
             print(f"Running XGBoost inference for {location}...")
 
             current_month = today.month
-            feature_row, observed_non_missing = _build_feature_row_with_fallbacks(
+            feature_row, observed_non_missing, imputation_sources = _build_feature_row_with_fallbacks(
                 feature_names=feature_names,
                 source_data=input_data,
                 location=location,
                 month=current_month,
+                reference_date=today,
+                historical_df=historical_df,
                 loc_month_means=loc_month_means,
                 loc_means=loc_means,
                 global_means=global_means,
@@ -387,6 +491,14 @@ def run_daily_update_with_5day_forecast():
             critical_available = sum(
                 1 for key in critical_features if not _is_missing(input_data.get(key, np.nan))
             )
+            critical_imputed = sum(
+                1
+                for key in critical_features
+                if _is_missing(input_data.get(key, np.nan)) and not _is_missing(feature_row.get(key, np.nan))
+            )
+            if env_source == "historical_latest" and critical_imputed > 0:
+                env_source = "hybrid_gap_type_adaptive"
+
             critical_ratio = critical_available / len(critical_features)
             observed_ratio = observed_non_missing / max(len(feature_names), 1)
 
@@ -477,10 +589,9 @@ def run_daily_update_with_5day_forecast():
                 ]
 
             if data_limited:
-                recommendations = [
-                    "Data coverage is limited for key environmental inputs.",
-                    "Use this forecast as preliminary guidance only.",
-                    "Prioritize official advisories and on-site validation."
+                recommendations = recommendations + [
+                    "Data quality note: key environmental inputs were partially imputed.",
+                    "Use this forecast as preliminary guidance and prioritize official advisories with on-site validation."
                 ]
             
             coords_map = {
@@ -496,17 +607,17 @@ def run_daily_update_with_5day_forecast():
             
             curr_coords = coords_map.get(location, {"lat": 11.5, "lng": 122.5})
 
-            display_chl = mapped_env.get('CHL', latest_row.get('CHL')) if mapped_env else latest_row.get('CHL')
-            display_thetao = mapped_env.get('thetao', latest_row.get('thetao')) if mapped_env else latest_row.get('thetao')
-            display_so = mapped_env.get('so', latest_row.get('so')) if mapped_env else latest_row.get('so')
-            display_rain = mapped_env.get('precip_mm_day', latest_row.get('precip_mm_day')) if mapped_env else latest_row.get('precip_mm_day')
-            display_wind_speed = mapped_env.get('wind_speed_ms', latest_row.get('wind_speed_ms')) if mapped_env else latest_row.get('wind_speed_ms')
-            display_mld = mapped_env.get('mlotst', latest_row.get('mlotst')) if mapped_env else latest_row.get('mlotst')
-            display_ndvi = mapped_env.get('NDVI_daily', latest_row.get('NDVI_daily')) if mapped_env else latest_row.get('NDVI_daily')
-            display_wind_u = mapped_env.get('wind_u_ms', latest_row.get('wind_u_ms')) if mapped_env else latest_row.get('wind_u_ms')
-            display_wind_v = mapped_env.get('wind_v_ms', latest_row.get('wind_v_ms')) if mapped_env else latest_row.get('wind_v_ms')
-            display_uo = mapped_env.get('uo', latest_row.get('uo')) if mapped_env else latest_row.get('uo')
-            display_vo = mapped_env.get('vo', latest_row.get('vo')) if mapped_env else latest_row.get('vo')
+            display_chl = _select_display_value('CHL', mapped_env, input_data, feature_row, latest_row)
+            display_thetao = _select_display_value('thetao', mapped_env, input_data, feature_row, latest_row)
+            display_so = _select_display_value('so', mapped_env, input_data, feature_row, latest_row)
+            display_rain = _select_display_value('precip_mm_day', mapped_env, input_data, feature_row, latest_row)
+            display_wind_speed = _select_display_value('wind_speed_ms', mapped_env, input_data, feature_row, latest_row)
+            display_mld = _select_display_value('mlotst', mapped_env, input_data, feature_row, latest_row)
+            display_ndvi = _select_display_value('NDVI_daily', mapped_env, input_data, feature_row, latest_row)
+            display_wind_u = _select_display_value('wind_u_ms', mapped_env, input_data, feature_row, latest_row)
+            display_wind_v = _select_display_value('wind_v_ms', mapped_env, input_data, feature_row, latest_row)
+            display_uo = _select_display_value('uo', mapped_env, input_data, feature_row, latest_row)
+            display_vo = _select_display_value('vo', mapped_env, input_data, feature_row, latest_row)
 
             forecast = {
                 "location": location,
@@ -542,6 +653,20 @@ def run_daily_update_with_5day_forecast():
                     "critical_features_total": len(critical_features),
                     "coverage_note": "limited" if data_limited else "sufficient",
                     "environment_data_source": env_source,
+                    "environment_imputation_strategy": "hybrid_gap_type_adaptive",
+                    "environment_imputation_sources": {
+                        "CHL": imputation_sources.get("CHL"),
+                        "thetao": imputation_sources.get("thetao"),
+                        "so": imputation_sources.get("so"),
+                        "precip_mm_day": imputation_sources.get("precip_mm_day"),
+                        "mlotst": imputation_sources.get("mlotst"),
+                        "NDVI_daily": imputation_sources.get("NDVI_daily"),
+                        "wind_speed_ms": imputation_sources.get("wind_speed_ms"),
+                        "wind_u_ms": imputation_sources.get("wind_u_ms"),
+                        "wind_v_ms": imputation_sources.get("wind_v_ms"),
+                        "uo": imputation_sources.get("uo"),
+                        "vo": imputation_sources.get("vo"),
+                    },
                     "historical_positive_signal": historical_signal["has_signal"],
                     "days_since_last_positive": historical_signal["days_since_last_positive"],
                     "recent_positive_rate_90d": historical_signal["recent_positive_rate_90d"],
