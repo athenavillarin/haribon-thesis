@@ -45,12 +45,15 @@ function TrendBars({ data }) {
         {data.map((item, index) => {
           const height = Math.max(10, Math.round((item.value / maxValue) * 220));
           const shouldRenderLabel = index % labelStep === 0 || index === data.length - 1;
+          const shortLabel = formatLabel(item.label);
           return (
             <div key={item.label} className="w-full flex flex-col items-center justify-end gap-2">
               <div className="text-[11px] text-gray-500 font-medium">{item.value}</div>
               <div className="w-full bg-[#3F6D72] rounded-t-md" style={{ height: `${height}px` }} />
-              <div className="text-[10px] text-gray-500 whitespace-nowrap" title={item.label}>
-                {shouldRenderLabel ? formatLabel(item.label) : ''}
+              <div className="text-[10px] whitespace-nowrap h-4 leading-4" title={item.label}>
+                <span className={shouldRenderLabel ? 'text-gray-500' : 'text-transparent'}>
+                  {shouldRenderLabel ? shortLabel : shortLabel}
+                </span>
               </div>
             </div>
           );
@@ -222,13 +225,18 @@ export default function SeaStats() {
 
   const handleLocationChange = (location) => {
     setSelectedLocation(location);
-    setTrendArea(location.id);
   };
 
   const fetchHistoricalData = async () => {
-    const effectiveTrendArea = trendArea || (trendMode === 'timeline' ? selectedLocation?.id || '' : '');
+    const effectiveTrendArea = trendArea;
+    const monthlyModeMissingDates = trendMode === 'monthly' && (!fromDate || !toDate);
+    const monthlyModeInvalidRange =
+      trendMode === 'monthly'
+      && fromDate
+      && toDate
+      && new Date(fromDate) > new Date(toDate);
 
-    if (!effectiveTrendArea) {
+    if (!effectiveTrendArea || monthlyModeMissingDates || monthlyModeInvalidRange) {
       setHistoricalData({ monthly_alerts: [], timeline: [], available_range: null });
       return;
     }
@@ -471,7 +479,14 @@ export default function SeaStats() {
     currentParameterPage * cardsPerPage + cardsPerPage
   );
 
-  const effectiveTrendArea = trendArea || (trendMode === 'timeline' ? selectedLocation?.id || '' : '');
+  const effectiveTrendArea = trendArea;
+  const isMonthlyMode = trendMode === 'monthly';
+  const isMonthlyMissingDates = isMonthlyMode && (!fromDate || !toDate);
+  const isMonthlyInvalidRange =
+    isMonthlyMode
+    && fromDate
+    && toDate
+    && new Date(fromDate) > new Date(toDate);
 
   return (
     <div className="p-6 pb-4 pr-5">
@@ -497,7 +512,7 @@ export default function SeaStats() {
               <div className="grid grid-cols-1 md:grid-cols-[1fr_170px_170px] gap-3">
                 <select
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-haribon-dark/40"
-                  value={trendArea || (trendMode === 'timeline' ? selectedLocation?.id || '' : '')}
+                  value={trendArea}
                   onChange={(e) => setTrendArea(e.target.value)}
                 >
                   <option value="">Select Area</option>
@@ -590,7 +605,7 @@ export default function SeaStats() {
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Environmental Parameters</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Today's Environmental Parameters</h2>
                 <p className="text-xs text-gray-500 mt-1">
                   Live drivers derived from the latest forecast for the selected site
                 </p>
@@ -694,7 +709,11 @@ export default function SeaStats() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-4">
                   {pagedParameters.map((param) => {
-                    const value = formatMetricValue(param.value, param.key === 'Nutrient Runoff' ? 2 : 1);
+                    const value = formatMetricValue(param.value, 2);
+                    const rawMetric = envData[param.key];
+                    const fullValue = rawMetric !== null && rawMetric !== undefined && String(rawMetric).trim() !== ''
+                      ? String(rawMetric)
+                      : `${value} ${param.unit}`;
                     return (
                       <div
                         key={param.key}
@@ -709,7 +728,7 @@ export default function SeaStats() {
 
                         <div className="mt-auto">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-bold text-gray-900">
+                            <span className="text-2xl font-bold text-gray-900 cursor-help" title={fullValue}>
                               {value}
                             </span>
                             <span className="text-xs text-gray-500">{param.unit}</span>
