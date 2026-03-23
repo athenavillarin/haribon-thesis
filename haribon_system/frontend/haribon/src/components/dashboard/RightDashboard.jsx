@@ -1,7 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function RightDashboard({ forecastData, selectedLocation }) {
   const [isSnapshotOpen, setIsSnapshotOpen] = React.useState(false);
+  const navigate = useNavigate();
 
   if (!selectedLocation) {
     return (
@@ -170,7 +172,11 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
               </div>
             ))}
             <div className="pt-2 text-right">
-              <button className="text-xs text-blue-500 font-medium hover:underline flex items-center justify-end gap-1 ml-auto">
+              <button
+                type="button"
+                onClick={() => navigate('/seastats')}
+                className="text-xs text-blue-500 font-medium hover:underline flex items-center justify-end gap-1 ml-auto"
+              >
                 View History <span>→</span>
               </button>
             </div>

@@ -12,6 +12,25 @@ function TrendBars({ data }) {
   const minSlotWidth = data.length > 18 ? 28 : 38;
   const gap = data.length > 18 ? 6 : 10;
   const chartWidth = Math.max(680, data.length * minSlotWidth + (data.length - 1) * gap);
+  const labelStep = data.length > 96 ? 12 : data.length > 60 ? 6 : data.length > 30 ? 3 : 1;
+
+  const formatLabel = (rawLabel) => {
+    const quarterMatch = String(rawLabel || '').match(/^(\d{4})-Q([1-4])$/);
+    if (quarterMatch) {
+      const year = Number(quarterMatch[1]);
+      const quarter = quarterMatch[2];
+      return `Q${quarter} '${String(year).slice(-2)}`;
+    }
+
+    const match = String(rawLabel || '').match(/^(\d{4})-(\d{2})$/);
+    if (!match) return rawLabel;
+
+    const year = Number(match[1]);
+    const monthIndex = Number(match[2]) - 1;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = monthNames[monthIndex] || match[2];
+    return `${month} '${String(year).slice(-2)}`;
+  };
 
   return (
     <div className="w-full max-w-full min-w-0 overflow-x-auto border-t border-gray-100 pt-4">
@@ -23,19 +42,81 @@ function TrendBars({ data }) {
           columnGap: `${gap}px`,
         }}
       >
-        {data.map((item) => {
+        {data.map((item, index) => {
           const height = Math.max(10, Math.round((item.value / maxValue) * 220));
+          const shouldRenderLabel = index % labelStep === 0 || index === data.length - 1;
           return (
             <div key={item.label} className="w-full flex flex-col items-center justify-end gap-2">
               <div className="text-[11px] text-gray-500 font-medium">{item.value}</div>
               <div className="w-full bg-[#3F6D72] rounded-t-md" style={{ height: `${height}px` }} />
-              <div className="text-[10px] text-gray-500 whitespace-nowrap">{item.label}</div>
+              <div className="text-[10px] text-gray-500 whitespace-nowrap" title={item.label}>
+                {shouldRenderLabel ? formatLabel(item.label) : ''}
+              </div>
             </div>
           );
         })}
       </div>
     </div>
   );
+}
+
+function getRangeMonths(fromDate, toDate, monthlyRows) {
+  const parseYearMonth = (label) => {
+    const match = String(label || '').match(/^(\d{4})-(\d{2})$/);
+    if (!match) return null;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) return null;
+    return { year, month };
+  };
+
+  if (fromDate && toDate) {
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+    if (Number.isFinite(from.getTime()) && Number.isFinite(to.getTime())) {
+      const fromTotal = from.getFullYear() * 12 + from.getMonth();
+      const toTotal = to.getFullYear() * 12 + to.getMonth();
+      const span = Math.abs(toTotal - fromTotal) + 1;
+      return span;
+    }
+  }
+
+  const parsed = monthlyRows
+    .map((row) => parseYearMonth(row.label))
+    .filter(Boolean)
+    .sort((a, b) => (a.year - b.year) || (a.month - b.month));
+
+  if (!parsed.length) return 0;
+
+  const first = parsed[0];
+  const last = parsed[parsed.length - 1];
+  const firstTotal = first.year * 12 + (first.month - 1);
+  const lastTotal = last.year * 12 + (last.month - 1);
+  return Math.abs(lastTotal - firstTotal) + 1;
+}
+
+function aggregateMonthlyToQuarterly(monthlyRows) {
+  const quarterMap = new Map();
+
+  monthlyRows.forEach((row) => {
+    const match = String(row.label || '').match(/^(\d{4})-(\d{2})$/);
+    if (!match) return;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) return;
+
+    const quarter = Math.floor((month - 1) / 3) + 1;
+    const key = `${year}-Q${quarter}`;
+    quarterMap.set(key, (quarterMap.get(key) || 0) + Number(row.value || 0));
+  });
+
+  return Array.from(quarterMap.entries())
+    .sort((a, b) => {
+      const [aYear, aQuarter] = a[0].split('-Q').map(Number);
+      const [bYear, bQuarter] = b[0].split('-Q').map(Number);
+      return (aYear - bYear) || (aQuarter - bQuarter);
+    })
+    .map(([label, value]) => ({ label, value }));
 }
 
 function TrendLine({ data }) {
@@ -186,10 +267,16 @@ export default function SeaStats() {
 
   const lastUpdated = forecastData?.last_updated || forecastData?.metadata?.last_updated || null;
 
-  const monthlyAlertData = (historicalData?.monthly_alerts || []).map((row) => ({
+  const rawMonthlyAlertData = (historicalData?.monthly_alerts || []).map((row) => ({
     label: row.label,
     value: Number(row.value || 0),
   }));
+
+  const rangeMonths = getRangeMonths(fromDate, toDate, rawMonthlyAlertData);
+  const useQuarterlyAggregation = trendMode === 'monthly' && rangeMonths > 24;
+  const monthlyAlertData = useQuarterlyAggregation
+    ? aggregateMonthlyToQuarterly(rawMonthlyAlertData)
+    : rawMonthlyAlertData;
 
   const availableTimelineYears = Array.from(
     new Set([
@@ -478,6 +565,12 @@ export default function SeaStats() {
                   Timeline
                 </button>
               </div>
+
+              {useQuarterlyAggregation && (
+                <p className="text-xs text-gray-500">
+                  Long range detected. Showing quarterly totals for better readability.
+                </p>
+              )}
             </div>
 
             <div className="flex-1 min-w-0 max-w-full overflow-hidden">

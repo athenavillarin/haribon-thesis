@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 from datetime import datetime, timedelta
 import numpy as np
+from sqlalchemy import Date
 
 backend_dir = Path(__file__).resolve().parent.parent.parent
 system_dir = backend_dir.parent 
@@ -710,30 +711,40 @@ def run_daily_update_with_5day_forecast():
             forecast["five_day_forecast"] = five_day
             forecasts.append(forecast)
 
-            # Log prediction to database
+            # Log prediction to database (only if not already logged for this location today)
             if SessionLocal is not None and Location is not None and PredictionLog is not None:
                 try:
                     session = SessionLocal()
                     # Get location_id
                     location_obj = session.query(Location).filter_by(location_name=location).first()
                     if location_obj:
-                        # Extract confidence as float
-                        confidence_float = float(confidence.rstrip('%')) / 100.0 if confidence.endswith('%') else float(confidence)
+                        # Check if prediction for this location and date already exists
+                        today_date = today.date()
+                        existing_prediction = session.query(PredictionLog).filter(
+                            PredictionLog.location_id == location_obj.location_id,
+                            PredictionLog.prediction_timestamp.cast(Date) == today_date
+                        ).first()
 
-                        prediction_log = PredictionLog(
-                            location_id=location_obj.location_id,
-                            prediction_timestamp=datetime.now(),
-                            sst=safe_float(display_thetao),
-                            chlorophyll_a_proxy=safe_float(display_chl),
-                            rainfall_mm=safe_float(display_rain),
-                            salinity=safe_float(display_so),
-                            agriculture_pct=None,  # Not available in current system
-                            risk_level=risk_level,
-                            confidence_score=confidence_float
-                        )
-                        session.add(prediction_log)
-                        session.commit()
-                        print(f"Logged prediction for {location} to database")
+                        if existing_prediction:
+                            print(f"Prediction for {location} on {today_str} already exists, skipping log")
+                        else:
+                            # Extract confidence as float
+                            confidence_float = float(confidence.rstrip('%')) / 100.0 if confidence.endswith('%') else float(confidence)
+
+                            prediction_log = PredictionLog(
+                                location_id=location_obj.location_id,
+                                prediction_timestamp=today,  # Use forecast date instead of current time
+                                sst=safe_float(display_thetao),
+                                chlorophyll_a_proxy=safe_float(display_chl),
+                                rainfall_mm=safe_float(display_rain),
+                                salinity=safe_float(display_so),
+                                agriculture_pct=None,  # Not available in current system
+                                risk_level=risk_level,
+                                confidence_score=confidence_float
+                            )
+                            session.add(prediction_log)
+                            session.commit()
+                            print(f"Logged prediction for {location} to database")
                     session.close()
                 except Exception as exc:
                     print(f"[WARN] Failed to log prediction for {location}: {exc}")

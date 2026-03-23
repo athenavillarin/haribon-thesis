@@ -137,11 +137,11 @@ const faqs = [
   },
   {
     question: "Which areas are covered?",
-    answer: "Western Visayas priority AOIs, including Gigantes Islands (Carles, Iloilo), Roxas City, and Sapian Bay, Batan Bay, Pilar, and President Roxas. Coverage can expand as more boundaries and historical records are added."
+    answer: "Current priority AOIs include Gigantes Islands, Dumanquillas Bay, Matarinao Bay, Pilar, Sapian Bay, President Roxas, and Roxas City. Coverage can continue to expand as additional boundaries and historical records are integrated."
   },
   {
     question: "How accurate is the forecast?",
-    answer: "Accuracy depends on data quality and environmental variability. We train and validate the XGBoost model on historical bulletins and satellite-derived features, and we continually refine with new observations. Users should treat 'High' and 'Elevated' levels as precautionary signals and follow official advisories from BFAR and LGUs."
+    answer: "Accuracy depends on data quality and environmental variability. We train and validate the model on historical bulletins and satellite-derived features, and we continually refine with new observations. Users should treat 'High' and 'Elevated' levels as precautionary signals and follow official advisories from BFAR and LGUs."
   },
   {
     question: "How often are forecasts updated?",
@@ -149,15 +149,15 @@ const faqs = [
   },
   {
     question: "How are risk levels defined?",
-    answer: "Risk levels are derived from the model's predicted probability and mapped into four categories: Green (Very Low), Yellow (Low), Orange (Moderate), and Red (High). The dashboard also displays contributing conditions (e.g., chl-a proxy, SST, salinity, rainfall, land use signals) and recommended actions for each level."
+    answer: "Risk levels are derived from the model's predicted probability and mapped into four categories: Green (Very Low), Yellow (Low), Orange (Moderate), and Red (High)."
   },
   {
     question: "What data sources are used?",
-    answer: "HARIBON was developed by the University of the Philippines Visayas (UPV) in collaboration with the Bureau of Fisheries and Aquatic Resources (BFAR) and other partners. It leverages AI and satellite data to provide timely information on red tide risks."
+    answer: "HARIBON uses a compiled historical red tide dataset with location-based observations and environmental variables. Data ingestion and processing are supported by Google Earth Engine (GEE) and Copernicus Marine Service products, including indicators such as chlorophyll-a proxy, sea-surface temperature, salinity, rainfall, wind, current, and related features, combined with historical alert labels to train and run the forecasting model."
   },
   {
     question: "Can I use dashboard offline?",
-    answer: "No. Internet access is required to retrieve the latest forecasts and visualizations. You can, however, export or screenshot relevant summaries for offline reference."
+    answer: "No. Internet access is required to retrieve the latest forecasts and visualizations. You can, however, screenshot relevant summaries for offline reference."
   },
   {
     question: "Who maintains HARIBON?",
@@ -165,6 +165,6 @@ const faqs = [
   },
   {
     question: "How can I report a suspected bloom or data issue?",
-    answer: "Please contact your local BFAR office or submit reports through the dashboard's feedback form, including any available images or observations."
+    answer: "Please contact your local BFAR office or LGUs."
   }
 ];
