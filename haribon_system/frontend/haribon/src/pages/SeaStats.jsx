@@ -273,6 +273,12 @@ export default function SeaStats() {
     await fetchForecastData();
   };
 
+  const handleResetTrends = () => {
+    setTrendArea('');
+    setFromDate('');
+    setToDate('');
+  };
+
   const lastUpdated = forecastData?.last_updated || forecastData?.metadata?.last_updated || null;
 
   const rawMonthlyAlertData = (historicalData?.monthly_alerts || []).map((row) => ({
@@ -507,7 +513,16 @@ export default function SeaStats() {
           {/* Risk trends with area/date filters */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col min-w-0 max-w-full overflow-hidden">
             <div className="flex flex-col gap-4 mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Risk Trends</h2>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-lg font-semibold text-gray-900">Risk Trends</h2>
+                <button
+                  type="button"
+                  onClick={handleResetTrends}
+                  className="text-xs font-semibold text-gray-600 hover:text-gray-800 border border-gray-200 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors"
+                >
+                  Reset
+                </button>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-[1fr_170px_170px] gap-3">
                 <select
