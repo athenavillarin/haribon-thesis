@@ -8,6 +8,13 @@ import pandas as pd
 import joblib
 from ml_xgboost.inference_script import predict_risk, create_inference_features
 
+try:
+    from app.core.database import SessionLocal
+    from app.models.forecast import DailyForecast
+except Exception:
+    SessionLocal = None
+    DailyForecast = None
+
 router = APIRouter()
 
 
@@ -57,8 +64,62 @@ def _load_latest_forecast_data():
             detail="Forecast not found. The daily update script may not have run yet."
         )
 
+
+def _load_yesterday_forecasts_from_db(current_forecast_date: date):
+    """Load yesterday's forecast payload from PostgreSQL, keyed by normalized location."""
+    if SessionLocal is None or DailyForecast is None:
+        return {}
+
+    target_date = current_forecast_date - timedelta(days=1)
+
+    try:
+        session = SessionLocal()
+        db_row = (
+            session.query(DailyForecast)
+            .filter(DailyForecast.forecast_date == target_date)
+            .order_by(DailyForecast.created_at.desc())
+            .first()
+        )
+        session.close()
+    except Exception:
+        return {}
+
+    if not db_row or not isinstance(db_row.payload, dict):
+        return {}
+
+    by_location = {}
+    for item in db_row.payload.get("forecasts", []):
+        location_name = item.get("location")
+        key = _normalize_location_key(location_name)
+        if not key:
+            continue
+
+        risk_level = item.get("risk_level", "Unknown")
+        by_location[key] = {
+            "day": "Yesterday",
+            "date": target_date.strftime("%Y-%m-%d"),
+            "label": "Yesterday",
+            "risk_level": risk_level,
+            "risk_color": _get_risk_color(risk_level),
+            "confidence": item.get("confidence", "N/A"),
+            "probability": item.get("red_tide_probability", "Unknown"),
+            "is_historical": True,
+        }
+
+    return by_location
+
 def _simplify_forecast_for_frontend(raw_data):
     """Convert complex forecast data to frontend-friendly format."""
+    current_forecast_date = datetime.now().date()
+    try:
+        last_updated = raw_data.get("last_updated")
+        if last_updated:
+            current_forecast_date = datetime.fromisoformat(last_updated.replace("Z", "+00:00")).date()
+    except Exception:
+        current_forecast_date = datetime.now().date()
+
+    yesterday_by_location = _load_yesterday_forecasts_from_db(current_forecast_date)
+
     simplified = {
         "metadata": {
             "last_updated": raw_data.get("last_updated"),
@@ -112,11 +173,16 @@ def _simplify_forecast_for_frontend(raw_data):
             "environmental_data": forecast.get("environmental_data", {})
         }
 
+        normalized_location = _normalize_location_key(forecast.get("location", ""))
+        yesterday_card = yesterday_by_location.get(normalized_location)
+        if yesterday_card:
+            location_data["five_day_outlook"].append(yesterday_card)
+
         # Simplified 5-day forecast
         # First entry: Today (using current prediction)
         location_data["five_day_outlook"].append({
             "day": "Today",
-            "date": datetime.now().strftime('%Y-%m-%d'),
+            "date": current_forecast_date.strftime('%Y-%m-%d'),
             "label": "Today",
             "risk_level": forecast["risk_level"], # Main "today" risk
             "risk_color": _get_risk_color(forecast["risk_level"]),
@@ -137,9 +203,29 @@ def _simplify_forecast_for_frontend(raw_data):
                     "probability": day_forecast["probability"]
                 }
                 location_data["five_day_outlook"].append(day_data)
+
+        target_outlook_count = 8 if yesterday_card else 7
+
+        # Backward compatibility for older generated files: ensure full target card count.
+        while 0 < len(location_data["five_day_outlook"]) < target_outlook_count:
+            last_entry = location_data["five_day_outlook"][-1]
+            try:
+                next_date = datetime.strptime(last_entry["date"], "%Y-%m-%d") + timedelta(days=1)
+            except Exception:
+                next_date = datetime.now() + timedelta(days=len(location_data["five_day_outlook"]))
+
+            location_data["five_day_outlook"].append({
+                "day": len(location_data["five_day_outlook"]),
+                "date": next_date.strftime("%Y-%m-%d"),
+                "label": next_date.strftime("%a"),
+                "risk_level": last_entry.get("risk_level", forecast["risk_level"]),
+                "risk_color": last_entry.get("risk_color", _get_risk_color(forecast["risk_level"])),
+                "confidence": last_entry.get("confidence", forecast["confidence"]),
+                "probability": last_entry.get("probability", forecast["red_tide_probability"]),
+            })
         
-        # Limit to 5 items total if needed, or keep all
-        location_data["five_day_outlook"] = location_data["five_day_outlook"][:5]
+        # Keep full generated outlook (7-day horizon + optional yesterday).
+        location_data["five_day_outlook"] = location_data["five_day_outlook"][:target_outlook_count]
 
         simplified["locations"].append(location_data)
 

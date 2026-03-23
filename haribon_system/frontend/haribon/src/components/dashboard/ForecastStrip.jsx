@@ -1,8 +1,28 @@
 import React from 'react';
 import { FiRefreshCw } from 'react-icons/fi';
+import { FiChevronLeft } from 'react-icons/fi';
+import { FiChevronRight } from 'react-icons/fi';
 
 export default function ForecastStrip({ forecastData, selectedLocation, onRefresh }) {
   const [refreshing, setRefreshing] = React.useState(false);
+  const [startIndex, setStartIndex] = React.useState(0);
+  const visibleCount = 5;
+
+  const outlook = selectedLocation?.five_day_outlook || [];
+  const hasYesterdayCard =
+    outlook[0]?.label === 'Yesterday'
+    || outlook[0]?.day === 'Yesterday'
+    || outlook[0]?.is_historical === true;
+  const maxStartIndex = Math.max(0, outlook.length - visibleCount);
+  const visibleOutlook = outlook.slice(startIndex, startIndex + visibleCount);
+
+  React.useEffect(() => {
+    setStartIndex(hasYesterdayCard ? 1 : 0);
+  }, [selectedLocation?.id, hasYesterdayCard]);
+
+  React.useEffect(() => {
+    setStartIndex((prev) => Math.min(prev, maxStartIndex));
+  }, [maxStartIndex]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -14,6 +34,19 @@ export default function ForecastStrip({ forecastData, selectedLocation, onRefres
   };
 
   if (!selectedLocation || !selectedLocation.five_day_outlook) return null;
+
+  const canMoveLeft = startIndex > 0;
+  const canMoveRight = startIndex < maxStartIndex;
+
+  const handleMoveLeft = () => {
+    if (!canMoveLeft) return;
+    setStartIndex((prev) => Math.max(prev - 1, 0));
+  };
+
+  const handleMoveRight = () => {
+    if (!canMoveRight) return;
+    setStartIndex((prev) => Math.min(prev + 1, maxStartIndex));
+  };
 
   return (
     <div className="mb-2">
@@ -31,15 +64,35 @@ export default function ForecastStrip({ forecastData, selectedLocation, onRefres
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {selectedLocation.five_day_outlook.map((day, index) => (
-          <ForecastCard
-            key={`${day.date || 'forecast'}-${index}`}
-            data={day}
-            locationName={selectedLocation.name}
-            isSelected={index === 0}
-          />
-        ))}
+      <div className="relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {visibleOutlook.map((day, index) => (
+            <ForecastCard
+              key={`${day.date || 'forecast'}-${startIndex + index}`}
+              data={day}
+              locationName={selectedLocation.name}
+              isSelected={startIndex + index === 0}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={handleMoveLeft}
+          disabled={!canMoveLeft}
+          aria-label="Show previous forecast day"
+          className="absolute -left-8 top-1/2 -translate-y-1/2 p-2 text-gray-600 transition-colors hover:text-gray-800 disabled:opacity-35 disabled:cursor-not-allowed z-20"
+        >
+          <FiChevronLeft size={24} />
+        </button>
+
+        <button
+          onClick={handleMoveRight}
+          disabled={!canMoveRight}
+          aria-label="Show next forecast day"
+          className="absolute -right-8 top-1/2 -translate-y-1/2 p-2 text-gray-600 transition-colors hover:text-gray-800 disabled:opacity-35 disabled:cursor-not-allowed z-20"
+        >
+          <FiChevronRight size={24} />
+        </button>
       </div>
     </div>
   );
@@ -93,7 +146,7 @@ function ForecastCard({ data, locationName, isSelected }) {
           <div className={`font-bold text-sm mb-0.5 ${getRiskColor(data.risk_color)}`}>
             {data.risk_level}
           </div>
-          <div className={`text-[10px] font-bold ${getRiskColor(data.risk_color)} opacity-80`}>
+           <div className="text-[10px] font-bold text-[#3C6468] opacity-80">
              {getRiskAction(data.risk_color)}
           </div>
         </div>

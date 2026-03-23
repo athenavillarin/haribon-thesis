@@ -681,7 +681,8 @@ def run_daily_update_with_5day_forecast():
             decay_factor = 0.9
             horizon_conf_decay = 0.95
 
-            for i in range(1, 6):
+            # 7-day horizon total: today + next 6 days.
+            for i in range(1, 7):
                 future_date = today + timedelta(days=i)
 
                 future_prob = probability * (decay_factor ** i)
