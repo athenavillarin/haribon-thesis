@@ -61,12 +61,23 @@ class PredictionLog(Base):
     prediction_id = Column(Integer, primary_key=True, index=True)
     location_id = Column(Integer, ForeignKey("location.location_id", ondelete="CASCADE"), nullable=False, index=True)
     prediction_timestamp = Column(TIMESTAMP, nullable=False, default=datetime.utcnow, index=True)
-    sst = Column(Float)
-    chlorophyll_a_proxy = Column(Float)
-    rainfall_mm = Column(Float)
-    salinity = Column(Float)
-    agriculture_pct = Column(Float)
-    risk_level = Column(Text)
+    
+    # 10 Environmental Parameters
+    chlorophyll_a = Column(Float)  # CHL (mg/m³)
+    ndvi_daily = Column(Float)  # Normalized Difference Vegetation Index
+    ndvi_raw = Column(Float)  # NDVI raw values
+    mixed_layer_depth = Column(Float)  # mlotst (m)
+    precipitation_mm = Column(Float)  # precip_mm_day (mm/day)
+    salinity = Column(Float)  # so (PSU)
+    sst = Column(Float)  # thetao (°C) - Sea Surface Temperature
+    eastward_current_velocity = Column(Float)  # uo (m/s)
+    northward_current_velocity = Column(Float)  # vo (m/s)
+    wind_speed_ms = Column(Float)  # wind_speed_ms (m/s)
+    wind_u_component = Column(Float)  # wind_u_ms - Eastward wind (m/s)
+    wind_v_component = Column(Float)  # wind_v_ms - Northward wind (m/s)
+    
+    # Prediction output
+    risk_level = Column(String(20))  # "Low Risk", "Moderate Risk", "High Risk"
     confidence_score = Column(Float)
 
     # Relationships

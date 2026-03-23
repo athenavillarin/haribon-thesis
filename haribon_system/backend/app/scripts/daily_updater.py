@@ -615,6 +615,7 @@ def run_daily_update_with_5day_forecast():
             display_wind_speed = _select_display_value('wind_speed_ms', mapped_env, input_data, feature_row, latest_row)
             display_mld = _select_display_value('mlotst', mapped_env, input_data, feature_row, latest_row)
             display_ndvi = _select_display_value('NDVI_daily', mapped_env, input_data, feature_row, latest_row)
+            display_ndvi_raw = _select_display_value('NDVI_raw', mapped_env, input_data, feature_row, latest_row)
             display_wind_u = _select_display_value('wind_u_ms', mapped_env, input_data, feature_row, latest_row)
             display_wind_v = _select_display_value('wind_v_ms', mapped_env, input_data, feature_row, latest_row)
             display_uo = _select_display_value('uo', mapped_env, input_data, feature_row, latest_row)
@@ -735,11 +736,20 @@ def run_daily_update_with_5day_forecast():
                             prediction_log = PredictionLog(
                                 location_id=location_obj.location_id,
                                 prediction_timestamp=today,  # Use forecast date instead of current time
-                                sst=safe_float(display_thetao),
-                                chlorophyll_a_proxy=safe_float(display_chl),
-                                rainfall_mm=safe_float(display_rain),
+                                # 10 Environmental Parameters
+                                chlorophyll_a=safe_float(display_chl),
+                                ndvi_daily=safe_float(display_ndvi),
+                                ndvi_raw=safe_float(display_ndvi_raw),
+                                mixed_layer_depth=safe_float(display_mld),
+                                precipitation_mm=safe_float(display_rain),
                                 salinity=safe_float(display_so),
-                                agriculture_pct=None,  # Not available in current system
+                                sst=safe_float(display_thetao),
+                                eastward_current_velocity=safe_float(display_uo),
+                                northward_current_velocity=safe_float(display_vo),
+                                wind_speed_ms=safe_float(display_wind_speed),
+                                wind_u_component=safe_float(display_wind_u),
+                                wind_v_component=safe_float(display_wind_v),
+                                # Prediction output
                                 risk_level=risk_level,
                                 confidence_score=confidence_float
                             )
