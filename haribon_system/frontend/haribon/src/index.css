@@ -20,6 +20,13 @@ body {
   box-shadow: none !important;
 }
 
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-pane,
+.leaflet-control {
+  z-index: 500;
+}
+
 .leaflet-tooltip.haribon-hover-popup {
   background: #f3f4f6;
   border-radius: 14px;

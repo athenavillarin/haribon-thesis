@@ -140,7 +140,7 @@ export default function MapSection({ forecastData, selectedLocation, onLocationS
   return (
     <div className="h-full w-full relative">
       <div ref={mapRef} className="h-full w-full rounded-xl overflow-hidden" />
-      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg z-[1000]">
+      <div className="hidden sm:block absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg z-[1000]">
         <h3 className="font-semibold text-gray-800 mb-2">Risk Levels</h3>
         <div className="space-y-1 text-sm">
           <div className="flex items-center gap-2">
