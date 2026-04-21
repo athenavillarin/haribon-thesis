@@ -2,21 +2,26 @@
 
 **Dataset:** Combined_Labeled.csv (7 locations, 2015-2026)  
 **Model:** XGBoost with Hybrid Gap-Type Adaptive Imputation  
-**Performance:** AUC = 0.9833  
-**Date:** March 2026
+**Evaluation:** Six expanding temporal test windows  
+**Metrics:** Accuracy, Precision, Recall, F1-Score, AUC-ROC  
+**Date:** April 2026
 
 ---
 
 ## Overview
 
-This model predicts red tide blooms using XGBoost trained on 28,016 daily observations from 7 monitoring sites with environmental features (CHL, NDVI, SST, salinity, currents, wind, precipitation).
+This model predicts red tide blooms using XGBoost trained on daily observations from 7 monitoring sites with environmental features such as CHL, NDVI, SST, salinity, currents, wind, and precipitation.
 
-**Pipeline:**
-1. Load and filter data (keep only rows with `red_tide_label`)
-2. Convert `red_tide_label` to binary (threshold ≥ 0.5)
-3. Apply Hybrid Gap-Type Adaptive imputation
-4. Optimize XGBoost hyperparameters (RandomizedSearchCV)
-5. Train final model and save results
+The evaluation was updated from the old 5-fold random cross-validation setup to a time-aware expanding-window protocol. This gives a more realistic estimate of forecasting performance because each test set is strictly in the future relative to the training set.
+
+**Updated pipeline:**
+1. Load and filter data, keeping only rows with `red_tide_label`
+2. Convert `red_tide_label` to binary using threshold >= 0.5
+3. Apply Hybrid Gap-Type Adaptive imputation inside each split
+4. Train XGBoost on the expanding training window
+5. Evaluate on the next one-year test window
+6. Report Accuracy, Precision, Recall, F1-Score, AUC-ROC, and training runtime
+7. Save per-split metrics, summary metrics, and the final model
 
 ---
 
@@ -24,26 +29,23 @@ This model predicts red tide blooms using XGBoost trained on 28,016 daily observ
 
 ### Dataset
 - **Source:** `final_compiled_dataset/Combined_Labeled.csv`
-- **Temporal range:** 2015-01-01 to 2026-02-24 (11+ years)
-- **Locations:** 7 sites (Dumanquillas Bay, Gigantes Islands, Matarinao Bay, Pilar, President Roxas, Roxas City, Sapian Bay)
-- **Total rows:** 28,511 (495 rows dropped where `red_tide_label` is missing → 28,016 used)
-- **Features:** 12 environmental variables (excludes Date, Location_Name, Month, red_tide, red_tide_label, red_tide_binary)
+- **Temporal range:** 2015-01-01 to 2026-02-24
+- **Locations:** 7 sites
+- **Target rows used:** rows with non-missing `red_tide_label`
+- **Features:** environmental variables excluding Date, Location_Name, Month, red_tide, red_tide_label, and red_tide_binary
 
 ### Target Variable
 
 - **Column:** `red_tide_label` (continuous float 0.0-1.0)
-- **Binary conversion:** `red_tide_label >= 0.5` → 1 (bloom), else 0 (non-bloom)
-- **Class distribution:**
-  - Class 0 (non-bloom): 23,031 samples (82.2%)
-  - Class 1 (bloom): 4,985 samples (17.8%)
-  - Imbalance ratio: ~4.6:1
+- **Binary conversion:** `red_tide_label >= 0.5` -> 1 (bloom), else 0 (non-bloom)
+- **Class imbalance:** the non-bloom class remains the majority class, so `scale_pos_weight` is preserved in the tuned XGBoost parameters
 
 ### Preprocessing Steps
 
-1. Drop rows where `red_tide_label` is NaN (495 rows removed)
-2. Convert `red_tide_label` to binary using threshold 0.5 → `red_tide_binary`
-3. Extract `Month` from Date for climatological imputation
-4. Sort by Location_Name and Date chronologically
+1. Drop rows where `red_tide_label` is missing
+2. Convert `red_tide_label` to `red_tide_binary`
+3. Sort chronologically by `Location_Name` and `Date`
+4. Extract `Month` for climatological imputation
 
 ---
 
@@ -51,24 +53,66 @@ This model predicts red tide blooms using XGBoost trained on 28,016 daily observ
 
 ### Hybrid: Gap-Type Adaptive Strategy
 
-Combines temporal and climatological methods to handle missing environmental data:
+The imputation logic is applied within each split to avoid using future information from the test period.
 
-**Phase 1: Temporal Interpolation (Short Gaps)**
+**Phase 1: Temporal Interpolation**
 - Method: Linear interpolation within each location
-- Limit: 14 days maximum
-- Rationale: Short gaps can be reliably filled using local continuity
+- Limit: 14 days
+- Purpose: Fill short gaps using local continuity
 
-**Phase 2: Climatological Substitution (Long Gaps)**
-- Method: Location × Month mean substitution
-- Rationale: Preserves seasonal patterns when temporal interpolation fails
+**Phase 2: Climatological Substitution**
+- Method: Location x Month mean substitution
+- Purpose: Preserve seasonal structure when interpolation is insufficient
 
 **Phase 3: Location Mean Fallback**
-- Method: Overall location mean for edge cases
+- Method: Overall mean per location
+- Purpose: Handle edge cases where month-level statistics are still missing
 
-**Phase 4: Global Mean Emergency**
-- Method: Overall feature mean (rarely triggered)
+**Phase 4: Global Mean Emergency Fallback**
+- Method: Overall feature mean
+- Purpose: Fill any remaining rare gaps
 
-This approach adapts to gap length and preserves both temporal continuity and seasonal patterns.
+For the expanding-window evaluation, the imputer statistics are learned from the training portion of each split and then applied to the corresponding test period.
+
+---
+
+## Temporal Evaluation Setup
+
+### Six Expanding Windows
+
+The model is evaluated using the following train/test windows:
+
+1. **Split 1**
+   - Train: 2015-2019
+   - Test: 2020
+
+2. **Split 2**
+   - Train: 2015-2020
+   - Test: 2021
+
+3. **Split 3**
+   - Train: 2015-2021
+   - Test: 2022
+
+4. **Split 4**
+   - Train: 2015-2022
+   - Test: 2023
+
+5. **Split 5**
+   - Train: 2015-2023
+   - Test: 2024
+
+6. **Split 6**
+   - Train: 2015-2024
+   - Test: 2025
+
+All six splits use strict one-year test windows (Jan 1 to Dec 31).
+
+### Why this is better
+
+- It prevents future leakage from random folds.
+- It better reflects operational forecasting conditions.
+- It produces a more defensible thesis result even if the raw metric values are lower than the older random CV score.
 
 ---
 
@@ -76,115 +120,77 @@ This approach adapts to gap length and preserves both temporal continuity and se
 
 ### XGBoost Configuration
 
-**Optimization method:** RandomizedSearchCV  
-**Iterations:** 50  
-**Cross-validation:** Stratified K-Fold (5 splits)  
-**Scoring metric:** ROC-AUC  
-**Random state:** 42  
+The model uses the best hyperparameters found in the earlier tuning run and reuses them for the six-window evaluation.
 
-### Hyperparameter Search Space
+**Best parameters used in the current script:**
+- `subsample: 0.9`
+- `scale_pos_weight: 5`
+- `n_estimators: 500`
+- `min_child_weight: 7`
+- `max_depth: 8`
+- `learning_rate: 0.2`
+- `gamma: 0.2`
+- `colsample_bytree: 0.9`
 
-| Parameter | Values Tested |
-|-----------|---------------|
-| learning_rate | [0.01, 0.05, 0.1, 0.2] |
-| max_depth | [3, 4, 5, 6, 7, 8] |
-| n_estimators | [50, 100, 200, 300, 500] |
-| subsample | [0.6, 0.7, 0.8, 0.9, 1.0] |
-| colsample_bytree | [0.6, 0.7, 0.8, 0.9, 1.0] |
-| scale_pos_weight | [1, 5, 10, 20, 50, 100] |
-| min_child_weight | [1, 3, 5, 7] |
-| gamma | [0, 0.1, 0.2, 0.3, 0.4] |
+### Metrics Reported
 
-**Total configurations explored:** 50 out of 720,000 possible combinations
+For each split, the script reports:
+- Accuracy
+- Precision
+- Recall
+- F1-Score
+- AUC-ROC
+- Training runtime in seconds
 
----
-
-## Results
-
-### Best Hyperparameters
-
-```
-subsample:            0.9
-scale_pos_weight:     5
-n_estimators:         500
-min_child_weight:     7
-max_depth:            8
-learning_rate:        0.2
-gamma:                0.2
-colsample_bytree:     0.9
-```
-
-### Performance
-
-**Cross-Validation AUC:** 0.9833 ± 0.0004
-
-**Top 5 Configurations:**
-1. AUC = 0.9833 (scale_pos_weight=5, max_depth=8, n_estimators=500)
-2. AUC = 0.9823 (scale_pos_weight=5, max_depth=8, n_estimators=200)
-3. AUC = 0.9815 (scale_pos_weight=50, max_depth=7, n_estimators=300)
-4. AUC = 0.9793 (scale_pos_weight=50, max_depth=4, n_estimators=500)
-5. AUC = 0.9788 (scale_pos_weight=1, max_depth=6, n_estimators=200)
-
-**Observations:**
-- Excellent performance (AUC > 0.98)
-- Very stable across top configurations (range: 0.0045)
-- `scale_pos_weight=5` optimal for ~4.6:1 class imbalance
-- Deeper trees (max_depth=8) work well with this dataset
-
-### Output Files
-
-All results saved to `xgboost_model/results/`:
-- `best_xgboost_model.json` - Trained model (2.6 MB)
-- `cv_results.csv` - Full hyperparameter search results
-- `best_parameters.txt` - Best configuration summary
+It also saves the mean, standard deviation, minimum, and maximum for each metric across the six splits.
 
 ---
 
-## Key Findings
+## Expected Result Pattern
 
-1. **Excellent Predictive Performance**
-   - AUC = 0.9833 indicates the model can distinguish bloom from non-bloom events with 98.33% probability
-   - This is production-ready performance for red tide early warning systems
+Because the new evaluation is time-based, the reported scores are expected to be more realistic than the old random-fold AUC score.
 
-2. **Robust Hyperparameter Landscape**
-   - Top 5 configurations all achieve AUC > 0.978
-   - Model performance is stable across hyperparameter variations
+What usually changes compared with the old setup:
+- The AUC may go down slightly because the test set is now truly future data.
+- Precision and recall may vary more across splits because bloom events are not evenly distributed by year.
+- Runtime becomes more visible because the script now tracks fit time for each split.
 
-3. **Class Imbalance Handled Effectively**
-   - `scale_pos_weight=5` perfectly tuned for 4.6:1 imbalance
-   - Stratified K-fold ensures consistent class representation across folds
+This is not a weaker evaluation. It is a stricter and more credible one.
 
-4. **Imputation Quality**
-   - Hybrid Gap-Type Adaptive method successfully filled all feature gaps
-   - 14-day temporal limit preserved short-term continuity
-   - Climatological fallback maintained seasonal patterns
+---
 
-5. **Model Complexity**
-   - Optimal depth (max_depth=8) suggests complex feature interactions
-   - 500 estimators with learning_rate=0.2 achieved best generalization
+## Output Files
+
+The updated script saves the following files in `xgboost_model/results/`:
+- `temporal_window_results.csv` - per-split metrics and training runtime
+- `temporal_window_summary.csv` - aggregated statistics across the six splits
+- `temporal_window_summary.txt` - human-readable summary for documentation
+- `best_xgboost_model.json` - final model trained after the evaluation run
+- `best_parameters.txt` - tuned parameter summary and aggregate metrics
 
 ---
 
 ## Usage
 
-To retrain the model:
+To run the updated training and evaluation workflow:
+
 ```bash
 python xgboost_model/train_xgboost_haribon.py
 ```
 
-To use the trained model:
+To load the final trained model:
+
 ```python
 from xgboost import XGBClassifier
 
-# Load model
 model = XGBClassifier()
 model.load_model('xgboost_model/results/best_xgboost_model.json')
-
-# Make predictions
-predictions = model.predict(X_new)
-probabilities = model.predict_proba(X_new)[:, 1]
 ```
 
 ---
 
-**Last Updated:** March 6, 2026
+## Summary
+
+The main difference from the original XGBoost workflow is that the model is no longer evaluated with 5-fold random cross-validation and AUC only. It now uses six expanding temporal test windows, four standard classification metrics plus AUC-ROC, and explicit training runtime reporting. This makes the result more appropriate for a forecasting thesis and less vulnerable to leakage.
+
+**Last Updated:** April 21, 2026
