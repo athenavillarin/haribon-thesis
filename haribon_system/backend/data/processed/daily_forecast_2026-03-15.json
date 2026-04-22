@@ -1,0 +1,117 @@
+{
+  "last_updated": "2026-03-15T08:00:00",
+  "system_version": "v2.0",
+  "forecasts": [
+    {
+      "location": "Gigantes Islands, Carles, Iloilo",
+      "latitude": 11.5975,
+      "longitude": 123.3364,
+      "risk_level": "High Risk",
+      "confidence": "93%",
+      "red_tide_probability": "High",
+      "recommendations": [
+        "Severe algal activity detected.",
+        "Stop harvesting immediately.",
+        "Avoid swimming."
+      ],
+      "contributing_factors": {
+        "chl-a": 0.268,
+        "sst": 29.62,
+        "salinity": 32.5,
+        "rainfall": 5.2
+      },
+      "five_day_forecast": [
+        {
+            "forecast_day": 1,
+            "date": "2026-03-16",
+            "day_label": "Mon",
+            "risk_level": "High Risk",
+            "confidence": "90%",
+            "probability": "High"
+        },
+        {
+            "forecast_day": 2,
+            "date": "2026-03-17",
+            "day_label": "Tue",
+            "risk_level": "Moderate Risk",
+            "confidence": "85%",
+            "probability": "Medium"
+        },
+        {
+            "forecast_day": 3,
+            "date": "2026-03-18",
+            "day_label": "Wed",
+            "risk_level": "Moderate Risk",
+            "confidence": "80%",
+            "probability": "Medium"
+        },
+        {
+            "forecast_day": 4,
+            "date": "2026-03-19",
+            "day_label": "Thu",
+            "risk_level": "Low Risk",
+            "confidence": "75%",
+            "probability": "Low"
+        },
+        {
+            "forecast_day": 5,
+            "date": "2026-03-20",
+            "day_label": "Fri",
+            "risk_level": "Low Risk",
+            "confidence": "70%",
+            "probability": "Low"
+        }
+      ],
+      "data_quality": {
+        "quality_score": 95,
+        "confidence_level": "High",
+        "warnings": []
+      },
+      "environmental_data": {
+        "chlorophyll": "2.5 mg/m3",
+        "temperature": "30°C"
+      }
+    },
+    {
+      "location": "Batan Bay, Aklan",
+      "latitude": 11.5790,
+      "longitude": 122.4930,
+      "risk_level": "Moderate Risk",
+      "confidence": "88%",
+      "red_tide_probability": "Medium",
+      "recommendations": ["Limit harvesting.", "Monitor reports."],
+      "contributing_factors": {
+        "chl-a": 0.15,
+        "sst": 28.5,
+        "salinity": 33.0,
+        "rainfall": 2.1
+      },
+      "five_day_forecast": [],
+      "data_quality": { "quality_score": 90, "confidence_level": "High" }
+    },
+    {
+        "location": "Sapian Bay, Capiz",
+        "latitude": 11.4936,
+        "longitude": 122.6186,
+        "risk_level": "Low Risk",
+        "confidence": "95%",
+        "red_tide_probability": "Low",
+        "recommendations": ["Safe to harvest."],
+        "contributing_factors": {},
+        "five_day_forecast": [],
+        "data_quality": { "quality_score": 98, "confidence_level": "High" }
+    },
+    {
+      "location": "Roxas City, Capiz",
+      "latitude": 11.5853,
+      "longitude": 122.7511,
+      "risk_level": "Very Low Risk",
+      "confidence": "96%",
+      "red_tide_probability": "Very Low",
+      "recommendations": ["Safe to harvest."],
+      "contributing_factors": {},
+      "five_day_forecast": [],
+      "data_quality": { "quality_score": 97, "confidence_level": "High" }
+    }
+  ]
+}

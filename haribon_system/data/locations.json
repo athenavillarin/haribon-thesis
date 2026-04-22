@@ -1,0 +1,61 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "Name": "Gigantes Islands" },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [123.34366873061553, 11.69916171135206]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "Name": "Dumanquillas Bay" },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [122.45, 11.65]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "Name": "Matarinao Bay" },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [122.48, 11.62]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "Name": "Pilar" },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [122.94062304740896, 11.504508332100215]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "Name": "Sapian Bay" },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [122.5593745862476, 11.520382738743294]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "Name": "President Roxas" },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [122.91403252410191, 11.496024103654719]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "Name": "Roxas City" },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [122.75911156119292, 11.487090985879973]
+      }
+    }
+  ]
+}
