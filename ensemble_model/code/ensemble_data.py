@@ -41,6 +41,13 @@ FEATURES = [
 TARGET = "red_tide_label"
 LOOKBACK = 30  # sliding-window length in days
 
+IMPUTATION_METHODS = [
+    "linear_time",
+    "polynomial2_time",
+    "climatological_month_day",
+    "hybrid_adaptive",
+]
+
 # ---------------------------------------------------------------------------
 # Split definitions
 # ---------------------------------------------------------------------------
@@ -73,29 +80,70 @@ class SplitData:
 # Imputation — Hybrid Gap-Adaptive (matches xgboost_model, lstm, gru)
 # ---------------------------------------------------------------------------
 
-def _impute_df(df: pd.DataFrame, feature_cols: List[str]) -> pd.DataFrame:
-    """Apply four-phase hybrid gap-adaptive imputation in-place per location."""
+def _impute_df(df: pd.DataFrame, feature_cols: List[str], method: str = "hybrid_adaptive") -> pd.DataFrame:
+    """Apply selected imputation method per location for ensemble input features."""
     df = df.copy()
-    for loc in df["Location_Name"].unique():
-        mask = df["Location_Name"] == loc
-        # Phase 1: linear interpolation ≤14 days
-        df.loc[mask, feature_cols] = (
-            df.loc[mask, feature_cols]
-            .interpolate(method="linear", limit=14, limit_direction="both")
-        )
-    # Phase 2: climatological mean (Location × Month)
-    for col in feature_cols:
-        df[col] = df.groupby(["Location_Name", "Month"])[col].transform(
-            lambda x: x.fillna(x.mean())
-        )
-    # Phase 3: location mean
-    for col in feature_cols:
-        df[col] = df.groupby("Location_Name")[col].transform(
-            lambda x: x.fillna(x.mean())
-        )
-    # Phase 4: global mean emergency fallback
+
+    if method not in IMPUTATION_METHODS:
+        raise ValueError(f"Unsupported imputation method: {method}")
+
+    if method == "linear_time":
+        for loc in df["Location_Name"].unique():
+            mask = df["Location_Name"] == loc
+            df.loc[mask, feature_cols] = (
+                df.loc[mask, feature_cols]
+                .interpolate(method="linear", limit_direction="both")
+            )
+
+    elif method == "polynomial2_time":
+        for loc in df["Location_Name"].unique():
+            mask = df["Location_Name"] == loc
+            try:
+                df.loc[mask, feature_cols] = (
+                    df.loc[mask, feature_cols]
+                    .interpolate(method="polynomial", order=2, limit_direction="both")
+                )
+            except Exception as exc:
+                raise RuntimeError(
+                    "Polynomial imputation failed. Ensure scipy is installed and data is numeric."
+                ) from exc
+
+    elif method == "climatological_month_day":
+        for col in feature_cols:
+            df[col] = df.groupby(["Location_Name", "Month", "Day"])[col].transform(
+                lambda x: x.fillna(x.mean())
+            )
+
+    elif method == "hybrid_adaptive":
+        for loc in df["Location_Name"].unique():
+            mask = df["Location_Name"] == loc
+            # Phase 1: linear interpolation ≤14 days
+            df.loc[mask, feature_cols] = (
+                df.loc[mask, feature_cols]
+                .interpolate(method="linear", limit=14, limit_direction="both")
+            )
+        # Phase 2: climatological mean (Location × Month)
+        for col in feature_cols:
+            df[col] = df.groupby(["Location_Name", "Month"])[col].transform(
+                lambda x: x.fillna(x.mean())
+            )
+        # Phase 3: location mean
+        for col in feature_cols:
+            df[col] = df.groupby("Location_Name")[col].transform(
+                lambda x: x.fillna(x.mean())
+            )
+
+    # Global fallback shared by all methods to avoid downstream NaNs
     if df[feature_cols].isna().any().any():
+        # First fallback: location means
+        for col in feature_cols:
+            df[col] = df.groupby("Location_Name")[col].transform(
+                lambda x: x.fillna(x.mean())
+            )
+    if df[feature_cols].isna().any().any():
+        # Final fallback: global means
         df[feature_cols] = df[feature_cols].fillna(df[feature_cols].mean())
+
     return df
 
 
@@ -144,8 +192,11 @@ def _build_sequences(
 # Public API
 # ---------------------------------------------------------------------------
 
-def load_and_prepare(dataset_path: str | Path = DEFAULT_DATASET_PATH) -> pd.DataFrame:
-    """Load Combined_Labeled.csv, add helper columns, impute, return clean df."""
+def load_and_prepare(
+    dataset_path: str | Path = DEFAULT_DATASET_PATH,
+    imputation_method: str = "hybrid_adaptive",
+) -> pd.DataFrame:
+    """Load dataset, add helper columns, apply selected imputation, return clean df."""
     df = pd.read_csv(dataset_path, parse_dates=["Date"])
     df = df.sort_values(["Location_Name", "Date"]).reset_index(drop=True)
 
@@ -153,10 +204,11 @@ def load_and_prepare(dataset_path: str | Path = DEFAULT_DATASET_PATH) -> pd.Data
     df = df.dropna(subset=[TARGET]).reset_index(drop=True)
     df["red_tide_binary"] = (df[TARGET] >= 0.5).astype(int)
     df["Month"] = df["Date"].dt.month
+    df["Day"] = df["Date"].dt.day
 
     # Identify available feature columns (intersection with FEATURES list)
     available = [f for f in FEATURES if f in df.columns]
-    df = _impute_df(df, available)
+    df = _impute_df(df, available, method=imputation_method)
     return df
 
 

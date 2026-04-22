@@ -40,6 +40,12 @@ python run_ensemble.py --strategies soft_vote weighted_avg
 # Run only specific splits
 python run_ensemble.py --splits 1 2 3
 
+# Run one explicit imputation method
+python run_ensemble.py --imputation-method polynomial2_time
+
+# Run all supported imputation methods in one full benchmark
+python run_ensemble.py --all-imputation-methods
+
 # Use hybrid-adaptive Transformer scenario instead of native masking (default)
 python run_ensemble.py --transformer-scenario hybrid_adaptive
 ```
@@ -187,7 +193,18 @@ $$\hat{\beta} = \arg\min_\beta \sum_{i \neq k} \mathcal{L}(y_i,\ P_{meta}(x_i;\b
 
 ## Data Pipeline & Imputation
 
-The ensemble shares a unified data preparation pipeline (`ensemble_data.py`) applying **4-phase Hybrid Gap-Adaptive imputation** to the combined dataset before splitting:
+The ensemble shares a unified data preparation pipeline (`ensemble_data.py`) that now supports direct imputation-method benchmarking before classification.
+
+Supported methods:
+
+| CLI value | Method |
+|---|---|
+| `linear_time` | Linear interpolation (time-based) |
+| `polynomial2_time` | Polynomial interpolation (order 2) |
+| `climatological_month_day` | Climatological mean (Location × Month × Day) |
+| `hybrid_adaptive` | 4-phase hybrid gap-adaptive fallback pipeline |
+
+Hybrid-adaptive pipeline detail:
 
 | Phase | Method | Applied when |
 |---|---|---|
@@ -234,17 +251,17 @@ The ensemble evaluates on **4 common rolling-origin splits** aligned to the LSTM
 ### `results/ensemble_per_split_metrics.csv`
 Per-split AUC, F1, Precision, Recall, and Accuracy for every individual model and every ensemble strategy.
 
-**Columns**: `split_num`, `train_end`, `test_start`, `test_end`, `n_train`, `n_test`, `positive_rate`, `source`, `name`, `accuracy`, `precision`, `recall`, `f1`, `auc`
+**Columns**: `split_num`, `train_end`, `test_start`, `test_end`, `n_train`, `n_test`, `positive_rate`, `source`, `name`, `accuracy`, `precision`, `recall`, `f1`, `auc`, `imputation_method`
 
 ### `results/ensemble_summary.csv`
 Aggregated mean ± std across all 4 splits, ranked by mean AUC.
 
-**Columns**: `rank_auc`, `source`, `name`, `accuracy_mean`, `accuracy_std`, `precision_mean`, `precision_std`, `recall_mean`, `recall_std`, `f1_mean`, `f1_std`, `auc_mean`, `auc_std`, `n_splits`
+**Columns**: `rank_auc`, `source`, `name`, `accuracy_mean`, `accuracy_std`, `precision_mean`, `precision_std`, `recall_mean`, `recall_std`, `f1_mean`, `f1_std`, `auc_mean`, `auc_std`, `n_splits`, `imputation_method`
 
 ### `results/obj2_model_comparison_final.csv`
 **The definitive Objective 2 results table.** Combines metrics from all four base models and the best ensemble strategy, all ranked by AUC.
 
-**Columns**: `rank`, `model`, `auc_mean`, `auc_std`, `accuracy_mean`, `accuracy_std`, `precision_mean`, `precision_std`, `recall_mean`, `recall_std`, `f1_mean`, `f1_std`, `n_splits`, `notes`
+**Columns**: `overall_rank`, `rank`, `model`, `auc_mean`, `auc_std`, `accuracy_mean`, `accuracy_std`, `precision_mean`, `precision_std`, `recall_mean`, `recall_std`, `f1_mean`, `f1_std`, `n_splits`, `notes`, `imputation_method`
 
 ---
 

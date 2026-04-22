@@ -12,3 +12,16 @@ Best Parameters:
   learning_rate: 0.2
   gamma: 0.2
   colsample_bytree: 0.9
+<<<<<<< Updated upstream
+=======
+
+Six-window aggregate metrics:
+  accuracy: mean=0.7897, std=0.1055
+  precision: mean=0.6165, std=0.1619
+  recall: mean=0.2932, std=0.2213
+  f1_score: mean=0.3629, std=0.2064
+  auc_roc: mean=0.7556, std=0.1387
+  train_time_seconds: mean=1.0894, std=0.2887
+
+Final model training runtime: 1.79 seconds
+>>>>>>> Stashed changes

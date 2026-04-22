@@ -1,0 +1,35 @@
+XGBoost Six-Window Evaluation Summary
+============================================================
+
+Generated at: 2026-04-22 20:31:39
+Dataset end date: 2026-02-20
+
+Model parameters:
+  subsample: 0.9
+  scale_pos_weight: 5
+  n_estimators: 500
+  min_child_weight: 7
+  max_depth: 8
+  learning_rate: 0.2
+  gamma: 0.2
+  colsample_bytree: 0.9
+  objective: binary:logistic
+  eval_metric: auc
+  random_state: 42
+  n_jobs: -1
+
+Per-split results:
+  Split 1: Acc=0.9400, Prec=0.4632, Rec=0.3099, F1=0.3713, AUC=0.9218, TrainTime=0.77s
+  Split 2: Acc=0.7920, Prec=0.3694, Rec=0.0833, F1=0.1360, AUC=0.5705, TrainTime=0.81s
+  Split 3: Acc=0.7044, Prec=0.7549, Rec=0.0982, F1=0.1738, AUC=0.6604, TrainTime=1.02s
+  Split 4: Acc=0.6422, Prec=0.7509, Rec=0.1959, F1=0.3108, AUC=0.6844, TrainTime=1.14s
+  Split 5: Acc=0.8099, Prec=0.6566, Rec=0.4030, F1=0.4995, AUC=0.8094, TrainTime=1.28s
+  Split 6: Acc=0.8500, Prec=0.7041, Rec=0.6688, F1=0.6860, AUC=0.8869, TrainTime=1.52s
+
+Aggregate metrics:
+  accuracy: mean=0.7897, std=0.1055, min=0.6422, max=0.9400
+  precision: mean=0.6165, std=0.1619, min=0.3694, max=0.7549
+  recall: mean=0.2932, std=0.2213, min=0.0833, max=0.6688
+  f1_score: mean=0.3629, std=0.2064, min=0.1360, max=0.6860
+  auc_roc: mean=0.7556, std=0.1387, min=0.5705, max=0.9218
+  train_time_seconds: mean=1.0894, std=0.2887, min=0.7661, max=1.5244
