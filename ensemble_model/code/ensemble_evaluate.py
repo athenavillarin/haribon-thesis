@@ -123,7 +123,11 @@ def build_summary(per_split_df: pd.DataFrame) -> pd.DataFrame:
 
     count = per_split_df.groupby(["source", "name"])["split_num"].count().rename("n_splits").reset_index()
     summary = summary.merge(count, on=["source", "name"], how="left")
-    summary = summary.sort_values("auc_mean", ascending=False, na_position="last").reset_index(drop=True)
+    summary = summary.sort_values(
+        ["auc_mean", "f1_mean", "recall_mean"],
+        ascending=[False, False, False],
+        na_position="last",
+    ).reset_index(drop=True)
     summary.insert(0, "rank_auc", range(1, len(summary) + 1))
     return summary
 
@@ -161,13 +165,13 @@ def _load_rnn_metrics(csv_path: Path, model_name: str) -> Optional[Dict]:
 
 
 def _load_transformer_metrics() -> Optional[Dict]:
-    """Load Transformer summary (native_masking scenario — best performer)."""
+    """Load Transformer summary, preferring the hybrid_adaptive scenario."""
     if not TRANSFORMER_METRICS_CSV.exists():
         return None
     df = pd.read_csv(TRANSFORMER_METRICS_CSV)
-    row = df[df["scenario"] == "native_masking"]
+    row = df[df["scenario"] == "hybrid_adaptive"]
     if row.empty:
-        row = df.iloc[0:1]
+        row = df.sort_values(["auc_mean", "f1_mean", "recall_mean"], ascending=[False, False, False]).iloc[0:1]
     row = row.iloc[0]
     return {
         "model":          "Transformer",
@@ -182,7 +186,7 @@ def _load_transformer_metrics() -> Optional[Dict]:
         "f1_mean":        round(float(row.get("f1_mean", np.nan)),        4),
         "f1_std":         round(float(row.get("f1_std",  np.nan)),        4),
         "n_splits":       int(row.get("n_splits", 4)),
-        "notes":          "native_masking scenario (best per transformer_summary.csv)",
+        "notes":          f"{row.get('scenario', 'hybrid_adaptive')} scenario from transformer_summary.csv",
     }
 
 
@@ -236,7 +240,11 @@ def build_obj2_comparison(
     # Best ensemble strategy from ensemble_summary
     ens_rows = ensemble_summary[ensemble_summary["source"] == "ensemble"]
     if not ens_rows.empty:
-        best_ens = ens_rows.sort_values("auc_mean", ascending=False).iloc[0]
+        best_ens = ens_rows.sort_values(
+            ["auc_mean", "f1_mean", "recall_mean"],
+            ascending=[False, False, False],
+            na_position="last",
+        ).iloc[0]
         records.append({
             "model":          f"Ensemble ({best_ens['name']})",
             "auc_mean":       round(float(best_ens.get("auc_mean", np.nan)), 4),
@@ -250,11 +258,15 @@ def build_obj2_comparison(
             "f1_mean":        round(float(best_ens.get("f1_mean", np.nan)), 4),
             "f1_std":         round(float(best_ens.get("f1_std",  np.nan)), 4),
             "n_splits":       int(best_ens.get("n_splits", 4)),
-            "notes":          "Best ensemble strategy by AUC across 4 common splits",
+            "notes":          "Best ensemble strategy by AUC, then F1, then Recall across 4 common splits",
         })
 
     df = pd.DataFrame(records)
-    df = df.sort_values("auc_mean", ascending=False, na_position="last").reset_index(drop=True)
+    df = df.sort_values(
+        ["auc_mean", "f1_mean", "recall_mean"],
+        ascending=[False, False, False],
+        na_position="last",
+    ).reset_index(drop=True)
     df.insert(0, "rank", range(1, len(df) + 1))
 
     if output_path is not None:

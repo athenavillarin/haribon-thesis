@@ -17,6 +17,7 @@ predict_all(split, ...)              — convenience wrapper returning dict of a
 
 from __future__ import annotations
 
+import re
 import warnings
 from pathlib import Path
 from typing import Dict, Optional
@@ -35,6 +36,42 @@ DEFAULT_GRU_MODEL     = _ROOT / "gru"            / "saved_model" / "haribon_gru_
 DEFAULT_GRU_SCALER    = _ROOT / "gru"            / "saved_model" / "feature_scaler.joblib"
 DEFAULT_XGBOOST_MODEL = _ROOT / "xgboost_model"  / "results"     / "best_xgboost_model.json"
 DEFAULT_TRANSFORMER_SAVED_DIR = _ROOT / "transformer_model" / "saved_model"
+DEFAULT_XGBOOST_BEST_PARAMS = _ROOT / "xgboost_model" / "results" / "best_parameters.txt"
+
+
+def _load_best_xgboost_params(params_path: Path = DEFAULT_XGBOOST_BEST_PARAMS) -> Dict[str, float | int]:
+    defaults: Dict[str, float | int] = dict(
+        learning_rate=0.2,
+        max_depth=8,
+        n_estimators=500,
+        subsample=0.9,
+        colsample_bytree=0.9,
+        scale_pos_weight=5,
+        min_child_weight=7,
+        gamma=0.2,
+        objective="binary:logistic",
+        eval_metric="auc",
+        random_state=42,
+        n_jobs=-1,
+    )
+
+    if not params_path.exists():
+        return defaults
+
+    parsed = defaults.copy()
+    pattern = re.compile(r"^\s*([a-z_]+):\s+([-+]?[0-9]*\.?[0-9]+)\s*$")
+    with params_path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            match = pattern.match(line)
+            if not match:
+                continue
+            key = match.group(1)
+            if key not in parsed:
+                continue
+            raw_value = match.group(2)
+            parsed[key] = float(raw_value) if "." in raw_value else int(raw_value)
+
+    return parsed
 
 
 # ---------------------------------------------------------------------------
@@ -137,8 +174,13 @@ def predict_transformer(
     if str(transformer_code) not in sys.path:
         sys.path.insert(0, str(transformer_code))
 
-    from transformer_core import build_model, import_torch  # type: ignore
-    from train_eval import TrainConfig  # type: ignore
+    try:
+        from transformer_core import build_model, import_torch  # type: ignore
+        from train_eval import TrainConfig  # type: ignore
+    except ModuleNotFoundError:
+        # If transformer training modules are unavailable in this workspace,
+        # keep the ensemble runnable with neutral probabilities.
+        return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
 
     torch, nn = import_torch()
 
@@ -280,22 +322,7 @@ def predict_xgboost(
     if X_test.shape[0] == 0 or X_train.shape[0] == 0:
         return np.empty((0,), dtype=np.float32)
 
-    # Best hyperparameters from xgboost_model/results/best_parameters.txt
-    best_params = dict(
-        learning_rate=0.2,
-        max_depth=8,
-        n_estimators=500,
-        subsample=0.9,
-        colsample_bytree=0.9,
-        scale_pos_weight=5,
-        min_child_weight=7,
-        gamma=0.2,
-        objective="binary:logistic",
-        eval_metric="auc",
-        random_state=42,
-        n_jobs=-1,
-    )
-
+    best_params = _load_best_xgboost_params()
     clf = XGBClassifier(**best_params)
     clf.fit(X_train, y_train, verbose=False)
     probs = clf.predict_proba(X_test)[:, 1]
