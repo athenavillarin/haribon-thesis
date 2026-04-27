@@ -17,13 +17,13 @@ Usage:
 
 Purpose:
     Combines XGBoost, LSTM, GRU, and Transformer predictions using three
-    ensemble strategies on 4 common rolling-origin splits, then:
+    ensemble strategies on 6 common rolling-origin splits, then:
       1. Compares all individual models and ensemble strategies by AUC-ROC
       2. Compiles the full Objective 2 model comparison table
 
 Outputs (saved to ensemble_model/results/):
     ensemble_per_split_metrics.csv  — per-split metrics for each model & strategy
-    ensemble_summary.csv            — mean ± std across 4 splits, ranked by AUC
+    ensemble_summary.csv            — mean ± std across 6 splits, ranked by AUC
     obj2_model_comparison_final.csv — final Obj 2 comparison table
 ==============================================================================
 """
@@ -51,7 +51,7 @@ from ensemble_data import (  # noqa: E402  # type: ignore[reportMissingImports]
     build_splits,
     load_and_prepare,
 )
-from ensemble_evaluate import (  # noqa: E402  # type: ignore[reportMissingImports]
+from ensemble_evaluate import (  # noqa: E402  # type: ignoref[reportMissingImports]
     build_obj2_comparison,
     build_per_split_records,
     build_summary,
@@ -59,7 +59,11 @@ from ensemble_evaluate import (  # noqa: E402  # type: ignore[reportMissingImpor
     print_obj2_comparison,
     print_summary_table,
 )
-from ensemble_inference import predict_all  # noqa: E402  # type: ignore[reportMissingImports]
+from ensemble_inference import (  # noqa: E402  # type: ignore[reportMissingImports]
+    DEFAULT_TRANSFORMER_SAVED_DIR,
+    ensure_transformer_weights,
+    predict_all,
+)
 from ensemble_strategies import apply_all_strategies, stacked  # noqa: E402  # type: ignore[reportMissingImports]
 
 RESULTS_DIR      = _THIS_DIR / "results"
@@ -89,9 +93,9 @@ def parse_args() -> argparse.Namespace:
         "--splits",
         nargs="+",
         type=int,
-        default=[1, 2, 3, 4],
-        choices=[1, 2, 3, 4],
-        help="Which rolling-origin splits to run (default: 1 2 3 4)",
+        default=[1, 2, 3, 4, 5, 6],
+        choices=[1, 2, 3, 4, 5, 6],
+        help="Which rolling-origin splits to run (default: 1 2 3 4 5 6)",
     )
     parser.add_argument(
         "--dataset-path",
@@ -118,6 +122,21 @@ def parse_args() -> argparse.Namespace:
         choices=["native_masking", "hybrid_adaptive"],
         help="Which Transformer scenario to use for inference (default: hybrid_adaptive)",
     )
+    parser.add_argument(
+        "--generate-missing-transformer-weights",
+        action="store_true",
+        help=(
+            "Materialize missing transformer split weights into ensemble_model/saved_model "
+            "for the selected splits"
+        ),
+    )
+    parser.add_argument(
+        "--generate-missing-transformer-weights-only",
+        action="store_true",
+        help=(
+            "Only generate missing transformer weights and exit (no ensemble scoring, no CSV rewrite)"
+        ),
+    )
     return parser.parse_args()
 
 
@@ -128,6 +147,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    if args.generate_missing_transformer_weights_only:
+        args.generate_missing_transformer_weights = True
 
     imputation_methods = IMPUTATION_METHODS if args.all_imputation_methods else [args.imputation_method]
 
@@ -144,7 +166,7 @@ def main() -> None:
     all_summary_frames: list[pd.DataFrame] = []
     all_obj2_frames: list[pd.DataFrame] = []
 
-    for imputation_method in imputation_methods:
+    for method_idx, imputation_method in enumerate(imputation_methods):
         # ------------------------------------------------------------------
         # Phase 1: Load data & build splits
         # ------------------------------------------------------------------
@@ -160,6 +182,22 @@ def main() -> None:
                   f"n_train={s.X_seq_train.shape[0]:,} | "
                   f"n_test={s.X_seq_test.shape[0]:,} | "
                   f"bloom_rate={float(np.mean(s.y_test)):.3f}")
+
+        if args.generate_missing_transformer_weights and method_idx == 0:
+            print("\n[Phase 1.5] Generating missing transformer weights...")
+            print(f"  Target dir: {DEFAULT_TRANSFORMER_SAVED_DIR}")
+            for split in splits:
+                ok = ensure_transformer_weights(
+                    split_data=split,
+                    saved_dir=DEFAULT_TRANSFORMER_SAVED_DIR,
+                    scenario=args.transformer_scenario,
+                )
+                status = "OK" if ok else "MISSING (generation unavailable in current env)"
+                print(f"  Split {split.split_num}: {status}")
+
+            if args.generate_missing_transformer_weights_only:
+                print("\nGeneration-only mode complete.")
+                return
 
         # ------------------------------------------------------------------
         # Phase 2: Per-model inference on each split
@@ -283,8 +321,9 @@ def main() -> None:
 
     # Identify best overall
     best_row = obj2_out.iloc[0]
+    # Use ASCII to avoid Windows cp1252 console encoding issues.
     print(
-        f"\n★  Best model: {best_row['model']}  |  "
+        f"\n*  Best model: {best_row['model']}  |  "
         f"Imputation = {best_row['imputation_method']}  |  "
         f"AUC = {best_row['auc_mean']:.4f}"
     )

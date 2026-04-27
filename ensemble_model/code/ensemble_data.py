@@ -3,11 +3,13 @@ ensemble_data.py
 ================
 Shared data loading, imputation, and split generation for the ensemble pipeline.
 
-Defines the 4 common rolling-origin splits aligned to LSTM/GRU yearly splits:
+Defines the 6 common rolling-origin splits aligned to LSTM/GRU yearly splits:
   Split 1: train ≤ 2019-12-31 | test = full year 2020
   Split 2: train ≤ 2020-12-31 | test = full year 2021
   Split 3: train ≤ 2021-12-31 | test = full year 2022
   Split 4: train ≤ 2022-12-31 | test = full year 2023
+    Split 5: train ≤ 2023-12-31 | test = full year 2024
+    Split 6: train ≤ 2024-12-31 | test = years 2025-2026
 
 Produces both:
   - Sequence format (lookback=30 days) for LSTM / GRU / Transformer
@@ -56,6 +58,8 @@ SPLITS = [
     {"split_num": 2, "train_end": "2020-12-31", "test_start": "2021-01-01", "test_end": "2021-12-31"},
     {"split_num": 3, "train_end": "2021-12-31", "test_start": "2022-01-01", "test_end": "2022-12-31"},
     {"split_num": 4, "train_end": "2022-12-31", "test_start": "2023-01-01", "test_end": "2023-12-31"},
+    {"split_num": 5, "train_end": "2023-12-31", "test_start": "2024-01-01", "test_end": "2024-12-31"},
+    {"split_num": 6, "train_end": "2024-12-31", "test_start": "2025-01-01", "test_end": "2026-12-31"},
 ]
 
 
@@ -213,7 +217,7 @@ def load_and_prepare(
 
 
 def build_splits(df: pd.DataFrame) -> List[SplitData]:
-    """Build SplitData objects for all 4 common rolling-origin splits."""
+    """Build SplitData objects for all 6 common rolling-origin splits."""
     feature_cols = [f for f in FEATURES if f in df.columns]
     results: List[SplitData] = []
 
