@@ -18,6 +18,7 @@ predict_all(split, ...)              — convenience wrapper returning dict of a
 from __future__ import annotations
 
 import re
+import shutil
 import warnings
 from pathlib import Path
 from typing import Dict, Optional
@@ -35,8 +36,38 @@ DEFAULT_LSTM_SCALER   = _ROOT / "lstm"           / "saved_model" / "feature_scal
 DEFAULT_GRU_MODEL     = _ROOT / "gru"            / "saved_model" / "haribon_gru_risk.keras"
 DEFAULT_GRU_SCALER    = _ROOT / "gru"            / "saved_model" / "feature_scaler.joblib"
 DEFAULT_XGBOOST_MODEL = _ROOT / "xgboost_model"  / "results"     / "best_xgboost_model.json"
-DEFAULT_TRANSFORMER_SAVED_DIR = _ROOT / "transformer_model" / "saved_model"
+DEFAULT_TRANSFORMER_SAVED_DIR = _ROOT / "ensemble_model" / "saved_model"
+LEGACY_TRANSFORMER_SAVED_DIR  = _ROOT / "transformer_model" / "saved_model"
 DEFAULT_XGBOOST_BEST_PARAMS = _ROOT / "xgboost_model" / "results" / "best_parameters.txt"
+
+
+def _transformer_weights_name(split_num: int, scenario: str) -> str:
+    return f"transformer_{scenario}_split{split_num}.pt"
+
+
+def _resolve_transformer_weights_path(
+    split_num: int,
+    scenario: str,
+    saved_dir: Path,
+) -> Path:
+    """
+    Return the primary weights path in ensemble_model/saved_model.
+
+    If only a legacy transformer_model/saved_model file exists, mirror it into
+    the primary directory so all future runs are consistent.
+    """
+    saved_dir.mkdir(parents=True, exist_ok=True)
+    name = _transformer_weights_name(split_num, scenario)
+    primary_path = saved_dir / name
+    if primary_path.exists():
+        return primary_path
+
+    legacy_path = LEGACY_TRANSFORMER_SAVED_DIR / name
+    if legacy_path.exists():
+        shutil.copy2(legacy_path, primary_path)
+        return primary_path
+
+    return primary_path
 
 
 def _load_best_xgboost_params(params_path: Path = DEFAULT_XGBOOST_BEST_PARAMS) -> Dict[str, float | int]:
@@ -93,7 +124,21 @@ def predict_lstm(
     import joblib
     import tensorflow as tf  # noqa: F401  # triggers GPU setup
 
-    model = tf.keras.models.load_model(str(model_path), compile=False)
+    # Compatibility shim (mirrors predict_gru): Keras 3.x added 'quantization_config'
+    # to Dense config; older builds error unless we drop it during deserialization.
+    _orig_dense_from_config = tf.keras.layers.Dense.from_config.__func__
+
+    @classmethod  # type: ignore[misc]
+    def _safe_dense_from_config(cls, config):
+        config = dict(config)
+        config.pop("quantization_config", None)
+        return _orig_dense_from_config(cls, config)
+
+    tf.keras.layers.Dense.from_config = _safe_dense_from_config
+    try:
+        model = tf.keras.models.load_model(str(model_path), compile=False)
+    finally:
+        tf.keras.layers.Dense.from_config = classmethod(_orig_dense_from_config)
     scaler = joblib.load(str(scaler_path))
 
     X_test = split_data.X_seq_test  # (N, LOOKBACK, n_feat)
@@ -177,12 +222,83 @@ def predict_transformer(
     try:
         from transformer_core import build_model, import_torch  # type: ignore
         from train_eval import TrainConfig  # type: ignore
+        torch, nn = import_torch()
     except ModuleNotFoundError:
-        # If transformer training modules are unavailable in this workspace,
-        # keep the ensemble runnable with neutral probabilities.
-        return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
+        # Notebook-only repos may not have transformer_model/code/*.py.
+        # Fall back to the exact architecture/config used in transformer_training.ipynb
+        # so we can still load per-split .pt weights and run inference.
+        try:
+            import torch  # type: ignore
+            import torch.nn as nn  # type: ignore
+            from dataclasses import dataclass
 
-    torch, nn = import_torch()
+            class HABTransformerClassifier(nn.Module):
+                def __init__(
+                    self,
+                    input_dim: int,
+                    seq_len: int,
+                    d_model: int,
+                    num_heads: int,
+                    num_layers: int,
+                    ff_dim: int,
+                    dropout: float,
+                ):
+                    super().__init__()
+                    self.input_proj = nn.Linear(input_dim, d_model)
+                    self.pos_embed = nn.Parameter(torch.zeros(1, seq_len, d_model))
+                    encoder_layer = nn.TransformerEncoderLayer(
+                        d_model=d_model,
+                        nhead=num_heads,
+                        dim_feedforward=ff_dim,
+                        dropout=dropout,
+                        batch_first=True,
+                        activation="gelu",
+                        norm_first=True,
+                    )
+                    self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+                    self.norm = nn.LayerNorm(d_model)
+                    self.head = nn.Sequential(
+                        nn.Linear(d_model, d_model // 2),
+                        nn.GELU(),
+                        nn.Dropout(dropout),
+                        nn.Linear(d_model // 2, 1),
+                    )
+
+                def forward(self, x):
+                    x = self.input_proj(x)
+                    x = x + self.pos_embed[:, : x.shape[1], :]
+                    x = self.encoder(x)
+                    x = self.norm(x[:, -1, :])
+                    logits = self.head(x).squeeze(-1)
+                    return logits
+
+            def build_model(
+                input_dim: int,
+                seq_len: int,
+                d_model: int,
+                num_heads: int,
+                num_layers: int,
+                ff_dim: int,
+                dropout: float,
+            ):
+                return HABTransformerClassifier(input_dim, seq_len, d_model, num_heads, num_layers, ff_dim, dropout)
+
+            @dataclass
+            class TrainConfig:
+                epochs: int = 40
+                batch_size: int = 32
+                learning_rate: float = 1e-3
+                weight_decay: float = 1e-4
+                val_ratio: float = 0.2
+                patience: int = 8
+                d_model: int = 64
+                num_heads: int = 4
+                num_layers: int = 2
+                ff_dim: int = 128
+                dropout: float = 0.2
+        except Exception:
+            # If torch isn't available, keep the ensemble runnable with neutral probabilities.
+            return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
 
     X_train = split_data.X_seq_train
     X_test  = split_data.X_seq_test
@@ -217,12 +333,21 @@ def predict_transformer(
         dropout=cfg.dropout,
     ).to(device)
 
-    # Try loading saved weights first
-    weights_path = saved_dir / f"transformer_{scenario}_split{split_data.split_num}.pt"
+    # Try loading saved weights first from the primary ensemble directory.
+    # If present only in legacy transformer_model/saved_model, mirror them over.
+    weights_path = _resolve_transformer_weights_path(
+        split_num=split_data.split_num,
+        scenario=scenario,
+        saved_dir=saved_dir,
+    )
     loaded_from_file = False
     if weights_path.exists():
         try:
-            state = torch.load(str(weights_path), map_location=device, weights_only=True)
+            try:
+                state = torch.load(str(weights_path), map_location=device, weights_only=True)
+            except TypeError:
+                # Older torch versions don't support weights_only
+                state = torch.load(str(weights_path), map_location=device)
             model.load_state_dict(state)
             loaded_from_file = True
         except (RuntimeError, Exception):
@@ -231,11 +356,9 @@ def predict_transformer(
     if not loaded_from_file and fallback_retrain and X_train_n.shape[0] >= 20:
         # Re-train on-the-fly (same logic as train_eval.train_and_evaluate_split)
         _train_transformer_inplace(model, X_train_n, split_data.y_train, cfg, device, torch, nn)
-        # Save weights for future runs (using an ensemble-specific path to avoid
-        # overwriting the transformer benchmark weights)
-        ensemble_weights_dir = saved_dir.parent.parent / "ensemble_model" / "saved_model"
-        ensemble_weights_dir.mkdir(parents=True, exist_ok=True)
-        torch.save(model.state_dict(), str(ensemble_weights_dir / weights_path.name))
+        # Save weights for future runs in the same primary directory we read from.
+        saved_dir.mkdir(parents=True, exist_ok=True)
+        torch.save(model.state_dict(), str(weights_path))
     elif not loaded_from_file:
         # Not enough data or no weights — return uniform 0.5
         return np.full(X_test_n.shape[0], 0.5, dtype=np.float32)
@@ -384,3 +507,31 @@ def predict_all(
         probs["xgboost"] = np.full(len(split_data.y_test), np.nan, dtype=np.float32)
 
     return probs
+
+
+def ensure_transformer_weights(
+    split_data,
+    saved_dir: Path = DEFAULT_TRANSFORMER_SAVED_DIR,
+    scenario: str = "native_masking",
+) -> bool:
+    """
+    Ensure Transformer weights exist for a specific split/scenario.
+
+    Returns True if the weights file exists after the call.
+    """
+    weights_path = _resolve_transformer_weights_path(
+        split_num=split_data.split_num,
+        scenario=scenario,
+        saved_dir=saved_dir,
+    )
+    if weights_path.exists():
+        return True
+
+    # Trigger fallback training path to materialize missing weights when possible.
+    _ = predict_transformer(
+        split_data=split_data,
+        saved_dir=saved_dir,
+        scenario=scenario,
+        fallback_retrain=True,
+    )
+    return weights_path.exists()

@@ -258,7 +258,7 @@ def build_obj2_comparison(
             "f1_mean":        round(float(best_ens.get("f1_mean", np.nan)), 4),
             "f1_std":         round(float(best_ens.get("f1_std",  np.nan)), 4),
             "n_splits":       int(best_ens.get("n_splits", 4)),
-            "notes":          "Best ensemble strategy by AUC, then F1, then Recall across 4 common splits",
+            "notes":          "Best ensemble strategy by AUC, then F1, then Recall across 6 common splits",
         })
 
     df = pd.DataFrame(records)
