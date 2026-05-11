@@ -124,7 +124,23 @@ def predict_lstm(
     import joblib
     import tensorflow as tf  # noqa: F401  # triggers GPU setup
 
-    model = tf.keras.models.load_model(str(model_path), compile=False)
+    # Compatibility shim: if the saved model contains Keras 3.x Dense
+    # serialization metadata like 'quantization_config', remove it
+    # during deserialization to support loading in older/newer runtimes.
+    _orig_dense_from_config = tf.keras.layers.Dense.from_config.__func__
+
+    @classmethod  # type: ignore[misc]
+    def _safe_dense_from_config(cls, config):
+        config = dict(config)
+        config.pop("quantization_config", None)
+        return _orig_dense_from_config(cls, config)
+
+    tf.keras.layers.Dense.from_config = _safe_dense_from_config
+    try:
+        model = tf.keras.models.load_model(str(model_path), compile=False)
+    finally:
+        # Always restore original method to avoid side-effects
+        tf.keras.layers.Dense.from_config = classmethod(_orig_dense_from_config)
     scaler = joblib.load(str(scaler_path))
 
     X_test = split_data.X_seq_test  # (N, LOOKBACK, n_feat)
@@ -209,9 +225,158 @@ def predict_transformer(
         from transformer_core import build_model, import_torch  # type: ignore
         from train_eval import TrainConfig  # type: ignore
     except ModuleNotFoundError:
-        # If transformer training modules are unavailable in this workspace,
-        # keep the ensemble runnable with neutral probabilities.
-        return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
+        # If the transformer training modules are not available, attempt to
+        # load a pre-saved checkpoint (final model) for the requested
+        # `scenario`. This lets the ensemble use a real transformer when
+        # per-split training code is absent. If loading fails, fall back to
+        # neutral 0.5 probabilities.
+        try:
+            import torch
+            # prefer a final saved artifact named like `haribon_transformer_{scenario}.pt`
+            # located in transformer_model/saved_model. Use safe globals if needed.
+            ckpt_name = f"haribon_transformer_{scenario}.pt"
+            cand_paths = [
+                (DEFAULT_TRANSFORMER_SAVED_DIR.parent / 'transformer_model' / 'saved_model' / ckpt_name),
+                (LEGACY_TRANSFORMER_SAVED_DIR / ckpt_name),
+                (DEFAULT_TRANSFORMER_SAVED_DIR / ckpt_name),
+            ]
+            ckpt_path = None
+            for p in cand_paths:
+                if p.exists():
+                    ckpt_path = p
+                    break
+            if ckpt_path is None:
+                # no final checkpoint available — return neutral probs
+                return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
+
+            try:
+                torch.serialization.add_safe_globals(["numpy._core.multiarray._reconstruct"])
+            except Exception:
+                pass
+            ckpt = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
+            print(f"[transformer] fallback ckpt path: {ckpt_path}")
+            try:
+                print("[transformer] ckpt keys:", list(ckpt.keys()))
+            except Exception:
+                pass
+
+            # Build a minimal local model matching the original architecture
+            cfg_dict = ckpt.get("config", {})
+            print("[transformer] ckpt config:", cfg_dict)
+            norm_mean = ckpt.get("norm_mean", None)
+            norm_std = ckpt.get("norm_std", None)
+            try:
+                print("[transformer] norm_mean shape:", None if norm_mean is None else np.array(norm_mean).shape)
+                print("[transformer] norm_std shape:", None if norm_std is None else np.array(norm_std).shape)
+            except Exception:
+                pass
+            d_model = int(cfg_dict.get("d_model", 64))
+            num_heads = int(cfg_dict.get("num_heads", 4))
+            num_layers = int(cfg_dict.get("num_layers", 2))
+            ff_dim = int(cfg_dict.get("ff_dim", 128))
+            dropout = float(cfg_dict.get("dropout", 0.2))
+
+            # Local lightweight model definition mirroring transformer_training.ipynb
+            try:
+                class _LocalHABTransformer(torch.nn.Module):
+                    def __init__(self, input_dim: int, seq_len: int, d_model: int, num_heads: int, num_layers: int, ff_dim: int, dropout: float):
+                        super().__init__()
+                        self.input_proj = torch.nn.Linear(input_dim, d_model)
+                        self.pos_embed = torch.nn.Parameter(torch.zeros(1, seq_len, d_model))
+                        encoder_layer = torch.nn.TransformerEncoderLayer(
+                            d_model=d_model,
+                            nhead=num_heads,
+                            dim_feedforward=ff_dim,
+                            dropout=dropout,
+                            batch_first=True,
+                            activation="gelu",
+                            norm_first=True,
+                        )
+                        self.encoder = torch.nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+                        self.norm = torch.nn.LayerNorm(d_model)
+                        self.head = torch.nn.Sequential(
+                            torch.nn.Linear(d_model, d_model // 2),
+                            torch.nn.GELU(),
+                            torch.nn.Dropout(dropout),
+                            torch.nn.Linear(d_model // 2, 1),
+                        )
+
+                    def forward(self, x):
+                        x = self.input_proj(x)
+                        x = x + self.pos_embed[:, : x.shape[1], :]
+                        x = self.encoder(x)
+                        x = self.norm(x[:, -1, :])
+                        logits = self.head(x).squeeze(-1)
+                        return logits
+            except Exception:
+                return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
+
+            X_test = split_data.X_seq_test
+            if X_test.shape[0] == 0:
+                return np.empty((0,), dtype=np.float32)
+
+            # Use stored normalization if available, otherwise fall back to test-based normalisation
+            norm_mean = ckpt.get("norm_mean", None)
+            norm_std = ckpt.get("norm_std", None)
+            if norm_mean is not None and norm_std is not None:
+                mean = np.array(norm_mean, dtype=np.float32)
+                std = np.array(norm_std, dtype=np.float32)
+                # shapes are (1,1,n_feat) — broadcast over test samples
+                X_test_n = (X_test - mean) / np.where(std < 1e-8, 1.0, std)
+                X_test_n = np.nan_to_num(X_test_n, nan=0.0, posinf=0.0, neginf=0.0)
+            else:
+                # fallback: normalise with train statistics if available, else no-op
+                X_test_n = X_test
+
+            input_dim = X_test_n.shape[2]
+            seq_len = X_test_n.shape[1]
+
+            model = _LocalHABTransformer(input_dim=input_dim, seq_len=seq_len, d_model=d_model, num_heads=num_heads, num_layers=num_layers, ff_dim=ff_dim, dropout=dropout)
+
+            # load state dict if present, but check shapes first and log failures
+            state = ckpt.get("model_state_dict", None)
+            if state is not None:
+                try:
+                    sample_keys = list(state.keys())[:12]
+                    print("[transformer] ckpt state sample keys:", sample_keys)
+                    shapes = []
+                    for k in sample_keys[:8]:
+                        v = state[k]
+                        try:
+                            shapes.append((k, tuple(v.shape)))
+                        except Exception:
+                            shapes.append((k, None))
+                    print("[transformer] state sample shapes:", shapes)
+                except Exception:
+                    pass
+
+            try:
+                if state is not None:
+                    # defensive input-dimension check against first linear layer if available
+                    try:
+                        if "input_proj.weight" in state:
+                            ckpt_in = int(state["input_proj.weight"].shape[1])
+                            print(f"[transformer] checkpoint input_proj.in_features={ckpt_in}")
+                            # input_dim not yet defined here until later normalization; we'll check again after normalization
+                    except Exception:
+                        pass
+                    model.load_state_dict(state)
+                    print("[transformer] loaded checkpoint state into local model")
+            except Exception as e:
+                print("[transformer] model.load_state_dict failed:", repr(e))
+
+            model.eval()
+            try:
+                import torch as _torch
+                xte = _torch.tensor(X_test_n, dtype=_torch.float32)
+                with _torch.no_grad():
+                    logits = model(xte).detach().cpu().numpy()
+                probs = 1.0 / (1.0 + np.exp(-logits))
+                return probs.astype(np.float32)
+            except Exception:
+                return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
+        except Exception:
+            return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
 
     torch, nn = import_torch()
 
@@ -259,10 +424,27 @@ def predict_transformer(
     if weights_path.exists():
         try:
             state = torch.load(str(weights_path), map_location=device, weights_only=True)
+            print(f"[transformer] loaded weights file: {weights_path}")
+            if isinstance(state, dict):
+                try:
+                    print("[transformer] weights keys sample:", list(state.keys())[:12])
+                except Exception:
+                    pass
+                try:
+                    if "input_proj.weight" in state:
+                        w_in = int(state["input_proj.weight"].shape[1])
+                        print(f"[transformer] weights input_proj.in_features={w_in}, input_dim={input_dim}")
+                        if w_in != input_dim:
+                            raise RuntimeError(f"weights input dim {w_in} != runtime input_dim {input_dim}")
+                except Exception:
+                    # if inspection fails, continue to attempted load which will raise
+                    pass
             model.load_state_dict(state)
             loaded_from_file = True
-        except (RuntimeError, Exception):
-            # Shape mismatch or other incompatibility — fall through to retrain
+            print("[transformer] model.load_state_dict succeeded")
+        except Exception as exc:
+            print("[transformer] Failed to load transformer weights:", repr(exc))
+            # Shape mismatch or other incompatibility — fall through to retrain/fallback
             pass
     if not loaded_from_file and fallback_retrain and X_train_n.shape[0] >= 20:
         # Re-train on-the-fly (same logic as train_eval.train_and_evaluate_split)

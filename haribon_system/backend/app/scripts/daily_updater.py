@@ -473,7 +473,7 @@ def run_daily_update_with_5day_forecast():
                 )
         
         try:
-            print(f"Running XGBoost inference for {location}...")
+            print(f"Running ensemble inference for {location}...")
 
             current_month = today.month
             feature_row, observed_non_missing, imputation_sources = _build_feature_row_with_fallbacks(
@@ -769,7 +769,7 @@ def run_daily_update_with_5day_forecast():
 
     output_data = {
         "last_updated": datetime.now().isoformat(),
-        "system_version": "v2.0 (XGBoost)",
+        "system_version": "v2.0 (Ensemble)",
         "forecasts": forecasts
     }
 

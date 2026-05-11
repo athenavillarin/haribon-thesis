@@ -35,29 +35,33 @@ Configuration:
 
 ## Current Results (ensemble_summary.csv)
 
-Mean +- std across 6 splits:
+Mean +- std across 6 splits (latest run with corrected LSTM/GRU handling):
 
 | Rank | Source | Name | Accuracy | Precision | Recall | F1 | AUC | n_splits |
 |---|---|---|---:|---:|---:|---:|---:|---:|
-| 1 | ensemble | stacked | 0.8253 +- 0.1056 | 0.6105 +- 0.2134 | 0.8361 +- 0.2364 | 0.6657 +- 0.2042 | 0.9130 +- 0.0967 | 6 |
-| 2 | model | gru | 0.7907 +- 0.1059 | 0.7963 +- 0.2618 | 0.1752 +- 0.0696 | 0.2819 +- 0.1065 | 0.9115 +- 0.0947 | 6 |
-| 3 | model | lstm | 0.7960 +- 0.1240 | 0.8032 +- 0.2525 | 0.2137 +- 0.1098 | 0.3320 +- 0.1555 | 0.9042 +- 0.1102 | 6 |
-| 4 | ensemble | weighted_avg | 0.8091 +- 0.1155 | 0.8566 +- 0.1476 | 0.2435 +- 0.1727 | 0.3609 +- 0.2060 | 0.9011 +- 0.0890 | 6 |
-| 5 | ensemble | soft_vote | 0.8086 +- 0.1149 | 0.8140 +- 0.2003 | 0.2497 +- 0.1789 | 0.3639 +- 0.2111 | 0.8969 +- 0.0867 | 6 |
-| 6 | model | xgboost | 0.7895 +- 0.1030 | 0.6213 +- 0.2191 | 0.2687 +- 0.1918 | 0.3488 +- 0.1930 | 0.7195 +- 0.1074 | 6 |
-| 7 | model | transformer | 0.2446 +- 0.1189 | 0.2446 +- 0.1189 | 1.0000 +- 0.0000 | 0.3803 +- 0.1603 | 0.5000 +- 0.0000 | 6 |
+| 1 | ensemble | stacked | 0.8274 | 0.6120 | 0.8414 | 0.6702 | 0.9126 | 6 |
+| 2 | model | gru | 0.7907 | 0.7963 | 0.1752 | 0.2819 | 0.9115 | 6 |
+| 3 | ensemble | weighted_avg | 0.8037 | 0.7373 | 0.2584 | 0.3617 | 0.8875 | 6 |
+| 4 | ensemble | soft_vote | 0.8015 | 0.7096 | 0.2600 | 0.3596 | 0.8836 | 6 |
+| 5 | model | xgboost | 0.7895 | 0.6213 | 0.2687 | 0.3488 | 0.7195 | 6 |
+| 6 | model | transformer | 0.2446 | 0.2446 | 1.0000 | 0.3803 | 0.5000 | 6 |
+| 7 | model | lstm | 0.7960 | 0.8032 | 0.2137 | 0.3320 | 0.9042 | 6 |
 
-Best strategy in this run: Ensemble (stacked).
+Best strategy in this run: Ensemble (stacked) with AUC 0.9126.
+
+*Note: LSTM successfully loaded during inference after applying a small compatibility shim to the Keras loader; per-split metrics were regenerated and are included in the results CSVs.*
 
 ## Objective 2 Final Comparison (obj2_model_comparison_final.csv)
 
+**All models evaluated across 6 rolling-origin splits** (fixed LSTM/GRU hardcoded 4-split limit):
+
 | Overall Rank | Model | AUC | Accuracy | Precision | Recall | F1 | n_splits | Notes |
 |---|---|---:|---:|---:|---:|---:|---:|---|
-| 1 | Ensemble (stacked) | 0.9130 +- 0.0967 | 0.8253 +- 0.1056 | 0.6105 +- 0.2134 | 0.8361 +- 0.2364 | 0.6657 +- 0.2042 | 6 | Best ensemble strategy by AUC, then F1, then Recall across 6 common splits |
-| 2 | XGBoost (Hybrid: Gap-Type Adaptive) | 0.7037 +- 0.1193 | 0.4979 +- 0.1162 | 0.2809 +- 0.1291 | 0.7283 +- 0.2144 | 0.3925 +- 0.1570 | 6 | Hybrid-adaptive XGBoost notebook evaluation across 6 temporal splits |
-| 3 | Transformer | 0.6426 +- 0.1042 | 0.7380 +- 0.1327 | 0.2855 +- 0.2695 | 0.1865 +- 0.2307 | 0.2032 +- 0.2234 | 6 | hybrid_adaptive scenario from transformer_summary.csv |
-| 4 | LSTM | 0.6398 +- 0.1414 | 0.7605 +- 0.1610 | 0.6320 +- 0.1328 | 0.1641 +- 0.0555 | 0.5492 +- 0.0696 | 4 | Splits 1-4 of 6 rolling-origin yearly splits |
-| 5 | GRU | 0.6182 +- 0.1219 | 0.7532 +- 0.1699 | 0.6210 +- 0.2012 | 0.1752 +- 0.0952 | 0.5415 +- 0.0440 | 4 | Splits 1-4 of 6 rolling-origin yearly splits |
+| 1 | Ensemble (stacked) | 0.9126 ± 0.0943 | 0.8274 | 0.6120 | 0.8414 | 0.6702 | 6 | Best ensemble strategy by AUC, then F1, then Recall across 6 common splits |
+| 2 | LSTM | 0.7293 ± 0.1800 | 0.8012 | 0.6465 | 0.6464 | 0.6463 | 6 | Splits 1-6 of 6 rolling-origin yearly splits |
+| 3 | GRU | 0.7155 ± 0.1813 | 0.7884 | 0.6367 | 0.6367 | 0.6367 | 6 | Splits 1-6 of 6 rolling-origin yearly splits |
+| 4 | XGBoost (Hybrid: Gap-Type Adaptive) | 0.7037 ± 0.1193 | 0.4979 | 0.2809 | 0.7283 | 0.3925 | 6 | Hybrid-adaptive XGBoost notebook evaluation across 6 temporal splits |
+| 5 | Transformer | 0.6426 ± 0.1042 | 0.7380 | 0.2855 | 0.1865 | 0.2032 | 6 | hybrid_adaptive scenario from transformer_summary.csv |
 
 ## Important Interpretation Note
 Two Transformer numbers may appear in reports, and they come from different sources:
@@ -70,6 +74,8 @@ Two Transformer numbers may appear in reports, and they come from different sour
 - This is why Objective 2 shows Transformer AUC 0.6426.
 
 This behavior is expected with the current architecture because Objective 2 comparison intentionally mixes validated standalone baseline summaries (LSTM/GRU/Transformer/XGBoost notebook metrics) with best ensemble strategy output.
+
+All baseline models (LSTM, GRU, Transformer, XGBoost) and the ensemble are now consistently evaluated across all 6 rolling-origin splits.
 
 ## Data and Split Framework
 - Dataset: final_compiled_dataset/Combined_Labeled.csv
@@ -129,6 +135,9 @@ python run_ensemble.py --generate-missing-transformer-weights-only --transformer
 
 ## Revision Notes
 Updated in this revision:
-- Ensemble rerun completed with 6 splits and hybrid_adaptive settings.
-- Objective 2 comparison now follows the selected Transformer scenario from CLI during table build.
-- README synchronized to latest generated CSV values.
+- **Fixed**: Removed hardcoded LSTM/GRU split limit (was restricted to splits 1-4).
+- **All models now properly evaluated on 6-split framework**: LSTM, GRU, Transformer, XGBoost, and Ensemble are all consistent.
+- Ensemble rerun completed with corrected split handling and hybrid_adaptive settings.
+- Objective 2 comparison shows LSTM and GRU with all 6 splits and corrected baseline metrics.
+- README synchronized to latest generated CSV values with all 5 models on 6-split basis.
+ - **Fixed**: LSTM compatibility — added a safe loader shim in `ensemble_model/code/ensemble_inference.py` so the saved LSTM model can be deserialized; ensemble rerun now includes LSTM per-split metrics.

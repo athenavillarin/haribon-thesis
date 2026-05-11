@@ -13,3 +13,5 @@ earthengine-api
 requests
 sqlalchemy
 psycopg2-binary
+tensorflow
+torch

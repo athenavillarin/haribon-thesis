@@ -146,8 +146,7 @@ def _load_rnn_metrics(csv_path: Path, model_name: str) -> Optional[Dict]:
     if not csv_path.exists():
         return None
     df = pd.read_csv(csv_path)
-    # Use only splits 1-4 (common splits)
-    df = df[df["split"].isin([1, 2, 3, 4])] if "split" in df.columns else df.head(4)
+    # Use all available splits
     return {
         "model": model_name,
         "auc_mean":       round(df["auc_roc"].mean(),          4),
@@ -161,7 +160,7 @@ def _load_rnn_metrics(csv_path: Path, model_name: str) -> Optional[Dict]:
         "f1_mean":        round(df["f1_macro"].mean(),         4),
         "f1_std":         round(df["f1_macro"].std(),          4),
         "n_splits":       len(df),
-        "notes":          f"Splits 1-4 of 6 rolling-origin yearly splits",
+        "notes":          f"Splits 1-{len(df)} of {len(df)} rolling-origin yearly splits",
     }
 
 
