@@ -219,66 +219,8 @@ def _build_current_sequence_and_tab(location_df: pd.DataFrame, feature_row: dict
     return x_seq_train, x_seq_test, feature_cols
 
 
-@lru_cache(maxsize=1)
-def _train_stacking_meta_learner(imputation_method: str, transformer_scenario: str):
-    """Train and cache a logistic stacking meta-learner from rolling-origin OOS predictions."""
-    _ensure_ensemble_code_on_path()
-    from ensemble_data import build_splits, load_and_prepare  # type: ignore
-    from ensemble_inference import predict_all  # type: ignore
-    from sklearn.linear_model import LogisticRegression
-    from sklearn.preprocessing import StandardScaler
 
-    dataset_candidates = [
-        repo_root / "final_compiled_dataset" / "Combined_Labeled.csv",
-        repo_root / "thesis" / "final_compiled_dataset" / "Combined_Labeled.csv",
-    ]
-    dataset_path = next((p for p in dataset_candidates if p.exists()), dataset_candidates[0])
-
-    df = load_and_prepare(dataset_path=dataset_path, imputation_method=imputation_method)
-    splits = build_splits(df)
-
-    all_probs = []
-    all_y = []
-    for split in splits:
-        probs = predict_all(split_data=split, transformer_scenario=transformer_scenario)
-        all_probs.append(probs)
-        all_y.append(split.y_test)
-
-    model_names = sorted({k for pd_ in all_probs for k in pd_.keys()})
-    x_parts = []
-    y_parts = []
-    for probs, y in zip(all_probs, all_y):
-        if len(y) == 0:
-            continue
-        cols = []
-        for m in model_names:
-            arr = probs.get(m, np.full(len(y), np.nan, dtype=np.float32))
-            cols.append(arr)
-        mat = np.column_stack(cols).astype(np.float32)
-        for j in range(mat.shape[1]):
-            nans = np.isnan(mat[:, j])
-            if nans.any():
-                med = float(np.nanmedian(mat[:, j]))
-                mat[nans, j] = med if not np.isnan(med) else 0.5
-        x_parts.append(mat)
-        y_parts.append(y.astype(np.int64))
-
-    if not x_parts:
-        return None, None, model_names
-
-    x_meta = np.concatenate(x_parts, axis=0)
-    y_meta = np.concatenate(y_parts, axis=0)
-    if len(np.unique(y_meta)) < 2:
-        return None, None, model_names
-
-    scaler = StandardScaler()
-    x_scaled = scaler.fit_transform(x_meta)
-    clf = LogisticRegression(max_iter=1000, class_weight="balanced", random_state=42)
-    clf.fit(x_scaled, y_meta)
-    return clf, scaler, model_names
-
-
-def _predict_stacked_probability(
+def _predict_weighted_avg_probability(
     manifest: Optional[dict],
     historical_df: pd.DataFrame,
     location: str,
@@ -286,7 +228,7 @@ def _predict_stacked_probability(
     xgb_probability: float,
     reference_date: datetime,
 ) -> Optional[float]:
-    """Return stacked ensemble probability for one location/date, or None on failure."""
+    """Return weighted average ensemble probability for one location/date, or None on failure."""
     try:
         _ensure_ensemble_code_on_path()
         from ensemble_inference import predict_gru, predict_lstm, predict_transformer  # type: ignore
@@ -316,26 +258,25 @@ def _predict_stacked_probability(
         gru_prob = float(predict_gru(split_like)[0])
         transformer_prob = float(predict_transformer(split_like, scenario=transformer_scenario)[0])
 
-        imputation_method = "hybrid_adaptive" if transformer_scenario == "hybrid_adaptive" else "climatological_month_day"
-        clf, scaler, model_names = _train_stacking_meta_learner(
-            imputation_method=imputation_method,
-            transformer_scenario=transformer_scenario,
-        )
-        if clf is None or scaler is None:
-            return None
-
-        row_map = {
-            "lstm": lstm_prob,
-            "gru": gru_prob,
-            "transformer": transformer_prob,
-            "xgboost": float(xgb_probability),
+        # Weights proportional to AUC scores from thesis results, normalized to sum to 1
+        # LSTM=0.7363, GRU=0.6990, Transformer=0.6265, XGBoost=0.7082
+        total_auc = 0.7363 + 0.6990 + 0.6265 + 0.7082
+        weights = {
+            "lstm": 0.7363 / total_auc,
+            "gru": 0.6990 / total_auc,
+            "transformer": 0.6265 / total_auc,
+            "xgboost": 0.7082 / total_auc,
         }
-        x_meta = np.array([[row_map.get(m, 0.5) for m in model_names]], dtype=np.float32)
-        x_scaled = scaler.transform(x_meta)
-        prob = float(clf.predict_proba(x_scaled)[:, 1][0])
-        return prob
+
+        weighted_prob = (
+            lstm_prob * weights["lstm"] +
+            gru_prob * weights["gru"] +
+            transformer_prob * weights["transformer"] +
+            float(xgb_probability) * weights["xgboost"]
+        )
+        return float(weighted_prob)
     except Exception as exc:
-        print(f"[WARN] Stacked ensemble inference failed, fallback to XGBoost: {exc}")
+        print(f"[WARN] Weighted average ensemble inference failed, fallback to XGBoost: {exc}")
         return None
 
 def get_latest_data_for_location(df, location_name):
@@ -809,10 +750,10 @@ def run_daily_update_with_5day_forecast():
             probability = xgb_prob
             final_probability_source = "xgboost"
 
-            use_stacked = "ensemble" in str(manifest_forecasting).lower() or "stacked" in str(manifest_forecasting).lower()
-            if use_stacked:
+            use_weighted = "ensemble" in str(manifest_forecasting).lower() or "weighted" in str(manifest_forecasting).lower()
+            if use_weighted:
                 print(f"  [MODEL] Ensemble mode enabled by manifest: {manifest_forecasting}")
-                stacked_prob = _predict_stacked_probability(
+                weighted_prob = _predict_weighted_avg_probability(
                     manifest=manifest,
                     historical_df=historical_df,
                     location=location,
@@ -820,12 +761,12 @@ def run_daily_update_with_5day_forecast():
                     xgb_probability=xgb_prob,
                     reference_date=today,
                 )
-                if stacked_prob is not None:
-                    probability = stacked_prob
-                    final_probability_source = "stacked_ensemble"
-                    print(f"  [MODEL] Using stacked ensemble probability: {probability:.6f}")
+                if weighted_prob is not None:
+                    probability = weighted_prob
+                    final_probability_source = "weighted_avg_ensemble"
+                    print(f"  [MODEL] Using weighted average ensemble probability: {probability:.6f}")
                 else:
-                    print("  [MODEL] Stacked ensemble unavailable; falling back to XGBoost probability.")
+                    print("  [MODEL] Weighted average ensemble unavailable; falling back to XGBoost probability.")
 
             historical_signal = _compute_recent_red_tide_signal(
                 historical_df=historical_df,

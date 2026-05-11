@@ -28,18 +28,26 @@ import numpy as np
 warnings.filterwarnings("ignore")
 
 _THIS_DIR = Path(__file__).resolve().parent
-_ROOT = _THIS_DIR.parent.parent
+_THESIS_DIR = _THIS_DIR.parent.parent
+_REPO_ROOT = _THIS_DIR.parent.parent.parent
+
+
+def _resolve_model_path(thesis_path: Path, repo_root_path: Path) -> Path:
+    if thesis_path.exists():
+        return thesis_path
+    return repo_root_path
+
 
 # Default model paths
-DEFAULT_LSTM_MODEL    = _ROOT / "lstm"           / "saved_model" / "haribon_lstm_risk.keras"
-DEFAULT_LSTM_SCALER   = _ROOT / "lstm"           / "saved_model" / "feature_scaler.joblib"
-DEFAULT_GRU_MODEL     = _ROOT / "gru"            / "saved_model" / "haribon_gru_risk.keras"
-DEFAULT_GRU_SCALER    = _ROOT / "gru"            / "saved_model" / "feature_scaler.joblib"
-DEFAULT_XGBOOST_MODEL = _ROOT / "xgboost_model"  / "results"     / "best_xgboost_model.json"
-DEFAULT_TRANSFORMER_SAVED_DIR = _ROOT / "ensemble_model" / "saved_model"
-LEGACY_TRANSFORMER_SAVED_DIR  = _ROOT / "transformer_model" / "saved_model"
-DEFAULT_XGBOOST_SAVED_DIR = _ROOT / "xgboost_model" / "saved_model"
-DEFAULT_XGBOOST_BEST_PARAMS = _ROOT / "xgboost_model" / "results" / "best_parameters.txt"
+DEFAULT_LSTM_MODEL    = _resolve_model_path(_THESIS_DIR / "lstm" / "saved_model" / "haribon_lstm_risk.keras", _REPO_ROOT / "lstm" / "saved_model" / "haribon_lstm_risk.keras")
+DEFAULT_LSTM_SCALER   = _resolve_model_path(_THESIS_DIR / "lstm" / "saved_model" / "feature_scaler.joblib", _REPO_ROOT / "lstm" / "saved_model" / "feature_scaler.joblib")
+DEFAULT_GRU_MODEL     = _resolve_model_path(_THESIS_DIR / "gru" / "saved_model" / "haribon_gru_risk.keras", _REPO_ROOT / "gru" / "saved_model" / "haribon_gru_risk.keras")
+DEFAULT_GRU_SCALER    = _resolve_model_path(_THESIS_DIR / "gru" / "saved_model" / "feature_scaler.joblib", _REPO_ROOT / "gru" / "saved_model" / "feature_scaler.joblib")
+DEFAULT_XGBOOST_MODEL = _resolve_model_path(_THESIS_DIR / "xgboost_model" / "saved_model" / "best_xgboost_model.json", _REPO_ROOT / "xgboost_model" / "saved_model" / "best_xgboost_model.json")
+DEFAULT_TRANSFORMER_SAVED_DIR = _THESIS_DIR / "ensemble_model" / "saved_model"
+LEGACY_TRANSFORMER_SAVED_DIR  = _REPO_ROOT / "transformer_model" / "saved_model"
+DEFAULT_XGBOOST_SAVED_DIR = _THESIS_DIR / "xgboost_model" / "saved_model"
+DEFAULT_XGBOOST_BEST_PARAMS = _resolve_model_path(_THESIS_DIR / "xgboost_model" / "results" / "best_parameters.txt", _REPO_ROOT / "xgboost_model" / "results" / "best_parameters.txt")
 
 
 def _transformer_weights_name(split_num: int, scenario: str) -> str:
@@ -220,7 +228,7 @@ def predict_transformer(
     this split — identical to the original run_transformer.py behaviour.
     """
     import sys
-    transformer_code = _ROOT / "transformer_model" / "code"
+    transformer_code = _REPO_ROOT / "transformer_model" / "code"
     if str(transformer_code) not in sys.path:
         sys.path.insert(0, str(transformer_code))
 

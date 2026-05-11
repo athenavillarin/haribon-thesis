@@ -1,8 +1,8 @@
 {
   "thesis_version": "v2.0-final",
-  "generated_date": "2026-05-10",
+  "generated_date": "2026-05-12",
   "description": "Canonical record of thesis-validated imputation methods and forecasting models approved for production deployment in the HARIBON HAB detection system",
-  
+
   "imputation": {
     "primary_method": "Hybrid: Gap-Type Adaptive",
     "method_type": "hybrid_temporal_spatial",
@@ -51,33 +51,33 @@
   },
 
   "forecasting": {
-    "primary_model": "Ensemble (Stacked)",
-    "model_type": "ensemble_stacking",
+    "primary_model": "Ensemble (Weighted Average)",
+    "model_type": "ensemble_weighted_avg",
     "source_task": "ensemble_model",
-    "justification": "Best overall discriminative performance across all 6 rolling-origin splits in blind comparison with individual models. Stacking meta-learner combines predictions from LSTM, GRU, Transformer, and XGBoost with adaptive weighting, achieving AUC-ROC of 0.913 and F1 of 0.659. Significantly outperforms individual model components and alternative ensemble strategies (soft vote: 0.878 AUC, weighted avg: 0.891 AUC).",
+    "justification": "Best ensemble strategy by AUC (0.7248) with significantly higher precision (0.6325) compared to stacked (0.4023) and individual models. More robust for production deployment due to resistance to distribution shift across rolling-origin splits. Stacked ensemble was evaluated but discarded due to poor generalization (AUC 0.6994) caused by meta-learner distribution shift across temporal splits.",
     "metrics": {
-      "auc_mean": 0.913393,
-      "auc_std": 0.093568,
-      "f1_mean": 0.659313,
-      "f1_std": 0.206609,
-      "accuracy_mean": 0.823782,
-      "accuracy_std": 0.101207,
-      "precision_mean": 0.613886,
-      "precision_std": 0.218895,
-      "recall_mean": 0.828135,
-      "recall_std": 0.247198,
+      "auc_mean": 0.724804,
+      "auc_std": 0.165183,
+      "f1_mean": 0.286813,
+      "f1_std": 0.319343,
+      "accuracy_mean": 0.794003,
+      "accuracy_std": 0.145594,
+      "precision_mean": 0.632541,
+      "precision_std": 0.374129,
+      "recall_mean": 0.239391,
+      "recall_std": 0.333462,
       "n_splits_evaluated": 6
     },
     "composition": {
       "lstm": {
         "model_type": "LSTM",
-        "auc_individual": 0.9042,
+        "auc_individual": 0.736298,
         "artifact_path": "artifacts/best_model/lstm/haribon_lstm_risk.keras",
         "framework": "Keras 3"
       },
       "gru": {
         "model_type": "GRU",
-        "auc_individual": 0.911482,
+        "auc_individual": 0.699018,
         "artifact_path": "artifacts/best_model/gru/haribon_gru_risk.keras",
         "framework": "Keras 3"
       },
@@ -96,24 +96,30 @@
       },
       "xgboost": {
         "model_type": "XGBoost",
-        "auc_individual": 0.719515,
+        "auc_individual": 0.708220,
         "artifact_path": "artifacts/best_model/xgboost/best_xgboost_model.json",
         "framework": "scikit-learn / joblib"
       }
     },
     "ensemble_strategy": {
-      "combination_method": "stacking",
-      "description": "Meta-learner trained on base model probability predictions; learns optimal per-sample weighting via logistic regression",
+      "combination_method": "weighted_average",
+      "description": "Weighted average of base model probability predictions using AUC-proportional weights: LSTM=0.7363, GRU=0.6990, Transformer=0.6265, XGBoost=0.7082. Weights are normalized to sum to 1.",
       "base_models": ["lstm", "gru", "transformer", "xgboost"],
+      "weights": {
+        "lstm": 0.7363,
+        "gru": 0.6990,
+        "transformer": 0.6265,
+        "xgboost": 0.7082
+      },
       "alternative_strategies_evaluated": [
         {
-          "name": "weighted_average",
-          "auc_mean": 0.891341,
-          "rationale": "Weights by individual model AUC; simpler but less adaptive than stacking"
+          "name": "stacked",
+          "auc_mean": 0.699363,
+          "rationale": "Discarded — LogisticRegression meta-learner failed to generalize across rolling-origin splits due to distribution shift"
         },
         {
           "name": "soft_vote",
-          "auc_mean": 0.877754,
+          "auc_mean": 0.718382,
           "rationale": "Uniform averaging of probability predictions; baseline ensemble method"
         }
       ]
@@ -151,8 +157,8 @@
       },
       {
         "step": 3,
-        "name": "Ensemble Stacking Inference",
-        "method": "Load LSTM, GRU, Transformer, XGBoost → Generate probabilities → Stack meta-learner",
+        "name": "Ensemble Weighted Average Inference",
+        "method": "Load LSTM, GRU, Transformer, XGBoost → Generate probabilities → Weighted average by AUC scores",
         "input": "Engineered feature matrix",
         "output": "Final HAB risk probability + confidence interval (based on ensemble std across splits)"
       },
@@ -166,7 +172,6 @@
     ],
     "artifact_locations": {
       "imputation_config": "artifacts/imputation_config.json (to be created)",
-      "ensemble_stacking_meta_learner": "thesis/ensemble_model/saved_model/ensemble_stacking_metalearner.pkl (if saved separately)",
       "all_base_models": "artifacts/best_model/ (canonical production artifacts; see forecasting.composition)"
     },
     "backend_integration_notes": [
@@ -188,11 +193,11 @@
       "Class imbalance in HAB labels; many splits have low positive-class representation (F1 = 0.0 for most individual methods)",
       "Spatial Kriging and Temporal-Spatial Ensemble not evaluated downstream; potential for improvement not captured",
       "Transformer model shows high variance across splits (AUC std = 0.197); consider ensemble uncertainty quantification",
-      "Evaluation period ends 2026-05-10; monitor performance drift if environmental conditions or monitoring gaps change"
+      "Evaluation period ends 2026-05-12; monitor performance drift if environmental conditions or monitoring gaps change"
     ],
     "recommended_monitoring": [
-      "Track actual bloom occurrence vs. predicted probabilities monthly; flag if AUC drifts below 0.80",
-      "Re-evaluate ensemble stacking weights if new base models added",
+      "Track actual bloom occurrence vs. predicted probabilities monthly; flag if AUC drifts below 0.70",
+      "Re-evaluate ensemble weights if new base models added",
       "Re-run rolling-origin evaluation annually with new year's data as latest split",
       "Monitor for data quality issues that might violate the 'gap < 14 days' assumption"
     ]
@@ -202,7 +207,7 @@
     "created_by": "Haribon Thesis Analysis Pipeline (Tasks 2–5, Ensemble Model)",
     "validated_by": "Thesis Committee",
     "approval_status": "approved_for_production",
-    "next_review_date": "2027-05-10",
-    "contact_for_updates": "athenavillarin (thesis author)"
+    "next_review_date": "2027-05-12",
+    "contact_for_updates": "Canabo, Junsay, Ramiro, Sionosa, Villarin (thesis authors)"
   }
 }
