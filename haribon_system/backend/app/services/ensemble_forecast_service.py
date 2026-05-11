@@ -8,6 +8,7 @@ from typing import Any
 import joblib
 import numpy as np
 import pandas as pd
+import shap
 
 from app.core.config import settings
 
@@ -228,6 +229,36 @@ def predict_ensemble_risk(
         for model_name in BASE_MODEL_ORDER
     }
 
+    # Compute SHAP values for XGBoost model explainability
+    shap_values = None
+    try:
+        from xgboost import XGBClassifier
+        
+        # Load XGBoost model
+        model_path = _PROJECT_ROOT / "xgboost_model" / "saved_model" / "best_xgboost_model.json"
+        if model_path.exists():
+            clf = XGBClassifier()
+            clf.load_model(str(model_path))
+            
+            # Create SHAP explainer
+            explainer = shap.TreeExplainer(clf)
+            
+            # Get XGBoost input features (tabular features for the prediction)
+            xgboost_input = live_split.X_tab_test[0:1]  # Single prediction
+            
+            # Compute SHAP values
+            shap_values_raw = explainer.shap_values(xgboost_input)
+            
+            # Convert to dictionary with feature names
+            shap_values = {
+                feature: float(shap_val)
+                for feature, shap_val in zip(FEATURES, shap_values_raw[0])
+            }
+    except Exception as e:
+        # If SHAP computation fails, continue without it
+        print(f"SHAP computation failed: {e}")
+        shap_values = None
+
     # Weighted average ensemble using AUC weights from ensemble evaluation
     weights = {
         "lstm": 0.736298,
@@ -250,6 +281,7 @@ def predict_ensemble_risk(
         "confidence": confidence,
         "explanation": explanation,
         "base_model_probabilities": base_probs,
+        "shap_values": shap_values,
         "latest_inputs": {
             key: latest_row.get(key)
             for key in (
