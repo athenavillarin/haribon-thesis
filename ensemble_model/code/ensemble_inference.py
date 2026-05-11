@@ -38,6 +38,7 @@ DEFAULT_GRU_SCALER    = _ROOT / "gru"            / "saved_model" / "feature_scal
 DEFAULT_XGBOOST_MODEL = _ROOT / "xgboost_model"  / "results"     / "best_xgboost_model.json"
 DEFAULT_TRANSFORMER_SAVED_DIR = _ROOT / "ensemble_model" / "saved_model"
 LEGACY_TRANSFORMER_SAVED_DIR  = _ROOT / "transformer_model" / "saved_model"
+DEFAULT_XGBOOST_SAVED_DIR = _ROOT / "xgboost_model" / "saved_model"
 DEFAULT_XGBOOST_BEST_PARAMS = _ROOT / "xgboost_model" / "results" / "best_parameters.txt"
 
 
@@ -111,7 +112,7 @@ def _load_best_xgboost_params(params_path: Path = DEFAULT_XGBOOST_BEST_PARAMS) -
 
 def predict_lstm(
     split_data,
-    model_path: Path = DEFAULT_LSTM_MODEL,
+    model_dir: Path = DEFAULT_LSTM_MODEL.parent,
     scaler_path: Path = DEFAULT_LSTM_SCALER,
 ) -> np.ndarray:
     """
@@ -137,6 +138,7 @@ def predict_lstm(
 
     tf.keras.layers.Dense.from_config = _safe_dense_from_config
     try:
+        model_path = model_dir / f"haribon_lstm_hybrid_adaptive_split{split_data.split_num}.keras"
         model = tf.keras.models.load_model(str(model_path), compile=False)
     finally:
         # Always restore original method to avoid side-effects
@@ -161,7 +163,7 @@ def predict_lstm(
 
 def predict_gru(
     split_data,
-    model_path: Path = DEFAULT_GRU_MODEL,
+    model_dir: Path = DEFAULT_GRU_MODEL.parent,
     scaler_path: Path = DEFAULT_GRU_SCALER,
 ) -> np.ndarray:
     """Load saved GRU model and produce test-set probabilities."""
@@ -180,6 +182,7 @@ def predict_gru(
 
     tf.keras.layers.Dense.from_config = _safe_dense_from_config
     try:
+        model_path = model_dir / f"haribon_gru_hybrid_adaptive_split{split_data.split_num}.keras"
         model = tf.keras.models.load_model(str(model_path), compile=False)
     finally:
         # Restore original method regardless of success/failure
@@ -221,162 +224,64 @@ def predict_transformer(
     if str(transformer_code) not in sys.path:
         sys.path.insert(0, str(transformer_code))
 
-    try:
-        from transformer_core import build_model, import_torch  # type: ignore
-        from train_eval import TrainConfig  # type: ignore
-    except ModuleNotFoundError:
-        # If the transformer training modules are not available, attempt to
-        # load a pre-saved checkpoint (final model) for the requested
-        # `scenario`. This lets the ensemble use a real transformer when
-        # per-split training code is absent. If loading fails, fall back to
-        # neutral 0.5 probabilities.
-        try:
-            import torch
-            # prefer a final saved artifact named like `haribon_transformer_{scenario}.pt`
-            # located in transformer_model/saved_model. Use safe globals if needed.
-            ckpt_name = f"haribon_transformer_{scenario}.pt"
-            cand_paths = [
-                (DEFAULT_TRANSFORMER_SAVED_DIR.parent / 'transformer_model' / 'saved_model' / ckpt_name),
-                (LEGACY_TRANSFORMER_SAVED_DIR / ckpt_name),
-                (DEFAULT_TRANSFORMER_SAVED_DIR / ckpt_name),
-            ]
-            ckpt_path = None
-            for p in cand_paths:
-                if p.exists():
-                    ckpt_path = p
-                    break
-            if ckpt_path is None:
-                # no final checkpoint available — return neutral probs
-                return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
+    # Define transformer classes locally to avoid import issues
+    import torch
+    import torch.nn as nn
 
-            try:
-                torch.serialization.add_safe_globals(["numpy._core.multiarray._reconstruct"])
-            except Exception:
-                pass
-            ckpt = torch.load(str(ckpt_path), map_location="cpu", weights_only=False)
-            print(f"[transformer] fallback ckpt path: {ckpt_path}")
-            try:
-                print("[transformer] ckpt keys:", list(ckpt.keys()))
-            except Exception:
-                pass
+    class HABTransformerClassifier(nn.Module):
+        def __init__(self, input_dim: int, seq_len: int, d_model: int, num_heads: int,
+                     num_layers: int, ff_dim: int, dropout: float):
+            super().__init__()
+            self.input_proj = nn.Linear(input_dim, d_model)
+            self.pos_embed = nn.Parameter(torch.zeros(1, seq_len, d_model))
+            encoder_layer = nn.TransformerEncoderLayer(
+                d_model=d_model,
+                nhead=num_heads,
+                dim_feedforward=ff_dim,
+                dropout=dropout,
+                batch_first=True,
+                activation="gelu",
+                norm_first=True,
+            )
+            self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+            self.norm = nn.LayerNorm(d_model)
+            self.head = nn.Sequential(
+                nn.Linear(d_model, d_model // 2),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(d_model // 2, 1),
+            )
 
-            # Build a minimal local model matching the original architecture
-            cfg_dict = ckpt.get("config", {})
-            print("[transformer] ckpt config:", cfg_dict)
-            norm_mean = ckpt.get("norm_mean", None)
-            norm_std = ckpt.get("norm_std", None)
-            try:
-                print("[transformer] norm_mean shape:", None if norm_mean is None else np.array(norm_mean).shape)
-                print("[transformer] norm_std shape:", None if norm_std is None else np.array(norm_std).shape)
-            except Exception:
-                pass
-            d_model = int(cfg_dict.get("d_model", 64))
-            num_heads = int(cfg_dict.get("num_heads", 4))
-            num_layers = int(cfg_dict.get("num_layers", 2))
-            ff_dim = int(cfg_dict.get("ff_dim", 128))
-            dropout = float(cfg_dict.get("dropout", 0.2))
+        def forward(self, x):
+            x = self.input_proj(x)
+            x = x + self.pos_embed[:, : x.shape[1], :]
+            x = self.encoder(x)
+            x = self.norm(x[:, -1, :])
+            logits = self.head(x).squeeze(-1)
+            return logits
 
-            # Local lightweight model definition mirroring transformer_training.ipynb
-            try:
-                class _LocalHABTransformer(torch.nn.Module):
-                    def __init__(self, input_dim: int, seq_len: int, d_model: int, num_heads: int, num_layers: int, ff_dim: int, dropout: float):
-                        super().__init__()
-                        self.input_proj = torch.nn.Linear(input_dim, d_model)
-                        self.pos_embed = torch.nn.Parameter(torch.zeros(1, seq_len, d_model))
-                        encoder_layer = torch.nn.TransformerEncoderLayer(
-                            d_model=d_model,
-                            nhead=num_heads,
-                            dim_feedforward=ff_dim,
-                            dropout=dropout,
-                            batch_first=True,
-                            activation="gelu",
-                            norm_first=True,
-                        )
-                        self.encoder = torch.nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-                        self.norm = torch.nn.LayerNorm(d_model)
-                        self.head = torch.nn.Sequential(
-                            torch.nn.Linear(d_model, d_model // 2),
-                            torch.nn.GELU(),
-                            torch.nn.Dropout(dropout),
-                            torch.nn.Linear(d_model // 2, 1),
-                        )
+    def build_model(input_dim: int, seq_len: int, d_model: int, num_heads: int,
+                    num_layers: int, ff_dim: int, dropout: float):
+        return HABTransformerClassifier(input_dim, seq_len, d_model, num_heads,
+                                       num_layers, ff_dim, dropout)
 
-                    def forward(self, x):
-                        x = self.input_proj(x)
-                        x = x + self.pos_embed[:, : x.shape[1], :]
-                        x = self.encoder(x)
-                        x = self.norm(x[:, -1, :])
-                        logits = self.head(x).squeeze(-1)
-                        return logits
-            except Exception:
-                return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
+    class TrainConfig:
+        def __init__(self):
+            self.d_model = 64
+            self.num_heads = 4
+            self.num_layers = 2
+            self.ff_dim = 128
+            self.dropout = 0.2
+            self.learning_rate = 1e-3
+            self.weight_decay = 1e-4
+            self.batch_size = 32
+            self.epochs = 100
+            self.val_ratio = 0.2
+            self.patience = 8
+            self.lr_scheduler_patience = 5
 
-            X_test = split_data.X_seq_test
-            if X_test.shape[0] == 0:
-                return np.empty((0,), dtype=np.float32)
-
-            # Use stored normalization if available, otherwise fall back to test-based normalisation
-            norm_mean = ckpt.get("norm_mean", None)
-            norm_std = ckpt.get("norm_std", None)
-            if norm_mean is not None and norm_std is not None:
-                mean = np.array(norm_mean, dtype=np.float32)
-                std = np.array(norm_std, dtype=np.float32)
-                # shapes are (1,1,n_feat) — broadcast over test samples
-                X_test_n = (X_test - mean) / np.where(std < 1e-8, 1.0, std)
-                X_test_n = np.nan_to_num(X_test_n, nan=0.0, posinf=0.0, neginf=0.0)
-            else:
-                # fallback: normalise with train statistics if available, else no-op
-                X_test_n = X_test
-
-            input_dim = X_test_n.shape[2]
-            seq_len = X_test_n.shape[1]
-
-            model = _LocalHABTransformer(input_dim=input_dim, seq_len=seq_len, d_model=d_model, num_heads=num_heads, num_layers=num_layers, ff_dim=ff_dim, dropout=dropout)
-
-            # load state dict if present, but check shapes first and log failures
-            state = ckpt.get("model_state_dict", None)
-            if state is not None:
-                try:
-                    sample_keys = list(state.keys())[:12]
-                    print("[transformer] ckpt state sample keys:", sample_keys)
-                    shapes = []
-                    for k in sample_keys[:8]:
-                        v = state[k]
-                        try:
-                            shapes.append((k, tuple(v.shape)))
-                        except Exception:
-                            shapes.append((k, None))
-                    print("[transformer] state sample shapes:", shapes)
-                except Exception:
-                    pass
-
-            try:
-                if state is not None:
-                    # defensive input-dimension check against first linear layer if available
-                    try:
-                        if "input_proj.weight" in state:
-                            ckpt_in = int(state["input_proj.weight"].shape[1])
-                            print(f"[transformer] checkpoint input_proj.in_features={ckpt_in}")
-                            # input_dim not yet defined here until later normalization; we'll check again after normalization
-                    except Exception:
-                        pass
-                    model.load_state_dict(state)
-                    print("[transformer] loaded checkpoint state into local model")
-            except Exception as e:
-                print("[transformer] model.load_state_dict failed:", repr(e))
-
-            model.eval()
-            try:
-                import torch as _torch
-                xte = _torch.tensor(X_test_n, dtype=_torch.float32)
-                with _torch.no_grad():
-                    logits = model(xte).detach().cpu().numpy()
-                probs = 1.0 / (1.0 + np.exp(-logits))
-                return probs.astype(np.float32)
-            except Exception:
-                return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
-        except Exception:
-            return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
+    def import_torch():
+        return torch, nn
 
     torch, nn = import_torch()
 
@@ -520,27 +425,34 @@ def _train_transformer_inplace(model, X_train, y_train, cfg, device, torch, nn):
 
 def predict_xgboost(
     split_data,
-    model_path: Path = DEFAULT_XGBOOST_MODEL,
+    saved_dir: Path = DEFAULT_XGBOOST_SAVED_DIR,
 ) -> np.ndarray:
     """
-    Load best XGBoost hyperparameters and fit on the train slice of this split,
-    then predict probabilities on the test slice.
+    Load per-split saved XGBoost model (.json) and produce probabilities.
 
-    Re-fitting per split avoids data leakage while reusing the optimised
-    hyperparameters found by RandomizedSearchCV on the full dataset.
+    If no saved model exists, fall back to re-fitting using best hyperparameters.
     """
     from xgboost import XGBClassifier
 
-    X_train = split_data.X_tab_train
-    y_train = split_data.y_train
-    X_test  = split_data.X_tab_test
+    X_test = split_data.X_tab_test
 
-    if X_test.shape[0] == 0 or X_train.shape[0] == 0:
+    if X_test.shape[0] == 0:
         return np.empty((0,), dtype=np.float32)
 
-    best_params = _load_best_xgboost_params()
-    clf = XGBClassifier(**best_params)
-    clf.fit(X_train, y_train, verbose=False)
+    model_path = saved_dir / f"xgboost_split{split_data.split_num}.json"
+    if model_path.exists():
+        clf = XGBClassifier()
+        clf.load_model(str(model_path))
+    else:
+        # Fallback: re-fit using best params
+        X_train = split_data.X_tab_train
+        y_train = split_data.y_train
+        if X_train.shape[0] == 0:
+            return np.full(len(X_test), np.nan, dtype=np.float32)
+        best_params = _load_best_xgboost_params()
+        clf = XGBClassifier(**best_params)
+        clf.fit(X_train, y_train, verbose=False)
+
     probs = clf.predict_proba(X_test)[:, 1]
     return probs.astype(np.float32)
 
@@ -551,13 +463,11 @@ def predict_xgboost(
 
 def predict_all(
     split_data,
-    lstm_model_path: Path = DEFAULT_LSTM_MODEL,
     lstm_scaler_path: Path = DEFAULT_LSTM_SCALER,
-    gru_model_path:  Path = DEFAULT_GRU_MODEL,
     gru_scaler_path: Path = DEFAULT_GRU_SCALER,
-    xgboost_model_path: Path = DEFAULT_XGBOOST_MODEL,
+    xgboost_saved_dir: Path = DEFAULT_XGBOOST_SAVED_DIR,
     transformer_saved_dir: Path = DEFAULT_TRANSFORMER_SAVED_DIR,
-    transformer_scenario: str = "native_masking",
+    transformer_scenario: str = "hybrid_adaptive",
 ) -> Dict[str, np.ndarray]:
     """
     Run inference for all four models on one split.
@@ -569,7 +479,7 @@ def predict_all(
 
     print("  [lstm]        ", end="", flush=True)
     try:
-        probs["lstm"] = predict_lstm(split_data, lstm_model_path, lstm_scaler_path)
+        probs["lstm"] = predict_lstm(split_data, DEFAULT_LSTM_MODEL.parent, lstm_scaler_path)
         print(f"OK ({len(probs['lstm'])} samples)")
     except Exception as exc:
         print(f"FAILED: {exc}")
@@ -577,7 +487,7 @@ def predict_all(
 
     print("  [gru]         ", end="", flush=True)
     try:
-        probs["gru"] = predict_gru(split_data, gru_model_path, gru_scaler_path)
+        probs["gru"] = predict_gru(split_data, DEFAULT_GRU_MODEL.parent, gru_scaler_path)
         print(f"OK ({len(probs['gru'])} samples)")
     except Exception as exc:
         print(f"FAILED: {exc}")
@@ -593,7 +503,7 @@ def predict_all(
 
     print("  [xgboost]     ", end="", flush=True)
     try:
-        probs["xgboost"] = predict_xgboost(split_data, xgboost_model_path)
+        probs["xgboost"] = predict_xgboost(split_data, xgboost_saved_dir)
         print(f"OK ({len(probs['xgboost'])} samples)")
     except Exception as exc:
         print(f"FAILED: {exc}")
