@@ -165,12 +165,12 @@ def _load_rnn_metrics(csv_path: Path, model_name: str) -> Optional[Dict]:
     }
 
 
-def _load_transformer_metrics() -> Optional[Dict]:
-    """Load Transformer summary, preferring the native_masking scenario."""
+def _load_transformer_metrics(preferred_scenario: str = "native_masking") -> Optional[Dict]:
+    """Load Transformer summary, preferring the requested scenario."""
     if not TRANSFORMER_METRICS_CSV.exists():
         return None
     df = pd.read_csv(TRANSFORMER_METRICS_CSV)
-    row = df[df["scenario"] == "native_masking"]
+    row = df[df["scenario"] == preferred_scenario]
     if row.empty:
         row = df.sort_values(["auc_mean", "f1_mean", "recall_mean"], ascending=[False, False, False]).iloc[0:1]
     row = row.iloc[0]
@@ -187,7 +187,7 @@ def _load_transformer_metrics() -> Optional[Dict]:
         "f1_mean":        round(float(row.get("f1_mean", np.nan)),        4),
         "f1_std":         round(float(row.get("f1_std",  np.nan)),        4),
         "n_splits":       int(row.get("n_splits", 4)),
-        "notes":          f"{row.get('scenario', 'native_masking')} scenario from transformer_summary.csv",
+        "notes":          f"{row.get('scenario', preferred_scenario)} scenario from transformer_summary.csv",
     }
 
 
@@ -236,6 +236,7 @@ def _load_xgboost_metrics() -> Optional[Dict]:
 def build_obj2_comparison(
     ensemble_summary: pd.DataFrame,
     output_path: Optional[Path] = None,
+    transformer_scenario: str = "native_masking",
 ) -> pd.DataFrame:
     """
     Compile the full Objective 2 model comparison table.
@@ -249,7 +250,7 @@ def build_obj2_comparison(
 
     lstm_row = _load_rnn_metrics(LSTM_METRICS_CSV, "LSTM")
     gru_row  = _load_rnn_metrics(GRU_METRICS_CSV,  "GRU")
-    trans_row = _load_transformer_metrics()
+    trans_row = _load_transformer_metrics(preferred_scenario=transformer_scenario)
     xgb_row  = _load_xgboost_metrics()
 
     for row in [lstm_row, gru_row, trans_row, xgb_row]:
