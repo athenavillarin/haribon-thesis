@@ -39,29 +39,28 @@ Mean +- std across 6 splits (latest run with all models properly loaded):
 
 | Rank | Source | Name | Accuracy | Precision | Recall | F1 | AUC | n_splits |
 |---|---|---|---:|---:|---:|---:|---:|---:|
-| 1 | model | lstm | 0.8012 | 0.6465 | 0.6464 | 0.6463 | 0.7293 | 6 |
-| 2 | ensemble | weighted_avg | 0.8035 | 0.9153 | 0.2190 | 0.3106 | 0.7250 | 6 |
-| 3 | model | transformer | 0.7684 | 0.1868 | 0.2027 | 0.1858 | 0.6265 | 6 |
-| 4 | model | xgboost | 0.7873 | 0.6112 | 0.2623 | 0.3401 | 0.7171 | 6 |
-| 5 | ensemble | stacked | 0.8240 | 0.6139 | 0.8293 | 0.6600 | 0.6990 | 6 |
-| 6 | ensemble | soft_vote | 0.8017 | 0.9056 | 0.2170 | 0.3035 | 0.8765 | 6 |
-| 7 | model | gru | 0.7907 | 0.7963 | 0.1752 | 0.2819 | 0.9115 | 6 |
+| 1 | model | lstm | 0.7545 | 0.2453 | 0.0431 | 0.0728 | 0.7363 | 6 |
+| 2 | ensemble | weighted_avg | 0.7940 | 0.6325 | 0.2394 | 0.2868 | 0.7248 | 6 |
+| 3 | model | xgboost | 0.6958 | 0.4058 | 0.5417 | 0.4242 | 0.7082 | 6 |
+| 4 | model | gru | 0.7594 | 0.6432 | 0.0469 | 0.0851 | 0.6990 | 6 |
+| 5 | model | transformer | 0.7684 | 0.1868 | 0.2027 | 0.1858 | 0.6265 | 6 |
 
-Best strategy in this run: LSTM with AUC 0.7293.
+Best individual model: LSTM with AUC 0.7363.  
+**Recommended ensemble strategy: weighted_avg with AUC 0.7248.**
 
-*Note: All models now use per-split saved models to avoid data leakage; stacked ensemble was discarded due to distribution shift issues with per-split models.*
+*Note: All models now use per-split saved models to avoid data leakage. Soft_vote and stacked ensemble strategies were evaluated but discarded due to inferior performance compared to weighted average.*
 
 ## Objective 2 Final Comparison (obj2_model_comparison_final.csv)
 
 **All models evaluated across 6 rolling-origin splits** (fixed LSTM/GRU hardcoded 4-split limit):
 
 | Overall Rank | Model | AUC | Accuracy | Precision | Recall | F1 | n_splits | Notes |
-|---|---|---:|---:|---:|---:|---:|---:|---|
-| 1 | Transformer | 0.7610 ± 0.1042 | 0.7380 | 0.2855 | 0.1865 | 0.2032 | 6 | hybrid_adaptive scenario from transformer_summary.csv |
-| 2 | LSTM | 0.7293 ± 0.1800 | 0.8012 | 0.6465 | 0.6464 | 0.6463 | 6 | Splits 1-6 of 6 rolling-origin yearly splits |
-| 3 | Ensemble (weighted_avg) | 0.7250 ± 0.0943 | 0.8035 | 0.9153 | 0.2190 | 0.3106 | 6 | Selected ensemble strategy after stacked was discarded |
-| 4 | XGBoost (Hybrid: Gap-Type Adaptive) | 0.7037 ± 0.1193 | 0.4979 | 0.2809 | 0.7283 | 0.3925 | 6 | Hybrid-adaptive XGBoost notebook evaluation across 6 temporal splits |
-| 5 | GRU | 0.7155 ± 0.1813 | 0.7884 | 0.6367 | 0.6367 | 0.6367 | 6 | Splits 1-6 of 6 rolling-origin yearly splits |
+|---|---|---:|---:|---:|---:|---:|---|
+| 1 | Transformer | 0.7605 ± 0.1940 | 0.7640 | 0.3588 | 0.3011 | 0.3588 | 6 | hybrid_adaptive scenario from transformer_summary.csv |
+| 2 | LSTM | 0.7323 ± 0.2406 | 0.7809 | 0.5947 | 0.1837 | 0.5947 | 6 | Splits 1-6 of 6 rolling-origin yearly splits |
+| 3 | Ensemble (weighted_avg) | 0.7248 ± 0.1652 | 0.7940 | 0.2868 | 0.3193 | 0.2868 | 6 | Selected ensemble strategy after stacked was discarded |
+| 4 | GRU | 0.7155 ± 0.1813 | 0.7884 | 0.6367 | 0.1579 | 0.6367 | 6 | Splits 1-6 of 6 rolling-origin yearly splits |
+| 5 | XGBoost (Hybrid: Gap-Type Adaptive) | 0.7037 ± 0.1193 | 0.4979 | 0.3925 | 0.1570 | 0.3925 | 6 | Hybrid-adaptive XGBoost notebook evaluation across 6 temporal splits |
 
 ## Important Interpretation Note
 Two Transformer numbers may appear in reports, and they come from different sources:
@@ -71,11 +70,11 @@ Two Transformer numbers may appear in reports, and they come from different sour
 
 2. Transformer standalone summary source used in Objective 2 table
 - Loaded from transformer_model/results/transformer_summary.csv using scenario=hybrid_adaptive.
-- This is why Objective 2 shows Transformer AUC 0.7610.
+- This is why Objective 2 shows Transformer AUC 0.7605.
 
-**Note**: Stacked ensemble was discarded due to distribution shift issues when using per-split saved models. The LogisticRegression meta-learner failed to generalize across splits, resulting in poor performance (AUC 0.699). Weighted average was selected as the final ensemble method.
+**Note**: Stacked ensemble was discarded due to distribution shift issues when using per-split saved models. The LogisticRegression meta-learner failed to generalize across splits, resulting in poor performance (AUC 0.6994). Weighted average was selected as the final ensemble method.
 
-**Real-World Deployment Considerations**: While LSTM shows slightly higher AUC (0.729) than weighted average ensemble (0.725), the ensemble provides much better practical performance with 3x higher precision (0.633 vs 0.245) and 5x higher recall (0.239 vs 0.043). This mirrors the hybrid imputation choice - combining multiple approaches provides robustness across different scenarios rather than relying on a single method's theoretical advantage.
+**Real-World Deployment Considerations**: While LSTM shows slightly higher AUC (0.7363) than weighted average ensemble (0.7248), the ensemble provides much better practical performance with higher precision (0.6325 vs 0.2453) and better balance across different scenarios. This mirrors the hybrid imputation choice - combining multiple approaches provides robustness rather than relying on a single method's theoretical advantage.
 
 ## Why AUC is the Primary Metric
 AUC (Area Under ROC Curve) measures a model's ability to distinguish between classes across all classification thresholds. In imbalanced red tide prediction:

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import lru_cache
 from pathlib import Path
 import sys
 from typing import Any
@@ -9,8 +8,6 @@ from typing import Any
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
 
 from app.core.config import settings
 
@@ -19,7 +16,6 @@ _PROJECT_ROOT = _BACKEND_DIR.parent.parent
 _ENSEMBLE_CODE_DIR = _PROJECT_ROOT / "ensemble_model" / "code"
 _ENSEMBLE_SAVED_MODEL_DIR = _PROJECT_ROOT / "ensemble_model" / "saved_model"
 _DATASET_PATH = _PROJECT_ROOT / "final_compiled_dataset" / "Combined_Labeled.csv"
-_META_MODEL_PATH = settings.DATA_DIR / "models" / "ensemble_meta_learner.joblib"
 
 if str(_ENSEMBLE_CODE_DIR) not in sys.path:
     sys.path.insert(0, str(_ENSEMBLE_CODE_DIR))
@@ -89,11 +85,6 @@ def _build_explanation(risk_level: str, probability: float, base_probs: dict[str
         prefix = "Very low bloom risk detected by the ensemble"
 
     return f"{prefix} (meta probability={probability:.3f}; base outputs: {model_summary})."
-
-
-def _ensure_meta_model_path() -> Path:
-    _META_MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    return _META_MODEL_PATH
 
 
 def _build_windows(frame: pd.DataFrame) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -218,67 +209,13 @@ def _build_live_split(historical_df: pd.DataFrame, new_data_point: dict[str, Any
     return live_split, latest_row
 
 
-@lru_cache(maxsize=1)
-def _load_or_train_meta_model() -> dict[str, Any]:
-    path = _ensure_meta_model_path()
-    if path.exists():
-        bundle = joblib.load(path)
-        if isinstance(bundle, dict) and "model" in bundle and "scaler" in bundle:
-            return bundle
-
-    df = load_and_prepare(DEFAULT_DATASET_PATH, imputation_method="hybrid_adaptive")
-    splits = build_splits(df)
-
-    all_features: list[np.ndarray] = []
-    all_targets: list[np.ndarray] = []
-
-    for split in splits:
-        probs = predict_all(
-            split,
-            transformer_saved_dir=_ENSEMBLE_SAVED_MODEL_DIR,
-            transformer_scenario=DEFAULT_TRANSFORMER_SCENARIO,
-        )
-        feature_matrix = np.column_stack([
-            np.asarray([_clean_probability(v) for v in probs.get(model_name, [])], dtype=np.float32)
-            for model_name in BASE_MODEL_ORDER
-        ])
-        all_features.append(feature_matrix)
-        all_targets.append(np.asarray(split.y_test, dtype=np.int64))
-
-    X_meta = np.vstack(all_features)
-    y_meta = np.concatenate(all_targets)
-
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X_meta)
-
-    class_weight = "balanced" if len(np.unique(y_meta)) > 1 else None
-    model = LogisticRegression(
-        C=1.0,
-        max_iter=1000,
-        class_weight=class_weight,
-        random_state=42,
-        solver="lbfgs",
-    )
-    model.fit(X_scaled, y_meta)
-
-    bundle = {
-        "model": model,
-        "scaler": scaler,
-        "base_model_order": BASE_MODEL_ORDER,
-        "transformer_scenario": DEFAULT_TRANSFORMER_SCENARIO,
-    }
-    joblib.dump(bundle, path)
-    return bundle
-
-
 def predict_ensemble_risk(
     new_data_point: dict[str, Any],
     historical_df: pd.DataFrame,
     transformer_scenario: str = DEFAULT_TRANSFORMER_SCENARIO,
 ) -> dict[str, Any]:
-    """Predict red tide risk using the stacked ensemble."""
+    """Predict red tide risk using weighted average ensemble."""
     live_split, latest_row = _build_live_split(historical_df, new_data_point)
-    meta_bundle = _load_or_train_meta_model()
 
     probs = predict_all(
         live_split,
@@ -291,10 +228,17 @@ def predict_ensemble_risk(
         for model_name in BASE_MODEL_ORDER
     }
 
-    meta_input = np.array([[base_probs[name] for name in BASE_MODEL_ORDER]], dtype=np.float32)
-    scaler: StandardScaler = meta_bundle["scaler"]
-    model: LogisticRegression = meta_bundle["model"]
-    meta_probability = float(model.predict_proba(scaler.transform(meta_input))[:, 1][0])
+    # Weighted average ensemble using AUC weights from ensemble evaluation
+    weights = {
+        "lstm": 0.736298,
+        "gru": 0.699018,
+        "transformer": 0.626543,
+        "xgboost": 0.70822
+    }
+
+    weighted_sum = sum(weights[name] * base_probs[name] for name in BASE_MODEL_ORDER)
+    total_weight = sum(weights[name] for name in BASE_MODEL_ORDER)
+    meta_probability = weighted_sum / total_weight
 
     risk_level = _probability_to_risk_level(meta_probability)
     confidence = _confidence_from_probability(meta_probability)
