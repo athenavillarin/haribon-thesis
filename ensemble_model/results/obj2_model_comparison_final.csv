@@ -1,6 +1,6 @@
-rank,model,auc_mean,auc_std,accuracy_mean,accuracy_std,precision_mean,precision_std,recall_mean,recall_std,f1_mean,f1_std,n_splits,notes
-1,Ensemble (stacked),0.9105,0.0985,0.8238,0.0997,0.5973,0.2045,0.8485,0.2161,0.6674,0.2003,6,"Best ensemble strategy by AUC, then F1, then Recall across 6 common splits"
-2,XGBoost (Hybrid: Gap-Type Adaptive),0.7037,0.1193,0.4979,0.1162,0.2809,0.1291,0.7283,0.2144,0.3925,0.157,6,Hybrid-adaptive XGBoost notebook evaluation across 6 temporal splits
-3,LSTM,0.6398,0.1414,0.7605,0.161,0.632,0.1328,0.1641,0.0555,0.5492,0.0696,4,Splits 1-4 of 6 rolling-origin yearly splits
-4,GRU,0.6182,0.1219,0.7532,0.1699,0.621,0.2012,0.1752,0.0952,0.5415,0.044,4,Splits 1-4 of 6 rolling-origin yearly splits
-5,Transformer,0.567,0.1474,0.7589,0.1546,0.3847,0.3411,0.3195,0.3522,0.2981,0.3304,6,native_masking scenario from transformer_summary.csv
+overall_rank,rank,model,auc_mean,auc_std,accuracy_mean,accuracy_std,precision_mean,precision_std,recall_mean,recall_std,f1_mean,f1_std,n_splits,notes,imputation_method
+1,1,Ensemble (stacked),0.913,0.0967,0.8253,0.1056,0.6105,0.2134,0.8361,0.2364,0.6657,0.2042,6,"Best ensemble strategy by AUC, then F1, then Recall across 6 common splits",hybrid_adaptive
+2,2,XGBoost (Hybrid: Gap-Type Adaptive),0.7037,0.1193,0.4979,0.1162,0.2809,0.1291,0.7283,0.2144,0.3925,0.157,6,Hybrid-adaptive XGBoost notebook evaluation across 6 temporal splits,hybrid_adaptive
+3,3,Transformer,0.6426,0.1042,0.738,0.1327,0.2855,0.2695,0.1865,0.2307,0.2032,0.2234,6,hybrid_adaptive scenario from transformer_summary.csv,hybrid_adaptive
+4,4,LSTM,0.6398,0.1414,0.7605,0.161,0.632,0.1328,0.1641,0.0555,0.5492,0.0696,4,Splits 1-4 of 6 rolling-origin yearly splits,hybrid_adaptive
+5,5,GRU,0.6182,0.1219,0.7532,0.1699,0.621,0.2012,0.1752,0.0952,0.5415,0.044,4,Splits 1-4 of 6 rolling-origin yearly splits,hybrid_adaptive

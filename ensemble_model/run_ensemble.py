@@ -273,7 +273,10 @@ def main() -> None:
         summary_df["imputation_method"] = imputation_method
         all_summary_frames.append(summary_df)
 
-        obj2_df = build_obj2_comparison(summary_df)
+        obj2_df = build_obj2_comparison(
+            summary_df,
+            transformer_scenario=args.transformer_scenario,
+        )
         obj2_df["imputation_method"] = imputation_method
         all_obj2_frames.append(obj2_df)
 
