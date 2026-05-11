@@ -1,0 +1,499 @@
+from pathlib import Path
+import json
+from datetime import datetime, date, timedelta
+from fastapi import APIRouter, HTTPException, BackgroundTasks
+from app.core.config import settings
+from app.core.schemas import ForecastResponse, SimplifiedForecastResponse
+import pandas as pd
+
+try:
+    from app.core.database import SessionLocal
+    from app.models.forecast import DailyForecast
+except Exception:
+    SessionLocal = None
+    DailyForecast = None
+
+router = APIRouter()
+
+
+def _normalize_location_key(value: str) -> str:
+    if not value:
+        return ""
+    return "".join(ch for ch in value.lower() if ch.isalnum())
+
+
+def _resolve_historical_dataset_path() -> Path:
+    candidates = [
+        settings.TRAINING_DATA_PATH,
+        settings.BASE_DIR.parent / "final_compiled_dataset" / "Combined_Labeled.csv",
+        settings.BASE_DIR.parent.parent / "final_compiled_dataset" / "Combined_Labeled.csv",
+    ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError(
+        "Unable to locate Combined_Labeled.csv. Tried: "
+        + ", ".join(str(path) for path in candidates)
+    )
+
+def _load_latest_forecast_data():
+    """Helper to load today's processed forecast file. If not found, load the most recent one."""
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    filepath = settings.PROCESSED_DATA_DIR / f"daily_forecast_{today_str}.json"
+    
+    if filepath.exists():
+        with open(filepath, 'r') as f:
+            return json.load(f)
+            
+    # Fallback: Find the most recent file
+    try:
+        files = list(settings.PROCESSED_DATA_DIR.glob("daily_forecast_*.json"))
+        if not files:
+            raise FileNotFoundError("No forecast files found")
+            
+        latest_file = max(files, key=lambda f: f.stat().st_mtime)
+        with open(latest_file, 'r') as f:
+            return json.load(f)
+    except Exception:
+        raise HTTPException(
+            status_code=404,
+            detail="Forecast not found. The daily update script may not have run yet."
+        )
+
+
+def _find_latest_location_forecast(location_name: str) -> dict:
+    """Return the latest generated forecast for one location from the ensemble output."""
+    raw_data = _load_latest_forecast_data()
+    normalized_request = _normalize_location_key(location_name)
+
+    for forecast in raw_data.get("forecasts", []):
+        if _normalize_location_key(forecast.get("location", "")) == normalized_request:
+            return {
+                "location": forecast.get("location"),
+                "prediction": forecast.get("risk_level", "Unknown"),
+                "timestamp": raw_data.get("last_updated", datetime.now().isoformat()),
+                "model_version": raw_data.get("system_version", "v2.0"),
+                "source": "daily_forecast_latest",
+                "forecast": forecast,
+            }
+
+    raise HTTPException(status_code=404, detail=f"Location '{location_name}' not found")
+
+
+def _load_yesterday_forecasts_from_db(current_forecast_date: date):
+    """Load yesterday's forecast payload from PostgreSQL, keyed by normalized location."""
+    if SessionLocal is None or DailyForecast is None:
+        return {}
+
+    target_date = current_forecast_date - timedelta(days=1)
+
+    try:
+        session = SessionLocal()
+        db_row = (
+            session.query(DailyForecast)
+            .filter(DailyForecast.forecast_date == target_date)
+            .order_by(DailyForecast.created_at.desc())
+            .first()
+        )
+        session.close()
+    except Exception:
+        return {}
+
+    if not db_row or not isinstance(db_row.payload, dict):
+        return {}
+
+    by_location = {}
+    for item in db_row.payload.get("forecasts", []):
+        location_name = item.get("location")
+        key = _normalize_location_key(location_name)
+        if not key:
+            continue
+
+        risk_level = item.get("risk_level", "Unknown")
+        by_location[key] = {
+            "day": "Yesterday",
+            "date": target_date.strftime("%Y-%m-%d"),
+            "label": "Yesterday",
+            "risk_level": risk_level,
+            "risk_color": _get_risk_color(risk_level),
+            "confidence": item.get("confidence", "N/A"),
+            "probability": item.get("red_tide_probability", "Unknown"),
+            "is_historical": True,
+        }
+
+    return by_location
+
+def _simplify_forecast_for_frontend(raw_data):
+    """Convert complex forecast data to frontend-friendly format."""
+    current_forecast_date = datetime.now().date()
+    try:
+        last_updated = raw_data.get("last_updated")
+        if last_updated:
+            current_forecast_date = datetime.fromisoformat(last_updated.replace("Z", "+00:00")).date()
+    except Exception:
+        current_forecast_date = datetime.now().date()
+
+    yesterday_by_location = _load_yesterday_forecasts_from_db(current_forecast_date)
+
+    simplified = {
+        "metadata": {
+            "last_updated": raw_data.get("last_updated"),
+            "system_version": raw_data.get("system_version", "v2.0"),
+            "total_locations": len(raw_data.get("forecasts", [])),
+            "forecast_date": raw_data.get("forecasts", [{}])[0].get("date") if raw_data.get("forecasts") else None
+        },
+        "locations": [],
+        "summary": {
+            "risk_distribution": {"green": 0, "yellow": 0, "orange": 0, "red": 0},
+            "average_confidence": 0,
+            "high_risk_locations": [],
+            "data_quality_avg": 0
+        }
+    }
+
+    total_confidence = 0
+    total_quality = 0
+
+    for forecast in raw_data.get("forecasts", []):
+        # Simplified location data
+        location_data = {
+            "id": forecast["location"].lower().replace(" ", "_"),
+            "name": forecast["location"],
+            "coordinates": {
+                "lat": forecast["latitude"],
+                "lng": forecast["longitude"]
+            },
+            # Flattened properties for frontend compatibility
+            "risk_level": forecast["risk_level"],
+            "risk_color": _get_risk_color(forecast["risk_level"]),
+            "confidence": forecast["confidence"],
+            
+            "current_status": {
+                "risk_level": forecast["risk_level"],
+                "risk_color": _get_risk_color(forecast["risk_level"]),
+                "confidence": forecast["confidence"],
+                "safe_to_harvest": "Green" in forecast["risk_level"]
+            },
+            "today_forecast": {
+                "probability": forecast["red_tide_probability"],
+                "recommendations": forecast["recommendations"],
+                "contributing_factors": forecast["contributing_factors"]
+            },
+            "five_day_outlook": [],
+            "data_quality": {
+                "score": forecast.get("data_quality", {}).get("quality_score", 0),
+                "confidence_level": forecast.get("data_quality", {}).get("confidence_level", "Medium"),
+                "warnings": forecast.get("data_quality", {}).get("warnings", [])
+            },
+            "environmental_data": forecast.get("environmental_data", {})
+        }
+
+        normalized_location = _normalize_location_key(forecast.get("location", ""))
+        yesterday_card = yesterday_by_location.get(normalized_location)
+        if yesterday_card:
+            location_data["five_day_outlook"].append(yesterday_card)
+
+        # Simplified 5-day forecast
+        # First entry: Today (using current prediction)
+        location_data["five_day_outlook"].append({
+            "day": "Today",
+            "date": current_forecast_date.strftime('%Y-%m-%d'),
+            "label": "Today",
+            "risk_level": forecast["risk_level"], # Main "today" risk
+            "risk_color": _get_risk_color(forecast["risk_level"]),
+            "confidence": forecast["confidence"],
+            "probability": forecast["red_tide_probability"]
+        })
+        
+        # Subsequent entries: Future forecast
+        if "five_day_forecast" in forecast:
+            for day_forecast in forecast["five_day_forecast"]:
+                day_data = {
+                    "day": day_forecast["forecast_day"],
+                    "date": day_forecast["date"],
+                    "label": day_forecast["day_label"],
+                    "risk_level": day_forecast["risk_level"],
+                    "risk_color": _get_risk_color(day_forecast["risk_level"]),
+                    "confidence": day_forecast["confidence"],
+                    "probability": day_forecast["probability"]
+                }
+                location_data["five_day_outlook"].append(day_data)
+
+        target_outlook_count = 8 if yesterday_card else 7
+
+        # Backward compatibility for older generated files: ensure full target card count.
+        while 0 < len(location_data["five_day_outlook"]) < target_outlook_count:
+            last_entry = location_data["five_day_outlook"][-1]
+            try:
+                next_date = datetime.strptime(last_entry["date"], "%Y-%m-%d") + timedelta(days=1)
+            except Exception:
+                next_date = datetime.now() + timedelta(days=len(location_data["five_day_outlook"]))
+
+            location_data["five_day_outlook"].append({
+                "day": len(location_data["five_day_outlook"]),
+                "date": next_date.strftime("%Y-%m-%d"),
+                "label": next_date.strftime("%a"),
+                "risk_level": last_entry.get("risk_level", forecast["risk_level"]),
+                "risk_color": last_entry.get("risk_color", _get_risk_color(forecast["risk_level"])),
+                "confidence": last_entry.get("confidence", forecast["confidence"]),
+                "probability": last_entry.get("probability", forecast["red_tide_probability"]),
+            })
+        
+        # Keep full generated outlook (7-day horizon + optional yesterday).
+        location_data["five_day_outlook"] = location_data["five_day_outlook"][:target_outlook_count]
+
+        simplified["locations"].append(location_data)
+
+        # Update summary statistics
+        risk_key = _get_risk_key(forecast["risk_level"])
+        simplified["summary"]["risk_distribution"][risk_key] += 1
+
+        confidence_val = float(forecast["confidence"].replace("%", ""))
+        total_confidence += confidence_val
+
+        quality_score = forecast.get("data_quality", {}).get("quality_score", 0)
+        total_quality += quality_score
+
+        risk_text = (forecast.get("risk_level") or "").lower()
+        if (
+            "red" in risk_text
+            or "orange" in risk_text
+            or "high" in risk_text
+            or "moderate" in risk_text
+        ):
+            simplified["summary"]["high_risk_locations"].append(forecast["location"])
+
+    # Calculate averages
+    num_locations = len(simplified["locations"])
+    if num_locations > 0:
+        simplified["summary"]["average_confidence"] = round(total_confidence / num_locations, 1)
+        simplified["summary"]["data_quality_avg"] = round(total_quality / num_locations, 1)
+
+    return simplified
+
+def _get_risk_color(risk_level):
+    """Map risk level to color for frontend."""
+    normalized = (risk_level or "").lower()
+    if "red" in normalized or "high" in normalized:
+        return "red"
+    elif "orange" in normalized or "moderate" in normalized:
+        return "orange"
+    elif "yellow" in normalized or "low" in normalized:
+        return "yellow"
+    else:
+        return "green"
+
+def _get_risk_key(risk_level):
+    """Map risk level to summary key."""
+    normalized = (risk_level or "").lower()
+    if "red" in normalized or "high" in normalized:
+        return "red"
+    elif "orange" in normalized or "moderate" in normalized:
+        return "orange"
+    elif "yellow" in normalized or "low" in normalized:
+        return "yellow"
+    else:
+        return "green"
+
+
+@router.post("/update")
+def trigger_daily_update(background_tasks: BackgroundTasks):
+    """Trigger the daily updater to regenerate today's forecast in the background."""
+    try:
+        from app.scripts.daily_updater import run_daily_update_with_5day_forecast
+        background_tasks.add_task(run_daily_update_with_5day_forecast)
+        return {"status": "started", "message": "Daily forecast update initiated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start daily update: {e}")
+
+
+@router.post("/trigger-update")
+def trigger_daily_update_compat(background_tasks: BackgroundTasks):
+    """Compatibility endpoint used by the frontend to refresh data.
+
+    Delegates to the same daily updater as /update so older frontend
+    code calling /api/forecast/trigger-update continues to work.
+    """
+    return trigger_daily_update(background_tasks)
+
+@router.get("/today", response_model=ForecastResponse)
+def get_full_forecast():
+    """Serves the pre-generated forecast for today for all monitored locations."""
+    return _load_latest_forecast_data()
+
+@router.get("/latest")
+def get_simplified_forecast():
+    """Serves a simplified, frontend-friendly version of today's forecast."""
+    raw_data = _load_latest_forecast_data()
+    return _simplify_forecast_for_frontend(raw_data)
+
+@router.get("/locations")
+def get_locations_summary():
+    """Get just the location names and current risk levels."""
+    raw_data = _load_latest_forecast_data()
+    locations = []
+
+    for forecast in raw_data.get("forecasts", []):
+        locations.append({
+            "id": forecast["location"].lower().replace(" ", "_"),
+            "name": forecast["location"],
+            "risk_level": forecast["risk_level"],
+            "risk_color": _get_risk_color(forecast["risk_level"]),
+            "confidence": forecast["confidence"],
+            "coordinates": {
+                "lat": forecast["latitude"],
+                "lng": forecast["longitude"]
+            }
+        })
+
+    return {
+        "locations": locations,
+        "last_updated": raw_data.get("last_updated"),
+        "total_count": len(locations)
+    }
+
+@router.get("/location/{location_name}")
+def get_location_detail(location_name: str):
+    """Get detailed forecast for a specific location."""
+    raw_data = _load_latest_forecast_data()
+
+    # Find the location (case-insensitive)
+    target_location = None
+    for forecast in raw_data.get("forecasts", []):
+        if forecast["location"].lower().replace(" ", "_") == location_name.lower():
+            target_location = forecast
+            break
+
+    if not target_location:
+        raise HTTPException(status_code=404, detail=f"Location '{location_name}' not found")
+
+    simplified = _simplify_forecast_for_frontend({"forecasts": [target_location]})
+    return simplified["locations"][0] if simplified["locations"] else {}
+
+@router.get("/latest")
+def get_latest_forecast():
+    """Get the most recent forecast file available."""
+    processed_dir = settings.PROCESSED_DATA_DIR
+    files = sorted(processed_dir.glob("daily_forecast_*.json"), reverse=True)
+
+    if not files:
+        raise HTTPException(status_code=404, detail="No forecast file found")
+
+    with open(files[0], "r") as f:
+        data = json.load(f)
+    return data
+
+@router.get("/predict/{location_name}")
+def get_live_prediction(location_name: str):
+    """Return the latest ensemble-generated forecast for a specific location."""
+    return _find_latest_location_forecast(location_name)
+
+
+@router.get("/historical/{location_name}")
+def get_historical_data(
+    location_name: str,
+    from_date: str | None = None,
+    to_date: str | None = None,
+):
+    """Return historical red-tide alerts for charts (monthly bars + timeline)."""
+    try:
+        historical_data = pd.read_csv(_resolve_historical_dataset_path())
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to load historical data: {exc}")
+
+    if historical_data.empty:
+        return {
+            "location": location_name,
+            "monthly_alerts": [],
+            "timeline": [],
+            "available_range": None,
+        }
+
+    historical_data["Date"] = pd.to_datetime(historical_data["Date"], errors="coerce")
+    historical_data = historical_data.dropna(subset=["Date"])
+    historical_data["red_tide_label"] = pd.to_numeric(historical_data["red_tide_label"], errors="coerce").fillna(0.0)
+
+    if historical_data.empty:
+        return {
+            "location": location_name,
+            "monthly_alerts": [],
+            "timeline": [],
+            "available_range": None,
+        }
+
+    normalized_request = _normalize_location_key(location_name)
+    selected_df = historical_data
+    resolved_location = "all"
+
+    if normalized_request not in {"all", ""}:
+        names = historical_data["Location_Name"].dropna().unique().tolist()
+        name_map = {_normalize_location_key(name): name for name in names}
+        matched_name = name_map.get(normalized_request)
+
+        if matched_name is None:
+            alt_match = location_name.replace("_", " ").strip().lower()
+            for name in names:
+                if name.lower() == alt_match:
+                    matched_name = name
+                    break
+
+        if matched_name is None:
+            raise HTTPException(status_code=404, detail=f"Location '{location_name}' not found in historical dataset")
+
+        resolved_location = matched_name
+        selected_df = historical_data[historical_data["Location_Name"] == matched_name]
+
+    if from_date:
+        start_dt = pd.to_datetime(from_date, errors="coerce")
+        if pd.isna(start_dt):
+            raise HTTPException(status_code=400, detail="Invalid from_date format. Use YYYY-MM-DD")
+        selected_df = selected_df[selected_df["Date"] >= start_dt]
+
+    if to_date:
+        end_dt = pd.to_datetime(to_date, errors="coerce")
+        if pd.isna(end_dt):
+            raise HTTPException(status_code=400, detail="Invalid to_date format. Use YYYY-MM-DD")
+        selected_df = selected_df[selected_df["Date"] <= end_dt]
+
+    if selected_df.empty:
+        return {
+            "location": resolved_location,
+            "monthly_alerts": [],
+            "timeline": [],
+            "available_range": {
+                "start": historical_data["Date"].min().strftime("%Y-%m-%d"),
+                "end": historical_data["Date"].max().strftime("%Y-%m-%d"),
+            },
+        }
+
+    # Red-tide event threshold from the binary label.
+    selected_df = selected_df.copy()
+    selected_df["is_alert"] = (selected_df["red_tide_label"] >= 0.5).astype(int)
+
+    monthly_counts = (
+        selected_df
+        .groupby(selected_df["Date"].dt.to_period("M"))["is_alert"]
+        .sum()
+        .reset_index(name="value")
+    )
+    monthly_counts["label"] = monthly_counts["Date"].astype(str)
+
+    timeline_counts = (
+        selected_df
+        .groupby(selected_df["Date"].dt.date)["is_alert"]
+        .sum()
+        .reset_index(name="value")
+    )
+    timeline_counts["date"] = timeline_counts["Date"].astype(str)
+
+    return {
+        "location": resolved_location,
+        "monthly_alerts": monthly_counts[["label", "value"]].to_dict("records"),
+        "timeline": timeline_counts[["date", "value"]].to_dict("records"),
+        "available_range": {
+            "start": historical_data["Date"].min().strftime("%Y-%m-%d"),
+            "end": historical_data["Date"].max().strftime("%Y-%m-%d"),
+        },
+    }
