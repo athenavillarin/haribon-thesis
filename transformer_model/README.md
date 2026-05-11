@@ -53,13 +53,6 @@ pip install torch
 
 ## Current results
 
-Latest notebook run summary across 6 splits per scenario:
-
-| Scenario | Accuracy | Precision | Recall | F1 | AUC |
-|---|---:|---:|---:|---:|---:|
-| `native_masking` | 0.7877 ± 0.0957 | 0.3832 ± 0.3181 | 0.1909 ± 0.2840 | 0.2224 ± 0.3156 | 0.6753 ± 0.1406 |
-| `hybrid_adaptive` | 0.7766 ± 0.1052 | 0.4711 ± 0.4468 | 0.1709 ± 0.2636 | 0.2077 ± 0.3076 | 0.6350 ± 0.2165 |
-
-In the current run, `native_masking` ranked higher on AUC and accuracy, while `hybrid_adaptive` produced higher precision on average.
+In the current run, hybrid_adaptive ranks higher on AUC, Accuracy, Recall, and F1. native_masking leads marginally on Precision.
 
 The notebook [`transformer_training.ipynb`](transformer_training.ipynb) is the source of truth for the detailed split-level metrics and runtime tracking.
