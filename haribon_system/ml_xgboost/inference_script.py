@@ -99,73 +99,7 @@ def map_risk_with_explanation(probability):
 # CORE INFERENCE FUNCTION
 # ==============================================================================
 def predict_risk(new_data_point, historical_df, model, scaler, feature_names):
-    """Enhanced inference function for HARIBON v2.0"""
-    print("--- Starting Enhanced HARIBON Inference ---")
+    """Delegate live scoring to the stacked ensemble engine."""
+    from app.services.ensemble_forecast_service import predict_ensemble_risk
 
-    # Ensure required columns exist
-    if 'red_tide_label' not in historical_df.columns:
-        historical_df['red_tide_label'] = 0
-    if 'red_tide_label' not in new_data_point:
-        new_data_point['red_tide_label'] = 0
-
-    # Prepare new data
-    df_new = pd.DataFrame([new_data_point])
-    df_new['Date'] = pd.to_datetime(df_new['Date'])
-
-    required_cols = ['Date', 'Location_Name', 'CHL', 'NDVI_daily', 'NDVI_raw', 'mlotst',
-                    'precip_mm_day', 'so', 'thetao', 'uo', 'vo', 'wind_speed_ms',
-                    'wind_u_ms', 'wind_v_ms', 'red_tide_label']
-
-    df_combined = pd.concat([historical_df[required_cols], df_new], ignore_index=True)
-
-    # Feature engineering
-    df_featured = create_inference_features(df_combined)
-    latest_features_df = df_featured.iloc[-1:]
-
-    print("1. Enhanced features engineered for the new data point.")
-
-    # Align with model's training features
-    X_pred = latest_features_df.reindex(columns=feature_names, fill_value=0)
-    print(f"2. Data aligned to {len(X_pred.columns)} model features.")
-
-    # Scale data safely
-    try:
-        data_scaled = scaler.transform(X_pred)
-    except ValueError as e:
-        print(f"WARNING: Feature mismatch detected: {e}")
-        print("Attempting automatic fix...")
-        if hasattr(scaler, 'feature_names_in_'):
-            X_pred = X_pred.reindex(columns=scaler.feature_names_in_, fill_value=0)
-            data_scaled = scaler.transform(X_pred)
-        else:
-            raise
-
-    print("3. Input data scaled.")
-
-    # Predict
-    probability = model.predict_proba(data_scaled)[0, 1]
-    risk_level = map_risk_with_explanation(probability)
-
-    explanation = ""
-    if "Red: High Risk" in risk_level:
-        explanation = generate_explanation(X_pred.iloc[0])
-
-    print("--- Enhanced HARIBON Inference Complete ---")
-    
-    # Calculate confidence based on how extreme the probability is (0 or 1 is high confidence, 0.5 is low)
-    # distance_from_uncertainty = abs(probability - 0.5) * 2  # 0 to 1 scale
-    # Raw probability isn't confidence, but for this display we'll use a derived metric or just show probability
-    # If the user asks for "confidence", usually in ML it means probability of the predicted class.
-    # Here, "red tide probability" is what we have.
-    # Let's map it: if prob is very low (<0.1) -> high confidence it's safe.
-    # if prob is high (>0.8) -> high confidence it's risky.
-    # if prob is 0.5 -> low confidence.
-    dist = abs(probability - 0.5)
-    conf_score = 0.5 + dist # Range [0.5, 1.0] -> 50% to 100% confidence
-    
-    return {
-        "risk_level": risk_level,
-        "probability": probability,
-        "explanation": explanation,
-        "confidence": f"{conf_score * 100:.1f}%"
-    }
+    return predict_ensemble_risk(new_data_point, historical_df)
