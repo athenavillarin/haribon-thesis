@@ -1,38 +1,46 @@
 # Transformer Model (Objective 2, Task 4)
 
-This folder is for **Objective 2 - Task 4: transformer model**.
+This folder contains the **Transformer Encoder** HAB classifier for Objective 2, Task 4.
 
 ## What this runs
 
-A **Transformer Encoder**-based HAB classifier under two approaches:
+The notebook [`transformer_training.ipynb`](transformer_training.ipynb) evaluates two Transformer scenarios with the same Pre-LN architecture and rolling-origin validation scheme:
 
-1. **`hybrid_adaptive`**: uses the best imputation strategy from Objective 1 (Hybrid: Gap-Type Adaptive)
-2. **`native_masking`**: no imputation; model is trained with masked values and explicit missingness indicators
+1. **`hybrid_adaptive`**: uses the Hybrid Gap-Type Adaptive imputation from Objective 1
+2. **`native_masking`**: keeps missingness indicators and trains without imputation
 
-Both scenarios are evaluated with generated **rolling-origin splits** from the final labeled timeline.
+The current notebook training loop uses:
+
+* **Binary Focal Loss** with `alpha=0.25` and `gamma=2.0`
+* **Inverse-frequency class weights** computed per split
+* **F1-optimized validation threshold** clipped to `[0.1, 0.5]`
+* **6 year-based rolling splits**
+* **AdamW** optimizer and **early stopping** with `patience=8`
 
 ## Usage
 
-Use the Jupyter notebook for training with detailed timing measurements:
+Open the notebook and run the cells in order:
 
 ```bash
 cd transformer_model
 jupyter notebook transformer_training.ipynb
 ```
 
-The notebook includes all functionality with runtime tracking for each split.
+To refresh the evaluation tables and plots, rerun the 6-split training cell, then run the per-split and aggregate reporting cells. Skip the final retraining cell if you only want cross-validation results.
 
 ## Outputs
 
 Saved to `transformer_model/results/`:
 
-- `transformer_per_split_metrics.csv` – split-level metrics for each scenario
-- `transformer_summary.csv` – mean/std summary across splits
-- `transformer_hybrid_vs_native.csv` – direct deltas (`hybrid_adaptive - native_masking`)
+* `transformer_per_split_metrics.csv` - split-level metrics for each scenario
+* `transformer_summary.csv` - mean/std summary across splits
+* `transformer_hybrid_vs_native.csv` - direct deltas (`hybrid_adaptive - native_masking`)
+
+If you run the final retraining cell, the notebook also saves scenario-specific `.pt` model checkpoints to `transformer_model/saved_model/`.
 
 ## Dependency
 
-- PyTorch is required:
+PyTorch is required:
 
 ```bash
 pip install torch
@@ -40,17 +48,18 @@ pip install torch
 
 ## Label handling
 
-- Uses `red_tide_label` as target.
-- Converts to binary class using `label_threshold` (default `0.5`).
+* Uses `red_tide_label` as target.
+* Converts to binary class using `label_threshold` (default `0.5`).
 
-## Key findings (current run)
+## Current results
 
-Using:
+Latest notebook run summary across 6 splits per scenario:
 
-```bash
-python run_transformer.py --num-splits 6 --test-window-days 365 --min-train-days 365
-```
+| Scenario | Accuracy | Precision | Recall | F1 | AUC |
+|---|---:|---:|---:|---:|---:|
+| `native_masking` | 0.7877 ± 0.0957 | 0.3832 ± 0.3181 | 0.1909 ± 0.2840 | 0.2224 ± 0.3156 | 0.6753 ± 0.1406 |
+| `hybrid_adaptive` | 0.7766 ± 0.1052 | 0.4711 ± 0.4468 | 0.1709 ± 0.2636 | 0.2077 ± 0.3076 | 0.6350 ± 0.2165 |
 
-Results will be saved to `transformer_model/results/` with metrics: Accuracy, Precision, Recall, F1-Score, AUC-ROC.
+In the current run, `native_masking` ranked higher on AUC and accuracy, while `hybrid_adaptive` produced higher precision on average.
 
-The Jupyter notebook `transformer_training.ipynb` provides detailed training with runtime measurements for each split.
+The notebook [`transformer_training.ipynb`](transformer_training.ipynb) is the source of truth for the detailed split-level metrics and runtime tracking.
