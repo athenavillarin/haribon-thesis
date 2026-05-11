@@ -321,9 +321,8 @@ def main() -> None:
 
     # Identify best overall
     best_row = obj2_out.iloc[0]
-    # Use ASCII to avoid Windows cp1252 console encoding issues.
     print(
-        f"\n*  Best model: {best_row['model']}  |  "
+        f"\n★  Best model: {best_row['model']}  |  "
         f"Imputation = {best_row['imputation_method']}  |  "
         f"AUC = {best_row['auc_mean']:.4f}"
     )
