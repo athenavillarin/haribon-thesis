@@ -124,21 +124,7 @@ def predict_lstm(
     import joblib
     import tensorflow as tf  # noqa: F401  # triggers GPU setup
 
-    # Compatibility shim (mirrors predict_gru): Keras 3.x added 'quantization_config'
-    # to Dense config; older builds error unless we drop it during deserialization.
-    _orig_dense_from_config = tf.keras.layers.Dense.from_config.__func__
-
-    @classmethod  # type: ignore[misc]
-    def _safe_dense_from_config(cls, config):
-        config = dict(config)
-        config.pop("quantization_config", None)
-        return _orig_dense_from_config(cls, config)
-
-    tf.keras.layers.Dense.from_config = _safe_dense_from_config
-    try:
-        model = tf.keras.models.load_model(str(model_path), compile=False)
-    finally:
-        tf.keras.layers.Dense.from_config = classmethod(_orig_dense_from_config)
+    model = tf.keras.models.load_model(str(model_path), compile=False)
     scaler = joblib.load(str(scaler_path))
 
     X_test = split_data.X_seq_test  # (N, LOOKBACK, n_feat)
@@ -222,83 +208,12 @@ def predict_transformer(
     try:
         from transformer_core import build_model, import_torch  # type: ignore
         from train_eval import TrainConfig  # type: ignore
-        torch, nn = import_torch()
     except ModuleNotFoundError:
-        # Notebook-only repos may not have transformer_model/code/*.py.
-        # Fall back to the exact architecture/config used in transformer_training.ipynb
-        # so we can still load per-split .pt weights and run inference.
-        try:
-            import torch  # type: ignore
-            import torch.nn as nn  # type: ignore
-            from dataclasses import dataclass
+        # If transformer training modules are unavailable in this workspace,
+        # keep the ensemble runnable with neutral probabilities.
+        return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
 
-            class HABTransformerClassifier(nn.Module):
-                def __init__(
-                    self,
-                    input_dim: int,
-                    seq_len: int,
-                    d_model: int,
-                    num_heads: int,
-                    num_layers: int,
-                    ff_dim: int,
-                    dropout: float,
-                ):
-                    super().__init__()
-                    self.input_proj = nn.Linear(input_dim, d_model)
-                    self.pos_embed = nn.Parameter(torch.zeros(1, seq_len, d_model))
-                    encoder_layer = nn.TransformerEncoderLayer(
-                        d_model=d_model,
-                        nhead=num_heads,
-                        dim_feedforward=ff_dim,
-                        dropout=dropout,
-                        batch_first=True,
-                        activation="gelu",
-                        norm_first=True,
-                    )
-                    self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-                    self.norm = nn.LayerNorm(d_model)
-                    self.head = nn.Sequential(
-                        nn.Linear(d_model, d_model // 2),
-                        nn.GELU(),
-                        nn.Dropout(dropout),
-                        nn.Linear(d_model // 2, 1),
-                    )
-
-                def forward(self, x):
-                    x = self.input_proj(x)
-                    x = x + self.pos_embed[:, : x.shape[1], :]
-                    x = self.encoder(x)
-                    x = self.norm(x[:, -1, :])
-                    logits = self.head(x).squeeze(-1)
-                    return logits
-
-            def build_model(
-                input_dim: int,
-                seq_len: int,
-                d_model: int,
-                num_heads: int,
-                num_layers: int,
-                ff_dim: int,
-                dropout: float,
-            ):
-                return HABTransformerClassifier(input_dim, seq_len, d_model, num_heads, num_layers, ff_dim, dropout)
-
-            @dataclass
-            class TrainConfig:
-                epochs: int = 40
-                batch_size: int = 32
-                learning_rate: float = 1e-3
-                weight_decay: float = 1e-4
-                val_ratio: float = 0.2
-                patience: int = 8
-                d_model: int = 64
-                num_heads: int = 4
-                num_layers: int = 2
-                ff_dim: int = 128
-                dropout: float = 0.2
-        except Exception:
-            # If torch isn't available, keep the ensemble runnable with neutral probabilities.
-            return np.full(split_data.X_seq_test.shape[0], 0.5, dtype=np.float32)
+    torch, nn = import_torch()
 
     X_train = split_data.X_seq_train
     X_test  = split_data.X_seq_test
@@ -343,11 +258,7 @@ def predict_transformer(
     loaded_from_file = False
     if weights_path.exists():
         try:
-            try:
-                state = torch.load(str(weights_path), map_location=device, weights_only=True)
-            except TypeError:
-                # Older torch versions don't support weights_only
-                state = torch.load(str(weights_path), map_location=device)
+            state = torch.load(str(weights_path), map_location=device, weights_only=True)
             model.load_state_dict(state)
             loaded_from_file = True
         except (RuntimeError, Exception):

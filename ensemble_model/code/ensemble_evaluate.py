@@ -33,7 +33,8 @@ _ROOT = _THIS_DIR.parent.parent
 LSTM_METRICS_CSV        = _ROOT / "lstm"              / "saved_model" / "rolling_origin_metrics.csv"
 GRU_METRICS_CSV         = _ROOT / "gru"               / "saved_model" / "rolling_origin_metrics.csv"
 TRANSFORMER_METRICS_CSV = _ROOT / "transformer_model" / "results"      / "transformer_summary.csv"
-TASK4_SUMMARY_CSV       = _ROOT / "task_4"            / "task4_results" / "xgboost_results_summary.csv"
+XGBOOST_SPLIT_METRICS_CSV = _ROOT / "xgboost_model"   / "results"      / "xgboost_split_metrics.csv"
+TASK4_SUMMARY_CSV        = _ROOT / "task_4"          / "task4_results" / "xgboost_results_summary.csv"
 
 
 # ---------------------------------------------------------------------------
@@ -165,11 +166,11 @@ def _load_rnn_metrics(csv_path: Path, model_name: str) -> Optional[Dict]:
 
 
 def _load_transformer_metrics() -> Optional[Dict]:
-    """Load Transformer summary, preferring the hybrid_adaptive scenario."""
+    """Load Transformer summary, preferring the native_masking scenario."""
     if not TRANSFORMER_METRICS_CSV.exists():
         return None
     df = pd.read_csv(TRANSFORMER_METRICS_CSV)
-    row = df[df["scenario"] == "hybrid_adaptive"]
+    row = df[df["scenario"] == "native_masking"]
     if row.empty:
         row = df.sort_values(["auc_mean", "f1_mean", "recall_mean"], ascending=[False, False, False]).iloc[0:1]
     row = row.iloc[0]
@@ -186,12 +187,30 @@ def _load_transformer_metrics() -> Optional[Dict]:
         "f1_mean":        round(float(row.get("f1_mean", np.nan)),        4),
         "f1_std":         round(float(row.get("f1_std",  np.nan)),        4),
         "n_splits":       int(row.get("n_splits", 4)),
-        "notes":          f"{row.get('scenario', 'hybrid_adaptive')} scenario from transformer_summary.csv",
+        "notes":          f"{row.get('scenario', 'native_masking')} scenario from transformer_summary.csv",
     }
 
 
 def _load_xgboost_metrics() -> Optional[Dict]:
-    """Load XGBoost downstream evaluation summary (task_4 results, best method)."""
+    """Load XGBoost downstream evaluation summary, preferring the 6-split notebook output."""
+    if XGBOOST_SPLIT_METRICS_CSV.exists():
+        df = pd.read_csv(XGBOOST_SPLIT_METRICS_CSV)
+        return {
+            "model":          "XGBoost (Hybrid: Gap-Type Adaptive)",
+            "auc_mean":       round(df["auc"].mean(), 4),
+            "auc_std":        round(df["auc"].std(), 4),
+            "accuracy_mean":  round(df["accuracy"].mean(), 4),
+            "accuracy_std":   round(df["accuracy"].std(), 4),
+            "precision_mean": round(df["precision"].mean(), 4),
+            "precision_std":  round(df["precision"].std(), 4),
+            "recall_mean":    round(df["recall"].mean(), 4),
+            "recall_std":     round(df["recall"].std(), 4),
+            "f1_mean":        round(df["f1"].mean(), 4),
+            "f1_std":         round(df["f1"].std(), 4),
+            "n_splits":       int(df["split"].nunique()),
+            "notes":          "Hybrid-adaptive XGBoost notebook evaluation across 6 temporal splits",
+        }
+
     if not TASK4_SUMMARY_CSV.exists():
         return None
     df = pd.read_csv(TASK4_SUMMARY_CSV)
@@ -210,7 +229,7 @@ def _load_xgboost_metrics() -> Optional[Dict]:
         "f1_mean":        round(float(best.get("f1_mean", np.nan)), 4),
         "f1_std":         round(float(best.get("f1_std",  np.nan)), 4),
         "n_splits":       int(best.get("n_splits", 4)),
-        "notes":          "Task 4 downstream XGBoost evaluation (best imputation method)",
+        "notes":          "Task 4 downstream XGBoost evaluation (fallback source)",
     }
 
 

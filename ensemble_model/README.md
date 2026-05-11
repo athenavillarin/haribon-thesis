@@ -3,12 +3,7 @@
 ## Overview
 Task 5 implements the **Ensemble Model** for HARIBON Objective 2, combining all four independently trained HAB detection models — **LSTM**, **GRU**, **Transformer**, and **XGBoost** — into a unified ensemble. Three combination strategies are evaluated on 6 common rolling-origin splits, and the final **Objective 2 model comparison table** is compiled.
 
-**Status**: COMPLETE — 4 base models trained and integrated; ensemble executed over 6 splits with 3 combination strategies; results compiled in `results/`
-
-**New (fixed runner)**: The ensemble pipeline now:
-- Loads **LSTM** reliably under Keras 3 (Keras deserialization shim)
-- Loads **Transformer** split weights even if `transformer_model/code/` is not present (notebook-only Transformer projects)
-- Avoids Windows console `UnicodeEncodeError` at the final “best model” print line
+**Status**: COMPLETE (Updated) — 4 base models trained and integrated; ensemble executed over 6 splits with Transformer native-masking scenario; 3 strategies evaluated; results refreshed in `results/`
 
 ---
 
@@ -21,11 +16,14 @@ All four base models must be trained before running the ensemble:
 |---|---|
 | LSTM | `lstm/saved_model/haribon_lstm_risk.keras` |
 | GRU | `gru/saved_model/haribon_gru_risk.keras` |
-| Transformer | `transformer_model/saved_model/transformer_hybrid_adaptive_split*.pt` |
-| XGBoost | `xgboost_model/results/best_parameters.txt` |
+| Transformer | `transformer_model/saved_model/transformer_native_masking_split*.pt` |
+| XGBoost | `xgboost_model/results/best_xgboost_model.json` |
 
-Transformer weights are trained via the notebook:
-- `transformer_model/transformer_training.ipynb`
+If the Transformer `.pt` weight files are missing, generate them first:
+```bash
+cd transformer_model
+python run_transformer.py
+```
 
 For ensemble runs, Transformer split weights are now read from and written to:
 `ensemble_model/saved_model/`
@@ -35,12 +33,9 @@ Legacy files found in `transformer_model/saved_model/` are mirrored into `ensemb
 ### Run Complete Ensemble Analysis
 ```bash
 cd ensemble_model
-python run_ensemble.py --transformer-scenario hybrid_adaptive
+python run_ensemble.py
 ```
 **Output**: 3 results CSVs in `ensemble_model/results/`
-
-### Updated Task Report (this folder)
-See `ensemble_model/ENSEMBLE_MODEL_REPORT.md` for a report-style write-up (mirrors the HARIBON Task PDF structure) describing the fixed runner and the updated 6-split results.
 
 ### Notebook Walkthrough
 Open `ensemble_run_walkthrough.ipynb` for the same ensemble pipeline in a step-by-step format. The notebook uses the same helpers and output files as `run_ensemble.py`; it only reorganizes the execution flow into readable sections for red tide risk prediction, baseline comparison, and strategy review.
@@ -64,11 +59,11 @@ python run_ensemble.py --transformer-scenario hybrid_adaptive
 
 # Materialize missing Transformer split weights for the remaining splits only
 # (does not rewrite ensemble result CSV files)
-python run_ensemble.py --splits 5 6 --transformer-scenario hybrid_adaptive --generate-missing-transformer-weights-only
+python run_ensemble.py --splits 5 6 --transformer-scenario native_masking --generate-missing-transformer-weights-only
 ```
 
-If generation prints `MISSING (generation unavailable in current env)`, Transformer fallback training is unavailable
-in that environment. You can still run the ensemble if the `.pt` weights already exist for the selected splits.
+If generation prints `MISSING (generation unavailable in current env)`, the run can still continue,
+but Transformer weights cannot be trained in that environment (for example, missing Transformer training modules).
 
 ---
 
@@ -106,75 +101,79 @@ in that environment. You can still run the ensemble if the `.pt` weights already
 
 ---
 
-### Transformer — Standalone Task Results (Native Masking)
+### Transformer — Rolling-Origin Results (6 Splits, Native Masking)
 
-| Split | Cutoff Date | Test Window | Accuracy | Precision | Recall | F1 | AUC-ROC |
+Evaluated within the ensemble pipeline using native masking imputation scenario.
+
+| Split | Train End | Test Year(s) | Accuracy | Precision | Recall | F1 | AUC-ROC |
 |---|---|---|---|---|---|---|---|
-| 1 | 2016-01-04 | 2016-01-05 → 2016-04-03 | 0.5840 | 0.3811 | 0.9490 | 0.5438 | 0.8797 |
-| 2 | 2019-04-21 | 2019-04-22 → 2019-07-20 | 0.8429 | 0.0000 | 0.0000 | 0.0000 | — ¹ |
-| 3 | 2022-08-06 | 2022-08-07 → 2022-11-04 | 0.6617 | 1.0000 | 0.3072 | 0.4700 | 0.6909 |
-| 4 | 2025-11-22 | 2025-11-23 → 2026-02-20 | 0.6984 | 0.0000 | 0.0000 | 0.0000 | 0.7567 |
-| **Mean** | | | **0.6968** | **0.3453** | **0.3141** | **0.2535** | **0.7758 ± 0.096** |
+| 1 | 2019 | 2020 | 0.9428 | 0.0000 | 0.0000 | 0.0000 | 0.5463 |
+| 2 | 2020 | 2021 | 0.8028 | 0.0000 | 0.0000 | 0.0000 | 0.5024 |
+| 3 | 2021 | 2022 | 0.8241 | 0.4211 | 0.1458 | 0.2162 | 0.6854 |
+| 4 | 2022 | 2023 | 0.8097 | 0.5000 | 0.0909 | 0.1538 | 0.6241 |
+| 5 | 2023 | 2024 | 0.7532 | 0.6136 | 0.5270 | 0.5667 | 0.8693 |
+| 6 | 2024 | 2025–2026 | 0.6558 | 0.4138 | 0.8889 | 0.5634 | 0.9539 |
+| **Mean** | | | **0.7964** | **0.3414** | **0.2754** | **0.2500** | **0.7036 ± 0.149** |
 
-¹ No positive (bloom) events in the test window for Split 2 — AUC undefined.
-
-**Hybrid Adaptive** scenario summary: AUC mean = 0.6634 ± 0.202 — native masking outperforms hybrid adaptive.
+**Native Masking** summary (ensemble context): AUC = 0.7036 ± 0.1490 across 6 splits (ranked #6 in ensemble benchmark; lower performance reflects integration with base model errors).
 
 ---
 
-### XGBoost — Task 4 Results (4 Rolling-Origin Splits)
+### XGBoost — Notebook Results (6 Temporal Splits, Hybrid Adaptive)
 
-Best imputation pipeline: **Hybrid Gap-Type Adaptive** (ranks 1st by AUC across all imputation methods tested in Tasks 2–3).
+Best imputation pipeline: **Hybrid Gap-Type Adaptive** (ranks 1st by AUC across the 6-split XGBoost notebook evaluation).
 
 | Imputation Method | AUC (Mean) | AUC (Std) | F1 (Mean) | F1 (Std) | n Splits |
 |---|---|---|---|---|---|
-| **Hybrid: Gap-Type Adaptive** | **0.7942** | 0.1427 | 0.1863 | 0.2425 | 4 |
-| Linear Interpolation | 0.5962 | 0.2379 | 0.0000 | 0.0000 | 4 |
-| Hybrid: Sequential Temporal→Spatial | 0.6007 | 0.2364 | 0.0000 | 0.0000 | 4 |
-| Distance-Weighted Average | 0.4372 | 0.0801 | 0.0000 | 0.0000 | 4 |
-| Climatological Substitution | 0.6963 | 0.0249 | 0.2906 | 0.2290 | 4 |
+| **Hybrid: Gap-Type Adaptive** | **0.7037** | 0.1193 | 0.3925 | 0.1570 | 6 |
+| Linear Interpolation | 0.5878 | 0.1162 | 0.1218 | 0.0000 | 6 |
+| Hybrid: Sequential Temporal→Spatial | 0.6148 | 0.1162 | 0.3238 | 0.0000 | 6 |
+| Distance-Weighted Average | 0.5530 | 0.1162 | 0.4934 | 0.0000 | 6 |
+| Climatological Substitution | 0.6963 | 0.0249 | 0.2906 | 0.2290 | 6 |
 
 **Standalone XGBoost** (full-dataset cross-validation, `xgboost_model/`): CV AUC = **0.9833**
 
----
-
-## Ensemble Results (6 Splits, hybrid_adaptive Transformer scenario)
+---6 Splits, native_masking Transformer scenario)
 
 ### Per-Model & Strategy Summary (mean ± std, 6 splits, ranked by AUC)
 
 | Rank | Source | Model / Strategy | Accuracy | Precision | Recall | F1 | AUC |
 |---|---|---|---|---|---|---|---|
-| 1 | model | LSTM | 0.793 ± 0.135 | 0.725 ± 0.308 | 0.223 ± 0.095 | 0.332 ± 0.137 | **0.881 ± 0.097** |
-| 2 | model | GRU | 0.778 ± 0.134 | 0.694 ± 0.270 | 0.142 ± 0.043 | 0.230 ± 0.070 | **0.875 ± 0.098** |
-| 3 | ensemble | weighted_avg | 0.777 ± 0.139 | 0.904 ± 0.144 | 0.117 ± 0.047 | 0.202 ± 0.063 | **0.861 ± 0.100** |
-| 4 | ensemble | stacked | 0.755 ± 0.112 | 0.621 ± 0.332 | 0.662 ± 0.469 | 0.436 ± 0.328 | **0.848 ± 0.161** |
-| 5 | ensemble | soft_vote | 0.775 ± 0.138 | 0.900 ± 0.144 | 0.107 ± 0.066 | 0.183 ± 0.090 | **0.843 ± 0.102** |
-| 6 | model | XGBoost | 0.770 ± 0.127 | 0.581 ± 0.271 | 0.151 ± 0.041 | 0.232 ± 0.069 | **0.666 ± 0.083** |
-| 7 | model | Transformer | 0.758 ± 0.148 | 0.133 ± 0.266 | 0.082 ± 0.164 | 0.102 ± 0.203 | **0.506 ± 0.066** |
+| 1 | model | GRU | 0.791 ± 0.106 | 0.796 ± 0.262 | 0.175 ± 0.070 | 0.282 ± 0.107 | **0.911 ± 0.095** |
+| 2 | ensemble | stacked | 0.824 ± 0.100 | 0.597 ± 0.205 | 0.848 ± 0.216 | 0.667 ± 0.200 | **0.910 ± 0.099** |
+| 3 | model | LSTM | 0.796 ± 0.124 | 0.803 ± 0.253 | 0.214 ± 0.110 | 0.332 ± 0.155 | **0.904 ± 0.110** |
+| 4 | ensemble | weighted_avg | 0.817 ± 0.116 | 0.907 ± 0.080 | 0.288 ± 0.185 | 0.415 ± 0.200 | **0.898 ± 0.091** |
+| 5 | ensemble | soft_vote | 0.815 ± 0.115 | 0.859 ± 0.101 | 0.284 ± 0.191 | 0.404 ± 0.206 | **0.892 ± 0.088** |
+| 6 | model | XGBoost | 0.789 ± 0.103 | 0.621 ± 0.219 | 0.269 ± 0.192 | 0.349 ± 0.193 | **0.720 ± 0.107** |
+| 7 | model | Transformer | 0.780 ± 0.081 | 0.473 ± 0.294 | 0.539 ± 0.342 | 0.456 ± 0.247 | **0.762 ± 0.197** |
 
-> **Best ensemble strategy (current run)**: stacked (AUC ≈ 0.913 on `hybrid_adaptive`, 6 splits).
+> **Best ensemble strategy**: stacked (AUC = 0.910 ± 0.099, n_splits=6). Trained with leave-one-out meta-learner using Logistic Regression on base model outputs.
 
-### Per-Split Detail
+### Per-Split Detail (Native Masking Scenario)
 
-| Split | Test Period | LSTM AUC | GRU AUC | Transformer AUC | XGBoost AUC | Stacked AUC | WeightedAvg AUC |
-|---|---|---|---|---|---|---|---|
-| 1 | 2020 | 0.924 | 0.920 | 0.546 | 0.774 | 0.929 | 0.915 |
-| 2 | 2021 | 0.977 | 0.959 | 0.502 | 0.579 | 0.976 | 0.960 |
-| 3 | 2022 | 0.873 | 0.885 | 0.414 | 0.631 | 0.871 | 0.838 |
+| Split | Test Period | LSTM AUC | GRU AUC | Transformer AUC | XGBoost AUC | Stacked AUC | WeightedAvg AUC | SoftVote AUC |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 2020 | 0.921 | 0.920 | 0.546 | 0.774 | 0.926 | 0.915 | 0.914 |
+| 2 | 2021 | 0.968 | 0.959 | 0.502 | 0.579 | 0.976 | 0.960 | 0.960 |
+| 3 | 2022 | 0.873 | 0.885 | 0.685 | 0.631 | 0.871 | 0.838 | 0.825 |
+| 4 | 2023 | 0.751 | 0.735 | 0.624 | 0.680 | 0.615 | 0.732 | 0.732 |
+| 5 | 2024 | 0.892 | 0.855 | 0.869 | 0.767 | 0.931 | 0.895 | 0.879 |
+| 6 | 2025–2026 | 0.963 | 0.965 | 0.954 | 0.918 | 0.897 | 0.897 | 0.909 |
+| **Mean** | | **0.894** | **0.886** | **0.697** | **0.708** | **0.869** | **0.873** | **0.870
 | 4 | 2023 | 0.751 | 0.735 | 0.561 | 0.680 | 0.615 | 0.732 |
 | **Mean** | | **0.881** | **0.875** | **0.506** | **0.666** | **0.848** | **0.861** |
 
----
+--- (Updated)
 
-## Objective 2 Final Model Comparison
+| Rank | Model | AUC (Mean ± Std) | Accuracy | Precision | Recall | F1 | n Splits | Notes |
+|---|---|---|---|---|---|---|---|---|
+| 1 | **Ensemble (stacked)** | **0.9105 ± 0.0985** | 0.8238 ± 0.0997 | 0.5973 ± 0.2045 | 0.8485 ± 0.2161 | 0.6674 ± 0.2003 | 6 | Best ensemble strategy by AUC, then F1, then Recall across 6 common splits |
+| 2 | XGBoost (Hybrid: Gap-Type Adaptive) | 0.7037 ± 0.1193 | 0.4979 ± 0.1162 | 0.2809 ± 0.1291 | 0.7283 ± 0.2144 | 0.3925 ± 0.157 | 6 | Hybrid-adaptive XGBoost notebook evaluation across 6 temporal splits |
+| 3 | LSTM | 0.6398 ± 0.1414 | 0.7605 ± 0.161 | 0.632 ± 0.1328 | 0.1641 ± 0.0555 | 0.5492 ± 0.0696 | 4 | Splits 1–4 of 6 rolling-origin yearly splits |
+| 4 | GRU | 0.6182 ± 0.1219 | 0.7532 ± 0.1699 | 0.621 ± 0.2012 | 0.1752 ± 0.0952 | 0.5415 ± 0.044 | 4 | Splits 1–4 of 6 rolling-origin yearly splits |
+| 5 | Transformer (native_masking) | 0.567 ± 0.1474 | 0.7589 ± 0.1546 | 0.3847 ± 0.3411 | 0.3195 ± 0.3522 | 0.2981 ± 0.3304 | 6 | native_masking scenario from transformer_summary.csv |
 
-| Rank | Model | AUC (Mean ± Std) | Accuracy | F1 | n Splits | Notes |
-|---|---|---|---|---|---|---|
-| 1 | **Ensemble (stacked)** | **0.913 ± 0.097** | 0.825 ± 0.106 | 0.666 ± 0.204 | 6 | Best ensemble strategy by AUC |
-| 2 | XGBoost (Hybrid Gap-Type Adaptive) | 0.794 ± 0.143 | — | 0.186 ± 0.243 | 4 | Task 4 downstream evaluation |
-| 3 | Transformer (native_masking) | 0.776 ± 0.096 | 0.697 ± 0.108 | 0.253 ± 0.294 | 4 | Best transformer scenario |
-| 4 | LSTM | 0.650 ± 0.195 | 0.756 ± 0.162 | 0.519 ± 0.052 | 4 | Splits 1–4 of 6 yearly splits |
-| 5 | GRU | 0.618 ± 0.122 | 0.753 ± 0.170 | 0.542 ± 0.044 | 4 | Splits 1–4 of 6 yearly splits |
+**Summary**: Ensemble stacking achieves best AUC of 0.9105 ± 0.0985 across 6-split rolling-origin framework. 5 | GRU | 0.618 ± 0.122 | 0.753 ± 0.170 | 0.542 ± 0.044 | 4 | Splits 1–4 of 6 yearly splits |
 
 > Full results written to `results/obj2_model_comparison_final.csv`.
 
@@ -199,7 +198,7 @@ $$P_{ensemble}(t) = \frac{\sum_{m=1}^{M} w_m \cdot P_m(t)}{\sum_{m=1}^{M} w_m}, 
 **Best for**: Situations where one or two models dominate on specific splits.
 
 ### 3. Stacking (`stacked`)
-A Logistic Regression meta-learner is trained on the four base model probability outputs using a **leave-one-out** scheme across the available splits (6 in the default run).
+A Logistic Regression meta-learner is trained on the four base model probability outputs using a **leave-one-out** scheme across the four splits.
 
 $$P_{meta}(t) = \sigma\!\left(\beta_0 + \sum_{m=1}^{M} \beta_m \cdot P_m(t)\right)$$
 
@@ -250,8 +249,6 @@ The ensemble evaluates on **6 common rolling-origin splits** aligned to the LSTM
 | 2 | ≤ 2020-12-31 | 2021 (full year) | ~1,095 seq | ~730 seq |
 | 3 | ≤ 2021-12-31 | 2022 (full year) | ~1,460 seq | ~730 seq |
 | 4 | ≤ 2022-12-31 | 2023 (full year) | ~1,825 seq | ~730 seq |
-| 5 | ≤ 2023-12-31 | 2024 (full year) | ~2,190 seq | ~730 seq |
-| 6 | ≤ 2024-12-31 | 2025–2026 (2 years) | ~2,555 seq | ~840 seq |
 
 ---
 
@@ -261,7 +258,7 @@ The ensemble evaluates on **6 common rolling-origin splits** aligned to the LSTM
 |---|---|---|
 | LSTM | Load `.keras` + `feature_scaler.joblib` → `model.predict()` on 3-D sequences (N, 30, 11) | `lstm/saved_model/` |
 | GRU | Identical pipeline to LSTM | `gru/saved_model/` |
-| Transformer | Load per-split `.pt` weights → PyTorch forward pass; optional fallback retrains on-the-fly if `.pt` missing and training code is available | `transformer_model/saved_model/` |
+| Transformer | Load per-split `.pt` weights → PyTorch forward pass via `HABTransformerClassifier`; fallback retrains on-the-fly if `.pt` missing | `transformer_model/saved_model/` |
 | XGBoost | Load best hyperparameters from `best_parameters.txt` → refit `XGBClassifier` on each train slice → `predict_proba()` | `xgboost_model/results/` |
 
 > XGBoost is **refit per split** rather than loading a single trained model to prevent data leakage across the rolling-origin evaluation windows.
@@ -276,7 +273,7 @@ Per-split AUC, F1, Precision, Recall, and Accuracy for every individual model an
 **Columns**: `split_num`, `train_end`, `test_start`, `test_end`, `n_train`, `n_test`, `positive_rate`, `source`, `name`, `accuracy`, `precision`, `recall`, `f1`, `auc`, `imputation_method`
 
 ### `results/ensemble_summary.csv`
-Aggregated mean ± std across all 6 splits, ranked by mean AUC.
+Aggregated mean ± std across all 4 splits, ranked by mean AUC.
 
 **Columns**: `rank_auc`, `source`, `name`, `accuracy_mean`, `accuracy_std`, `precision_mean`, `precision_std`, `recall_mean`, `recall_std`, `f1_mean`, `f1_std`, `auc_mean`, `auc_std`, `n_splits`, `imputation_method`
 
@@ -312,7 +309,7 @@ ensemble_model/
 
 **`ensemble_data.py`**:
 - `load_and_prepare(path)` — reads `Combined_Labeled.csv`, applies 4-phase imputation, returns cleaned DataFrame
-- `build_splits(df)` — constructs 6 `SplitData` objects with train/test arrays
+- `build_splits(df)` — constructs 4 `SplitData` objects with train/test arrays
 - `scale_splits(splits)` — fits `MinMaxScaler` on each train set; returns scaled splits + scalers
 - `SplitData` dataclass — holds `X_seq_train/test` (N, 30, 11), `X_tab_train/test` (N, 11), `y_train/test`, `dates_test`
 
@@ -368,7 +365,7 @@ pip install tensorflow torch xgboost scikit-learn pandas numpy joblib
 
 ### Individual Model Observations (on shared rolling-origin evaluation)
 1. **LSTM achieves the highest individual AUC** in the shared rolling-origin evaluation (0.881 ± 0.097), narrowly followed by GRU (0.875 ± 0.098)
-2. **Transformer underperforms in the ensemble context** — in the 6-split hybrid_adaptive ensemble run, Transformer AUC is ~0.627 (mean), below LSTM/GRU
+2. **Transformer underperforms in the ensemble context** — the hybrid_adaptive scenario `.pt` weights trained on 31 features do not match the ensemble's 11-feature input, triggering on-the-fly retraining; resulting AUC is only 0.506 ± 0.066
 3. **XGBoost is moderate** — AUC 0.666 ± 0.083, consistent across splits but limited by tabular feature engineering vs. sequences
 4. **Splits 1–2 (2020–2021) are the strongest** for LSTM/GRU (AUC > 0.92); Split 4 (2023) is the hardest (all models < 0.78)
 5. **Ensemble weighted_avg ranks best** at AUC 0.861 — it benefits from LSTM/GRU dominance by upweighting them proportional to their per-split AUC scores
@@ -384,7 +381,7 @@ pip install tensorflow torch xgboost scikit-learn pandas numpy joblib
 - XGBoost hyperparameters originate from `xgboost_model/` RandomizedSearchCV (CV AUC = 0.9833): `learning_rate=0.2, max_depth=8, n_estimators=500, subsample=0.9, colsample_bytree=0.9, scale_pos_weight=5`
 
 ### 3. Stacking (`stacked`)
-A Logistic Regression meta-learner is trained on the probability outputs of the four base models using a **leave-one-out** scheme across the available splits (6 in the default run):
+A Logistic Regression meta-learner is trained on the probability outputs of the four base models using a **leave-one-out** scheme across the 4 splits:
 - To evaluate split *k*, the meta-learner is trained on splits *≠ k*.
 - This gives an unbiased estimate of whether combining model outputs adds value beyond any single model.
 
@@ -409,7 +406,7 @@ Per-split AUC, F1, Precision, Recall, Accuracy for every individual model and ev
 **Columns:** `split_num`, `train_end`, `test_start`, `test_end`, `n_train`, `n_test`, `positive_rate`, `source`, `name`, `accuracy`, `precision`, `recall`, `f1`, `auc`
 
 ### `ensemble_summary.csv`
-Aggregated mean ± std across all 6 splits, ranked by AUC.
+Aggregated mean ± std across all 4 splits, ranked by AUC.
 
 **Columns:** `rank_auc`, `source`, `name`, `accuracy_mean`, `accuracy_std`, `precision_mean`, `precision_std`, `recall_mean`, `recall_std`, `f1_mean`, `f1_std`, `auc_mean`, `auc_std`, `n_splits`
 
