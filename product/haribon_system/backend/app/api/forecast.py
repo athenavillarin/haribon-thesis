@@ -276,12 +276,19 @@ def _simplify_forecast_for_frontend(raw_data):
 def _get_risk_color(risk_level):
     """Map risk level to color for frontend."""
     normalized = (risk_level or "").lower()
+
     if "red" in normalized or "high" in normalized:
         return "red"
+
     elif "orange" in normalized or "moderate" in normalized:
         return "orange"
-    elif "yellow" in normalized or "low" in normalized:
-        return "yellow"
+
+    elif "very low" in normalized:
+        return "green"   # Very low risk -> green
+
+    elif "low" in normalized:
+        return "yellow"  # Low risk -> yellow
+
     else:
         return "green"
 
