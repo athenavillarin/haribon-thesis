@@ -43,7 +43,7 @@ def load_ml_components(historical_df: pd.DataFrame):
     """
     from xgboost import XGBClassifier
 
-    xgb_dir = project_root / "xgboost_model" / "results"
+    xgb_dir = project_root / "xgboost_model" / "saved_model"
     model_path = xgb_dir / "best_xgboost_model.json"
 
     print(f"Loading XGBoost model from {model_path}...")
@@ -504,8 +504,13 @@ def run_daily_update_with_5day_forecast():
             observed_ratio = observed_non_missing / max(len(feature_names), 1)
 
             X_new = pd.DataFrame([feature_row])
-            prob = float(model.predict_proba(X_new)[:, 1][0])
+            
+            # Use ensemble service instead of direct XGBoost prediction
+            from app.services.ensemble_forecast_service import predict_ensemble_risk
+            ensemble_result = predict_ensemble_risk(input_data, historical_df)
+            prob = ensemble_result["probability"]
             probability = prob
+            shap_values = ensemble_result.get("shap_values", {})
 
             historical_signal = _compute_recent_red_tide_signal(
                 historical_df=historical_df,
@@ -675,7 +680,8 @@ def run_daily_update_with_5day_forecast():
                     "recent_positive_rate_365d": historical_signal["recent_positive_rate_365d"],
                     **env_source_meta,
                 },
-                "explanation": explanation
+                "explanation": explanation,
+                "shap_values": shap_values
             }
 
             five_day = []

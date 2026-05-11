@@ -162,7 +162,8 @@ def _simplify_forecast_for_frontend(raw_data):
             "today_forecast": {
                 "probability": forecast["red_tide_probability"],
                 "recommendations": forecast["recommendations"],
-                "contributing_factors": forecast["contributing_factors"]
+                "contributing_factors": forecast["contributing_factors"],
+                "shap_values": forecast.get("shap_values", {})
             },
             "five_day_outlook": [],
             "data_quality": {

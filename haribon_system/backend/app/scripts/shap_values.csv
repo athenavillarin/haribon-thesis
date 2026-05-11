@@ -1,0 +1,12 @@
+feature,mean_absolute_shap
+mlotst,0.72845453
+so,0.5445646
+NDVI_daily,0.52321243
+thetao,0.20925611
+wind_v_ms,0.12840044
+uo,0.07549876
+wind_u_ms,0.05041513
+CHL,0.042645335
+vo,0.04200635
+precip_mm_day,0.040836312
+wind_speed_ms,0.011536537
