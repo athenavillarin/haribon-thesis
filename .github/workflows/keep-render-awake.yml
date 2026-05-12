@@ -1,0 +1,23 @@
+name: Keep Render Service Awake
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'  # Every 10 minutes (adjust to stay under 15-min inactivity window)
+  workflow_dispatch:  # Manual trigger for testing
+
+jobs:
+  ping-service:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Service to Prevent Suspension
+        run: |
+          SERVICE_URL="${{ secrets.RENDER_SERVICE_URL }}"  # e.g., https://your-app.onrender.com
+          
+          curl -f -s "$SERVICE_URL" > /dev/null
+          
+          if [ $? -eq 0 ]; then
+            echo "Service pinged successfully."
+          else
+            echo "Ping failed."
+            exit 1
+          fi
