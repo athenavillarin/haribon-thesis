@@ -103,13 +103,13 @@
     },
     "ensemble_strategy": {
       "combination_method": "weighted_average",
-      "description": "Weighted average of base model probability predictions using AUC-proportional weights: LSTM=0.7363, GRU=0.6990, Transformer=0.6265, XGBoost=0.7082. Weights are normalized to sum to 1.",
+      "description": "Weighted average of base model probability predictions using AUC-proportional weights: LSTM=0.7357 GRU=0.6990, Transformer=0.7000, XGBoost=0.7077. Weights are normalized to sum to 1.",
       "base_models": ["lstm", "gru", "transformer", "xgboost"],
       "weights": {
-        "lstm": 0.7363,
-        "gru": 0.6990,
-        "transformer": 0.6265,
-        "xgboost": 0.7082
+        "lstm": 0.7357,
+        "gru": 0.7000,
+        "transformer": 0.6556,
+        "xgboost": 0.7077
       },
       "alternative_strategies_evaluated": [
         {

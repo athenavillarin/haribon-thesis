@@ -260,12 +260,12 @@ def _predict_weighted_avg_probability(
 
         # Weights proportional to AUC scores from thesis results, normalized to sum to 1
         # LSTM=0.7363, GRU=0.6990, Transformer=0.6265, XGBoost=0.7082
-        total_auc = 0.7363 + 0.6990 + 0.6265 + 0.7082
+        total_auc = 0.7357 + 0.7000 + 0.6556 + 0.7077
         weights = {
-            "lstm": 0.7363 / total_auc,
-            "gru": 0.6990 / total_auc,
-            "transformer": 0.6265 / total_auc,
-            "xgboost": 0.7082 / total_auc,
+            "lstm": 0.7357 / total_auc,
+            "gru": 0.7000 / total_auc,
+            "transformer": 0.6556 / total_auc,
+            "xgboost": 0.7077 / total_auc,
         }
 
         weighted_prob = (
