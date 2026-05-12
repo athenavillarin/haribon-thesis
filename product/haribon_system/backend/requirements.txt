@@ -14,3 +14,4 @@ requests
 sqlalchemy
 psycopg2-binary
 copernicusmarine
+apscheduler
