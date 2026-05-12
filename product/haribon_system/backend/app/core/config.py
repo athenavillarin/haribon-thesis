@@ -85,7 +85,7 @@ class Settings(BaseSettings):
 
     # Database configuration (optional)
     # Example: postgresql://user:password@localhost:5432/haribon
-    DATABASE_URL = postgresql://postgres:[x-erTqi+8EDMZ!k]@db.bbtuszjfzrprtovxwiey.supabase.co:5432/postgres
+    DATABASE_URL: Optional[str] = None
 
     class Config:
         env_file = str(Path(__file__).resolve().parent.parent.parent / ".env")
