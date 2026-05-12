@@ -58,13 +58,13 @@ Best individual model: LSTM with AUC 0.7357.
 
 **All models evaluated across 6 rolling-origin splits** (fixed LSTM/GRU hardcoded 4-split limit):
 
-| Overall Rank | Model | AUC | Accuracy | Precision | Recall | F1 | n_splits | Notes |
-|---|---|---:|---:|---:|---:|---:|---|
-| 1 | Transformer | 0.7605 ± 0.1940 | 0.7640 | 0.3588 | 0.3011 | 0.3588 | 6 | hybrid_adaptive scenario from transformer_summary.csv |
-| 2 | LSTM | 0.7323 ± 0.2406 | 0.7809 | 0.5947 | 0.1837 | 0.5947 | 6 | Splits 1-6 of 6 rolling-origin yearly splits |
-| 3 | Ensemble (weighted_avg) | 0.7346 ± 0.1582 | 0.7979 | 0.3241 | 0.3020 | 0.3241 | 6 | Best ensemble strategy by AUC, then F1, then Recall across 6 common splits |
-| 4 | GRU | 0.7155 ± 0.1813 | 0.7884 | 0.6367 | 0.1579 | 0.6367 | 6 | Splits 1-6 of 6 rolling-origin yearly splits |
-| 5 | XGBoost (Hybrid: Gap-Type Adaptive) | 0.7037 ± 0.1193 | 0.4979 | 0.3925 | 0.1570 | 0.3925 | 6 | Hybrid-adaptive XGBoost notebook evaluation across 6 temporal splits |
+| Rank | Model | Accuracy | Precision | Recall | F1-Score | AUC (mean ± std) |
+|---|---|---:|---:|---:|---:|---|
+| 1 | Transformer | 0.7640 | 0.3427 | 0.4472 | 0.3588 | 0.7605 ± 0.1940 |
+| 2 | LSTM | 0.7543 | 0.2437 | 0.0429 | 0.0725 | 0.7357 ± 0.2406 |
+| 3 | Ensemble (weighted avg) | 0.7979 | 0.7791 | 0.2400 | 0.3241 | 0.7346 ± 0.1582 |
+| 4 | GRU | 0.7594 | 0.6451 | 0.0469 | 0.0852 | 0.7000 ± 0.1813 |
+| 5 | XGBoost | 0.4893 | 0.2762 | 0.7245 | 0.3872 | 0.7077 ± 0.1193 |
 
 ## Important Interpretation Note
 Two Transformer numbers may appear in reports, and they come from different sources:
