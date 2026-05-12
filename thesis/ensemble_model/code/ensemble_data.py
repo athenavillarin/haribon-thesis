@@ -170,15 +170,18 @@ def _build_sequences(
 
     seqs, labels, dates, tabs = [], [], [], []
     for i in range(lookback - 1, len(loc_df)):
-        if not in_mask[i]:
+        target_idx = i + 1                        # compute target first
+        if target_idx >= len(loc_df):             # bounds check before anything
+            continue
+        if not in_mask[target_idx]:               # filter by TARGET date
             continue
         window = X_arr[i - lookback + 1 : i + 1]
         if window.shape[0] != lookback:
             continue
         seqs.append(window)
-        labels.append(y_arr[i])
-        dates.append(d_arr[i])
-        tabs.append(X_arr[i])  # last timestep of window → tabular row
+        labels.append(y_arr[target_idx])
+        dates.append(d_arr[target_idx])
+        tabs.append(X_arr[i])
 
     if seqs:
         return (
@@ -240,7 +243,7 @@ def build_splits(df: pd.DataFrame) -> List[SplitData]:
             # Train sequences — can use any lookback window in train region
             # We allow the lookback window to reach before train_end
             # Mask: the *target* timestep must be in the train region
-            t_mask = loc_df["Date"] <= train_end
+            t_mask  = loc_df["Date"] <= pd.Timestamp(cfg["train_end"])
 
             X_s, y_s, _, X_t = _build_sequences(loc_df, feature_cols, LOOKBACK, t_mask)
             if X_s.shape[0] > 0:
@@ -249,7 +252,10 @@ def build_splits(df: pd.DataFrame) -> List[SplitData]:
                 all_tab_train.append(X_t)
 
             # Test sequences — target timestep in test region
-            te_mask = (loc_df["Date"] >= test_start) & (loc_df["Date"] <= test_end)
+            te_mask = (
+                (loc_df["Date"] >= pd.Timestamp(cfg["test_start"])) &
+                (loc_df["Date"] <= pd.Timestamp(cfg["test_end"]))
+            )
             X_se, y_se, d_se, X_te = _build_sequences(loc_df, feature_cols, LOOKBACK, te_mask)
             if X_se.shape[0] > 0:
                 all_seq_test.append(X_se)

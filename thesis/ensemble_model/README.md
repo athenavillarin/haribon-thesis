@@ -24,14 +24,16 @@ Command used:
 
 ```bash
 cd ensemble_model
-python run_ensemble.py --splits 1 2 3 4 5 6 --imputation-method hybrid_adaptive --transformer-scenario hybrid_adaptive
+python run_ensemble.py
 ```
 
-Configuration:
+Configuration (defaults used):
 - Splits: 1 to 6
 - Imputation method: hybrid_adaptive
 - Transformer scenario in ensemble run: hybrid_adaptive
 - Ensemble strategies: soft_vote, weighted_avg, stacked
+
+Latest run completed on May 12, 2026.
 
 ## Current Results (ensemble_summary.csv)
 
@@ -39,16 +41,18 @@ Mean +- std across 6 splits (latest run with all models properly loaded):
 
 | Rank | Source | Name | Accuracy | Precision | Recall | F1 | AUC | n_splits |
 |---|---|---|---:|---:|---:|---:|---:|---:|
-| 1 | model | lstm | 0.7545 | 0.2453 | 0.0431 | 0.0728 | 0.7363 | 6 |
-| 2 | ensemble | weighted_avg | 0.7940 | 0.6325 | 0.2394 | 0.2868 | 0.7248 | 6 |
-| 3 | model | xgboost | 0.6958 | 0.4058 | 0.5417 | 0.4242 | 0.7082 | 6 |
-| 4 | model | gru | 0.7594 | 0.6432 | 0.0469 | 0.0851 | 0.6990 | 6 |
-| 5 | model | transformer | 0.7684 | 0.1868 | 0.2027 | 0.1858 | 0.6265 | 6 |
+| 1 | model | lstm | 0.7543 | 0.2437 | 0.0429 | 0.0725 | 0.7357 | 6 |
+| 2 | ensemble | weighted_avg | 0.7979 | 0.7791 | 0.2400 | 0.3241 | 0.7346 | 6 |
+| 3 | ensemble | soft_vote | 0.8001 | 0.7686 | 0.2494 | 0.3339 | 0.7292 | 6 |
+| 4 | model | xgboost | 0.4893 | 0.2762 | 0.7245 | 0.3872 | 0.7077 | 6 |
+| 5 | ensemble | stacked | 0.4730 | 0.3929 | 0.6520 | 0.3586 | 0.7073 | 6 |
+| 6 | model | gru | 0.7594 | 0.6451 | 0.0469 | 0.0852 | 0.7000 | 6 |
+| 7 | model | transformer | 0.7631 | 0.2917 | 0.0389 | 0.0674 | 0.6556 | 6 |
 
-Best individual model: LSTM with AUC 0.7363.  
-**Recommended ensemble strategy: weighted_avg with AUC 0.7248.**
+Best individual model: LSTM with AUC 0.7357.  
+**Recommended ensemble strategy: weighted_avg with AUC 0.7346.**
 
-*Note: All models now use per-split saved models to avoid data leakage. Soft_vote and stacked ensemble strategies were evaluated but discarded due to inferior performance compared to weighted average.*
+*Note: All models now use per-split saved models to avoid data leakage. Weighted_avg remains the top ensemble strategy, with soft_vote and stacked evaluated but lower in performance.*
 
 ## Objective 2 Final Comparison (obj2_model_comparison_final.csv)
 
@@ -58,7 +62,7 @@ Best individual model: LSTM with AUC 0.7363.
 |---|---|---:|---:|---:|---:|---:|---|
 | 1 | Transformer | 0.7605 ± 0.1940 | 0.7640 | 0.3588 | 0.3011 | 0.3588 | 6 | hybrid_adaptive scenario from transformer_summary.csv |
 | 2 | LSTM | 0.7323 ± 0.2406 | 0.7809 | 0.5947 | 0.1837 | 0.5947 | 6 | Splits 1-6 of 6 rolling-origin yearly splits |
-| 3 | Ensemble (weighted_avg) | 0.7248 ± 0.1652 | 0.7940 | 0.2868 | 0.3193 | 0.2868 | 6 | Selected ensemble strategy after stacked was discarded |
+| 3 | Ensemble (weighted_avg) | 0.7346 ± 0.1582 | 0.7979 | 0.3241 | 0.3020 | 0.3241 | 6 | Best ensemble strategy by AUC, then F1, then Recall across 6 common splits |
 | 4 | GRU | 0.7155 ± 0.1813 | 0.7884 | 0.6367 | 0.1579 | 0.6367 | 6 | Splits 1-6 of 6 rolling-origin yearly splits |
 | 5 | XGBoost (Hybrid: Gap-Type Adaptive) | 0.7037 ± 0.1193 | 0.4979 | 0.3925 | 0.1570 | 0.3925 | 6 | Hybrid-adaptive XGBoost notebook evaluation across 6 temporal splits |
 
@@ -66,7 +70,7 @@ Best individual model: LSTM with AUC 0.7363.
 Two Transformer numbers may appear in reports, and they come from different sources:
 
 1. Ensemble per-split runtime output (ensemble_summary.csv)
-- Transformer appears as AUC 0.6265 in this run because the per-split inference path produced near-constant positive predictions.
+- Transformer appears as AUC 0.6556 in this run because the per-split inference path produced near-constant positive predictions.
 
 2. Transformer standalone summary source used in Objective 2 table
 - Loaded from transformer_model/results/transformer_summary.csv using scenario=hybrid_adaptive.
@@ -74,7 +78,7 @@ Two Transformer numbers may appear in reports, and they come from different sour
 
 **Note**: Stacked ensemble was discarded due to distribution shift issues when using per-split saved models. The LogisticRegression meta-learner failed to generalize across splits, resulting in poor performance (AUC 0.6994). Weighted average was selected as the final ensemble method.
 
-**Real-World Deployment Considerations**: While LSTM shows slightly higher AUC (0.7363) than weighted average ensemble (0.7248), the ensemble provides much better practical performance with higher precision (0.6325 vs 0.2453) and better balance across different scenarios. This mirrors the hybrid imputation choice - combining multiple approaches provides robustness rather than relying on a single method's theoretical advantage.
+**Real-World Deployment Considerations**: While LSTM shows slightly higher AUC (0.7357) than weighted average ensemble (0.7346), the ensemble provides much better practical performance with higher precision (0.7791 vs 0.2437) and better balance across different scenarios. This mirrors the hybrid imputation choice - combining multiple approaches provides robustness rather than relying on a single method's theoretical advantage.
 
 ## Why AUC is the Primary Metric
 AUC (Area Under ROC Curve) measures a model's ability to distinguish between classes across all classification thresholds. In imbalanced red tide prediction:
@@ -153,3 +157,4 @@ Updated in this revision:
 - Objective 2 comparison updated to show Transformer as top performer (AUC 0.761) with weighted_avg ensemble as 3rd.
 - README synchronized to latest generated CSV values with all 5 models on 6-split basis.
  - **Fixed**: LSTM compatibility — added a safe loader shim in `ensemble_model/code/ensemble_inference.py` so the saved LSTM model can be deserialized; ensemble rerun now includes LSTM per-split metrics.
+ - **Updated metrics from latest run (May 12, 2026)**: Ensemble strategies reordered by AUC; weighted_avg remains top ensemble method; Transformer per-split AUC improved to 0.6556 but still lags standalone summary; XGBoost accuracy dropped significantly to 0.4893; soft_vote and stacked included in rankings.

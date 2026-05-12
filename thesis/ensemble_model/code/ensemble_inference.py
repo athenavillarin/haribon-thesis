@@ -8,11 +8,11 @@ returns a 1-D float32 numpy array of predicted probabilities for the test set.
 
 Functions
 ---------
-predict_lstm(split, model_dir)       — Keras LSTM (saved weights)
-predict_gru(split, model_dir)        — Keras GRU  (saved weights)
+predict_lstm(split, model_dir)        — Keras LSTM (saved weights)
+predict_gru(split, model_dir)         — Keras GRU  (saved weights)
 predict_transformer(split, model_dir) — PyTorch Transformer (per-split saved .pt)
-predict_xgboost(split, model_dir)    — XGBoost (saved JSON model, re-fit per split)
-predict_all(split, ...)              — convenience wrapper returning dict of all 4
+predict_xgboost(split, model_dir)     — XGBoost (saved JSON model, re-fit per split)
+predict_all(split, ...)               — convenience wrapper returning dict of all 4
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import numpy as np
+from sklearn.preprocessing import MinMaxScaler
 
 warnings.filterwarnings("ignore")
 
@@ -39,15 +40,33 @@ def _resolve_model_path(thesis_path: Path, repo_root_path: Path) -> Path:
 
 
 # Default model paths
-DEFAULT_LSTM_MODEL    = _resolve_model_path(_THESIS_DIR / "lstm" / "saved_model" / "haribon_lstm_risk.keras", _REPO_ROOT / "lstm" / "saved_model" / "haribon_lstm_risk.keras")
-DEFAULT_LSTM_SCALER   = _resolve_model_path(_THESIS_DIR / "lstm" / "saved_model" / "feature_scaler.joblib", _REPO_ROOT / "lstm" / "saved_model" / "feature_scaler.joblib")
-DEFAULT_GRU_MODEL     = _resolve_model_path(_THESIS_DIR / "gru" / "saved_model" / "haribon_gru_risk.keras", _REPO_ROOT / "gru" / "saved_model" / "haribon_gru_risk.keras")
-DEFAULT_GRU_SCALER    = _resolve_model_path(_THESIS_DIR / "gru" / "saved_model" / "feature_scaler.joblib", _REPO_ROOT / "gru" / "saved_model" / "feature_scaler.joblib")
-DEFAULT_XGBOOST_MODEL = _resolve_model_path(_THESIS_DIR / "xgboost_model" / "saved_model" / "best_xgboost_model.json", _REPO_ROOT / "xgboost_model" / "saved_model" / "best_xgboost_model.json")
+DEFAULT_LSTM_MODEL = _resolve_model_path(
+    _THESIS_DIR / "lstm" / "saved_model" / "haribon_lstm_risk.keras",
+    _REPO_ROOT / "lstm" / "saved_model" / "haribon_lstm_risk.keras",
+)
+DEFAULT_LSTM_SCALER = _resolve_model_path(
+    _THESIS_DIR / "lstm" / "saved_model" / "feature_scaler.joblib",
+    _REPO_ROOT / "lstm" / "saved_model" / "feature_scaler.joblib",
+)
+DEFAULT_GRU_MODEL = _resolve_model_path(
+    _THESIS_DIR / "gru" / "saved_model" / "haribon_gru_risk.keras",
+    _REPO_ROOT / "gru" / "saved_model" / "haribon_gru_risk.keras",
+)
+DEFAULT_GRU_SCALER = _resolve_model_path(
+    _THESIS_DIR / "gru" / "saved_model" / "feature_scaler.joblib",
+    _REPO_ROOT / "gru" / "saved_model" / "feature_scaler.joblib",
+)
+DEFAULT_XGBOOST_MODEL = _resolve_model_path(
+    _THESIS_DIR / "xgboost_model" / "saved_model" / "best_xgboost_model.json",
+    _REPO_ROOT / "xgboost_model" / "saved_model" / "best_xgboost_model.json",
+)
 DEFAULT_TRANSFORMER_SAVED_DIR = _THESIS_DIR / "ensemble_model" / "saved_model"
-LEGACY_TRANSFORMER_SAVED_DIR  = _REPO_ROOT / "transformer_model" / "saved_model"
+LEGACY_TRANSFORMER_SAVED_DIR = _REPO_ROOT / "transformer_model" / "saved_model"
 DEFAULT_XGBOOST_SAVED_DIR = _THESIS_DIR / "xgboost_model" / "saved_model"
-DEFAULT_XGBOOST_BEST_PARAMS = _resolve_model_path(_THESIS_DIR / "xgboost_model" / "results" / "best_parameters.txt", _REPO_ROOT / "xgboost_model" / "results" / "best_parameters.txt")
+DEFAULT_XGBOOST_BEST_PARAMS = _resolve_model_path(
+    _THESIS_DIR / "xgboost_model" / "results" / "best_parameters.txt",
+    _REPO_ROOT / "xgboost_model" / "results" / "best_parameters.txt",
+)
 
 
 def _transformer_weights_name(split_num: int, scenario: str) -> str:
@@ -79,7 +98,9 @@ def _resolve_transformer_weights_path(
     return primary_path
 
 
-def _load_best_xgboost_params(params_path: Path = DEFAULT_XGBOOST_BEST_PARAMS) -> Dict[str, float | int]:
+def _load_best_xgboost_params(
+    params_path: Path = DEFAULT_XGBOOST_BEST_PARAMS,
+) -> Dict[str, float | int]:
     defaults: Dict[str, float | int] = dict(
         learning_rate=0.2,
         max_depth=8,
@@ -131,11 +152,8 @@ def predict_lstm(
     preprocessing exactly.
     """
     import joblib
-    import tensorflow as tf  # noqa: F401  # triggers GPU setup
+    import tensorflow as tf  # noqa: F401
 
-    # Compatibility shim: if the saved model contains Keras 3.x Dense
-    # serialization metadata like 'quantization_config', remove it
-    # during deserialization to support loading in older/newer runtimes.
     _orig_dense_from_config = tf.keras.layers.Dense.from_config.__func__
 
     @classmethod  # type: ignore[misc]
@@ -149,11 +167,11 @@ def predict_lstm(
         model_path = model_dir / f"haribon_lstm_hybrid_adaptive_split{split_data.split_num}.keras"
         model = tf.keras.models.load_model(str(model_path), compile=False)
     finally:
-        # Always restore original method to avoid side-effects
         tf.keras.layers.Dense.from_config = classmethod(_orig_dense_from_config)
+
     scaler = joblib.load(str(scaler_path))
 
-    X_test = split_data.X_seq_test  # (N, LOOKBACK, n_feat)
+    X_test = split_data.X_seq_test
     if X_test.shape[0] == 0:
         return np.empty((0,), dtype=np.float32)
 
@@ -178,8 +196,6 @@ def predict_gru(
     import joblib
     import tensorflow as tf  # noqa: F401
 
-    # Compatibility shim: Keras 3.x added 'quantization_config' to Dense's
-    # serialised config; monkey-patch from_config so older builds can load it.
     _orig_dense_from_config = tf.keras.layers.Dense.from_config.__func__
 
     @classmethod  # type: ignore[misc]
@@ -193,7 +209,6 @@ def predict_gru(
         model_path = model_dir / f"haribon_gru_hybrid_adaptive_split{split_data.split_num}.keras"
         model = tf.keras.models.load_model(str(model_path), compile=False)
     finally:
-        # Restore original method regardless of success/failure
         tf.keras.layers.Dense.from_config = classmethod(_orig_dense_from_config)
 
     scaler = joblib.load(str(scaler_path))
@@ -223,22 +238,31 @@ def predict_transformer(
     """
     Load per-split saved Transformer weights (.pt) and produce probabilities.
 
-    If no saved weights exist (e.g. run_transformer.py has not been run yet)
-    and fallback_retrain=True, the Transformer is re-trained on-the-fly for
-    this split — identical to the original run_transformer.py behaviour.
+    Handles both raw state_dict format (old checkpoints) and full checkpoint
+    format (new checkpoints with model_state_dict, norm_min, norm_max, etc.).
+
+    If no saved weights exist and fallback_retrain=True, the Transformer is
+    re-trained on-the-fly for this split.
     """
     import sys
     transformer_code = _REPO_ROOT / "transformer_model" / "code"
     if str(transformer_code) not in sys.path:
         sys.path.insert(0, str(transformer_code))
 
-    # Define transformer classes locally to avoid import issues
     import torch
     import torch.nn as nn
 
     class HABTransformerClassifier(nn.Module):
-        def __init__(self, input_dim: int, seq_len: int, d_model: int, num_heads: int,
-                     num_layers: int, ff_dim: int, dropout: float):
+        def __init__(
+            self,
+            input_dim: int,
+            seq_len: int,
+            d_model: int,
+            num_heads: int,
+            num_layers: int,
+            ff_dim: int,
+            dropout: float,
+        ):
             super().__init__()
             self.input_proj = nn.Linear(input_dim, d_model)
             self.pos_embed = nn.Parameter(torch.zeros(1, seq_len, d_model))
@@ -268,11 +292,6 @@ def predict_transformer(
             logits = self.head(x).squeeze(-1)
             return logits
 
-    def build_model(input_dim: int, seq_len: int, d_model: int, num_heads: int,
-                    num_layers: int, ff_dim: int, dropout: float):
-        return HABTransformerClassifier(input_dim, seq_len, d_model, num_heads,
-                                       num_layers, ff_dim, dropout)
-
     class TrainConfig:
         def __init__(self):
             self.d_model = 64
@@ -288,87 +307,128 @@ def predict_transformer(
             self.patience = 8
             self.lr_scheduler_patience = 5
 
-    def import_torch():
-        return torch, nn
-
-    torch, nn = import_torch()
-
     X_train = split_data.X_seq_train
-    X_test  = split_data.X_seq_test
+    X_test = split_data.X_seq_test
 
     if X_test.shape[0] == 0:
         return np.empty((0,), dtype=np.float32)
 
-    # Normalise using train statistics (matches native_masking scenario)
-    if X_train.shape[0] > 0:
-        mean = np.nanmean(X_train, axis=(0, 1), keepdims=True)
-        std  = np.nanstd(X_train,  axis=(0, 1), keepdims=True)
-        std  = np.where(std < 1e-8, 1.0, std)
-        X_train_n = np.nan_to_num((X_train - mean) / std, nan=0.0)
-        X_test_n  = np.nan_to_num((X_test  - mean) / std, nan=0.0)
-    else:
-        X_train_n = X_train
-        X_test_n  = X_test
-
-    input_dim = X_test_n.shape[2]
-    seq_len   = X_test_n.shape[1]
-
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     cfg = TrainConfig()
 
-    model = build_model(
-        input_dim=input_dim,
-        seq_len=seq_len,
-        d_model=cfg.d_model,
-        num_heads=cfg.num_heads,
-        num_layers=cfg.num_layers,
-        ff_dim=cfg.ff_dim,
-        dropout=cfg.dropout,
-    ).to(device)
-
-    # Try loading saved weights first from the primary ensemble directory.
-    # If present only in legacy transformer_model/saved_model, mirror them over.
+    # Step 1: Load weights and extract norm params if available
     weights_path = _resolve_transformer_weights_path(
         split_num=split_data.split_num,
         scenario=scenario,
         saved_dir=saved_dir,
     )
+
+    norm_min = None
+    norm_max = None
     loaded_from_file = False
+    actual_state = None
+
     if weights_path.exists():
         try:
-            state = torch.load(str(weights_path), map_location=device, weights_only=True)
+            checkpoint = torch.load(
+                str(weights_path), map_location=device, weights_only=False
+            )
             print(f"[transformer] loaded weights file: {weights_path}")
-            if isinstance(state, dict):
-                try:
-                    print("[transformer] weights keys sample:", list(state.keys())[:12])
-                except Exception:
-                    pass
-                try:
-                    if "input_proj.weight" in state:
-                        w_in = int(state["input_proj.weight"].shape[1])
-                        print(f"[transformer] weights input_proj.in_features={w_in}, input_dim={input_dim}")
-                        if w_in != input_dim:
-                            raise RuntimeError(f"weights input dim {w_in} != runtime input_dim {input_dim}")
-                except Exception:
-                    # if inspection fails, continue to attempted load which will raise
-                    pass
-            model.load_state_dict(state)
+
+            if isinstance(checkpoint, dict):
+                print("[transformer] weights keys sample:", list(checkpoint.keys())[:12])
+
+                # Full checkpoint format (new notebooks save extra metadata)
+                if "model_state_dict" in checkpoint:
+                    actual_state = checkpoint["model_state_dict"]
+                    if "norm_min" in checkpoint and "norm_max" in checkpoint:
+                        norm_min = np.array(checkpoint["norm_min"], dtype=np.float32)
+                        norm_max = np.array(checkpoint["norm_max"], dtype=np.float32)
+                        print("[transformer] loaded norm_min/norm_max from checkpoint")
+                else:
+                    # Raw state_dict format (old checkpoints)
+                    actual_state = checkpoint
+                    if "input_proj.weight" in actual_state:
+                        w_in = int(actual_state["input_proj.weight"].shape[1])
+                        print(
+                            f"[transformer] weights input_proj.in_features={w_in}"
+                        )
+
+            input_dim_check = list(actual_state.values())[0].shape
+            # Build model to check input dim
+            sample_key = "input_proj.weight"
+            if sample_key in actual_state:
+                w_in = int(actual_state[sample_key].shape[1])
+                input_dim_from_state = w_in
+            else:
+                input_dim_from_state = X_test.shape[2]
+
+            model = HABTransformerClassifier(
+                input_dim=input_dim_from_state,
+                seq_len=X_test.shape[1],
+                d_model=cfg.d_model,
+                num_heads=cfg.num_heads,
+                num_layers=cfg.num_layers,
+                ff_dim=cfg.ff_dim,
+                dropout=cfg.dropout,
+            ).to(device)
+
+            model.load_state_dict(actual_state)
             loaded_from_file = True
             print("[transformer] model.load_state_dict succeeded")
+
         except Exception as exc:
             print("[transformer] Failed to load transformer weights:", repr(exc))
-            # Shape mismatch or other incompatibility — fall through to retrain/fallback
-            pass
-    if not loaded_from_file and fallback_retrain and X_train_n.shape[0] >= 20:
-        # Re-train on-the-fly (same logic as train_eval.train_and_evaluate_split)
-        _train_transformer_inplace(model, X_train_n, split_data.y_train, cfg, device, torch, nn)
-        # Save weights for future runs in the same primary directory we read from.
-        saved_dir.mkdir(parents=True, exist_ok=True)
-        torch.save(model.state_dict(), str(weights_path))
-    elif not loaded_from_file:
-        # Not enough data or no weights — return uniform 0.5
-        return np.full(X_test_n.shape[0], 0.5, dtype=np.float32)
 
+    # Step 2: Normalize inputs
+    if X_train.shape[0] > 0:
+        if norm_min is not None and norm_max is not None:
+            # Use saved normalization params from checkpoint (most accurate)
+            denom = norm_max - norm_min
+            denom = np.where(denom < 1e-8, 1.0, denom)
+            X_train_n = np.nan_to_num((X_train - norm_min) / denom * 2.0 - 1.0, nan=0.0)
+            X_test_n  = np.nan_to_num((X_test  - norm_min) / denom * 2.0 - 1.0, nan=0.0)
+            print("[transformer] using saved norm params for normalization")
+        else:
+            # Fall back to MinMaxScaler fitted on training data
+            X_train_flat = X_train.reshape(-1, X_train.shape[-1])
+            X_test_flat = X_test.reshape(-1, X_test.shape[-1])
+            scaler = MinMaxScaler(feature_range=(-1, 1))
+            scaler.fit(X_train_flat)
+            X_train_n = np.nan_to_num(
+                scaler.transform(X_train_flat).reshape(X_train.shape), nan=0.0
+            )
+            X_test_n = np.nan_to_num(
+                scaler.transform(X_test_flat).reshape(X_test.shape), nan=0.0
+            )
+            print("[transformer] using MinMaxScaler fallback for normalization")
+    else:
+        X_train_n = np.nan_to_num(X_train, nan=0.0)
+        X_test_n = np.nan_to_num(X_test, nan=0.0)
+
+    # Step 3: If weights not loaded, retrain or return fallback
+    if not loaded_from_file:
+        input_dim = X_test_n.shape[2]
+        model = HABTransformerClassifier(
+            input_dim=input_dim,
+            seq_len=X_test_n.shape[1],
+            d_model=cfg.d_model,
+            num_heads=cfg.num_heads,
+            num_layers=cfg.num_layers,
+            ff_dim=cfg.ff_dim,
+            dropout=cfg.dropout,
+        ).to(device)
+
+        if fallback_retrain and X_train_n.shape[0] >= 20:
+            _train_transformer_inplace(
+                model, X_train_n, split_data.y_train, cfg, device, torch, nn
+            )
+            saved_dir.mkdir(parents=True, exist_ok=True)
+            torch.save(model.state_dict(), str(weights_path))
+        else:
+            return np.full(X_test_n.shape[0], 0.5, dtype=np.float32)
+
+    # Step 4: Run inference
     model.eval()
     xte = torch.tensor(X_test_n, dtype=torch.float32).to(device)
     with torch.no_grad():
@@ -385,19 +445,24 @@ def _train_transformer_inplace(model, X_train, y_train, cfg, device, torch, nn):
 
     pos_count = float(np.sum(y_tr == 1))
     neg_count = float(np.sum(y_tr == 0))
-    pos_weight = torch.tensor([neg_count / max(pos_count, 1.0)], dtype=torch.float32, device=device)
+    pos_weight = torch.tensor(
+        [neg_count / max(pos_count, 1.0)], dtype=torch.float32, device=device
+    )
 
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay
+    )
 
-    xtr = torch.tensor(X_tr,  dtype=torch.float32)
-    ytr = torch.tensor(y_tr,  dtype=torch.float32)
+    xtr = torch.tensor(X_tr, dtype=torch.float32)
+    ytr = torch.tensor(y_tr, dtype=torch.float32)
     xval = torch.tensor(X_val, dtype=torch.float32)
     yval = torch.tensor(y_val, dtype=torch.float32)
 
     loader = torch.utils.data.DataLoader(
         torch.utils.data.TensorDataset(xtr, ytr),
-        batch_size=cfg.batch_size, shuffle=False,
+        batch_size=cfg.batch_size,
+        shuffle=False,
     )
 
     best_state, best_loss, wait = None, float("inf"), 0
@@ -415,7 +480,9 @@ def _train_transformer_inplace(model, X_train, y_train, cfg, device, torch, nn):
             vl = criterion(model(xval.to(device)), yval.to(device)).item()
         if vl < best_loss - 1e-5:
             best_loss = vl
-            best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+            best_state = {
+                k: v.detach().cpu().clone() for k, v in model.state_dict().items()
+            }
             wait = 0
         else:
             wait += 1
@@ -452,7 +519,6 @@ def predict_xgboost(
         clf = XGBClassifier()
         clf.load_model(str(model_path))
     else:
-        # Fallback: re-fit using best params
         X_train = split_data.X_tab_train
         y_train = split_data.y_train
         if X_train.shape[0] == 0:
@@ -481,7 +547,7 @@ def predict_all(
     Run inference for all four models on one split.
 
     Returns a dict: {"lstm": probs, "gru": probs, "transformer": probs, "xgboost": probs}
-    Each value is a 1-D float32 array of predicted probabilities, length = len(y_test).
+    Each value is a 1-D float32 array of predicted probabilities.
     """
     probs: Dict[str, np.ndarray] = {}
 
@@ -503,7 +569,9 @@ def predict_all(
 
     print("  [transformer] ", end="", flush=True)
     try:
-        probs["transformer"] = predict_transformer(split_data, transformer_saved_dir, transformer_scenario)
+        probs["transformer"] = predict_transformer(
+            split_data, transformer_saved_dir, transformer_scenario
+        )
         print(f"OK ({len(probs['transformer'])} samples)")
     except Exception as exc:
         print(f"FAILED: {exc}")
@@ -538,7 +606,6 @@ def ensure_transformer_weights(
     if weights_path.exists():
         return True
 
-    # Trigger fallback training path to materialize missing weights when possible.
     _ = predict_transformer(
         split_data=split_data,
         saved_dir=saved_dir,
