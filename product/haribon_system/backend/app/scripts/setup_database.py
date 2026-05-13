@@ -24,42 +24,23 @@ def setup_database():
         print("ERROR: DATABASE_URL not configured in .env file")
         return False
 
-    # Extract database name from URL
-    from urllib.parse import urlparse
-    parsed = urlparse(settings.DATABASE_URL)
-    db_name = parsed.path.lstrip('/')
+    # Check if using SQLite
+    is_sqlite = settings.DATABASE_URL.startswith("sqlite")
 
-    # Create connection URL without database name for initial connection
-    admin_url = settings.DATABASE_URL.replace(f"/{db_name}", "/postgres")
+    if not is_sqlite:
+        print(" Assuming database'neondb' exists (hosted service)")
 
-    try:
-        # Connect to postgres database to create our database
-        engine = create_engine(admin_url, isolation_level="AUTOCOMMIT")
-        with engine.connect() as conn:
-            # Check if database already exists
-            result = conn.execute(text(f"SELECT 1 FROM pg_database WHERE datname = '{db_name}'"))
-            if result.fetchone():
-                print(f"✓ Database '{db_name}' already exists")
-            else:
-                # Create database if it doesn't exist
-                conn.execute(text(f"CREATE DATABASE {db_name}"))
-                print(f"✓ Database '{db_name}' created successfully")
+    # Now connect to our database and create tables
+    engine = create_engine(settings.DATABASE_URL)
+    from app.core.database import Base
+    Base.metadata.create_all(bind=engine)
+    print("✓ Tables created successfully")
 
-        # Now connect to our database and create tables
-        engine = create_engine(settings.DATABASE_URL)
-        from app.core.database import Base
-        Base.metadata.create_all(bind=engine)
-        print("✓ Tables created successfully")
+    # Populate locations table
+    populate_locations(engine)
+    print("✓ Locations populated successfully")
 
-        # Populate locations table
-        populate_locations(engine)
-        print("✓ Locations populated successfully")
-
-        return True
-
-    except Exception as e:
-        print(f"ERROR: Failed to setup database: {e}")
-        return False
+    return True
 
 def populate_locations(engine):
     """Populate the location table with data from locations.json."""
