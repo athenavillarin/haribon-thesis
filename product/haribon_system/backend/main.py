@@ -15,9 +15,15 @@ app = FastAPI(
     description="AI-powered early warning system for proactive red tide risk forecasting in Western Visayas, Philippines"
 )
 
+# Parse allowed origins: if "*", allow all; otherwise split comma-separated list
+if settings.ALLOWED_ORIGINS == "*":
+    cors_origins = ["*"]
+else:
+    cors_origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://haribon-thesis.vercel.app"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

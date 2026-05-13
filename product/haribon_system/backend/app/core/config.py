@@ -86,6 +86,8 @@ class Settings(BaseSettings):
     # Database configuration (optional)
     # Example: postgresql://user:password@localhost:5432/haribon
     DATABASE_URL: Optional[str] = None
+    # CORS configuration
+    ALLOWED_ORIGINS: str = "https://haribon-thesis.vercel.app"
 
     class Config:
         env_file = str(Path(__file__).resolve().parent.parent.parent / ".env")
