@@ -2,7 +2,7 @@ name: Database Keep-Alive
 
 on:
   schedule:
-    # Run every 4 minutes to keep Neon database awake
+    # Run every 5 minutes to keep Neon database awake
     - cron: '*/5 * * * *'
   workflow_dispatch:  # Allow manual trigger
 
