@@ -58,3 +58,7 @@ jobs:
       - name: Log failure
         if: failure()
         run: echo "Database keep-alive ping failed - check logs above"
+
+      - name: Keep Render backend alive
+        run: |
+            curl -s https://haribon-thesis-backend.onrender.com/health || true
