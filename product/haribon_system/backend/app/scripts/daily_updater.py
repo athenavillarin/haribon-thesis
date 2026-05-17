@@ -791,9 +791,9 @@ def run_daily_update_with_5day_forecast():
                 if risk_level == "Very Low Risk":
                     risk_level = "Low Risk"
 
-           # if historical_signal["has_signal"] and risk_level in {"Very Low Risk", "Low Risk"}:
-            #    risk_level = "Moderate Risk"
-             #   base_confidence = min(base_confidence, 0.70)
+            if historical_signal["has_signal"] and risk_level in {"Very Low Risk", "Low Risk"}:
+                risk_level = "Moderate Risk"
+                base_confidence = min(base_confidence, 0.70)
 
             confidence = f"{base_confidence * 100:.1f}%"
 
