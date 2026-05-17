@@ -25,6 +25,8 @@ Outputs (saved to ensemble_model/results/):
     ensemble_per_split_metrics.csv  — per-split metrics for each model & strategy
     ensemble_summary.csv            — mean ± std across 6 splits, ranked by AUC
     obj2_model_comparison_final.csv — final Obj 2 comparison table
+    ensemble_comparison_auc_mean.png — bar chart showing ensemble boost vs individual models (AUC)
+    ensemble_comparison_f1_mean.png  — bar chart showing ensemble boost vs individual models (F1)
 ==============================================================================
 """
 
@@ -56,6 +58,7 @@ from ensemble_evaluate import (  # noqa: E402  # type: ignoref[reportMissingImpo
     build_per_split_records,
     build_summary,
     compute_metrics,
+    plot_ensemble_comparison,
     print_obj2_comparison,
     print_summary_table,
 )
@@ -298,6 +301,14 @@ def main() -> None:
         obj2_out.insert(0, "overall_rank", range(1, len(obj2_out) + 1))
     obj2_out.to_csv(OBJ2_COMPARE_CSV, index=False)
     print(f"  Saved: {OBJ2_COMPARE_CSV}")
+
+    # ------------------------------------------------------------------
+    # Generate comparison plot
+    # ------------------------------------------------------------------
+    if not summary_out.empty:
+        print("\n[Phase 5] Generating ensemble comparison plot...")
+        plot_ensemble_comparison(summary_out, metric="auc_mean")
+        plot_ensemble_comparison(summary_out, metric="f1_mean")
 
     # ------------------------------------------------------------------
     # Print results

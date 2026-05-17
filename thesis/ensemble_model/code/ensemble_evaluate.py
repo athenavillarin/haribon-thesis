@@ -9,6 +9,8 @@ Produces:
   ensemble_summary.csv             — mean ± std across splits, ranked by AUC
   obj2_model_comparison_final.csv  — final Obj 2 comparison:
                                      LSTM | GRU | Transformer | XGBoost | Best Ensemble
+  ensemble_comparison_auc_mean.png — bar chart showing ensemble boost vs individual models (AUC)
+  ensemble_comparison_f1_mean.png  — bar chart showing ensemble boost vs individual models (F1)
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -311,3 +314,94 @@ def print_obj2_comparison(df: pd.DataFrame) -> None:
             "accuracy_mean", "n_splits", "notes"]
     printable = df[[c for c in cols if c in df.columns]]
     print(printable.to_string(index=False))
+
+
+# ---------------------------------------------------------------------------  
+# Plotting functions
+# ---------------------------------------------------------------------------
+
+def plot_ensemble_comparison(
+    summary_df: pd.DataFrame,
+    output_path: Optional[Path] = None,
+    metric: str = "auc_mean",
+) -> None:
+    """
+    Generate a bar chart comparing individual base models vs ensemble strategies.
+    
+    Shows the "Ensemble Boost" by comparing mean AUC or F1-score across splits.
+    
+    Parameters:
+    - summary_df: DataFrame from build_summary() with model/ensemble rows
+    - output_path: Where to save the PNG (default: results/ensemble_comparison_{metric}.png)
+    - metric: Which metric to plot ('auc_mean' or 'f1_mean')
+    """
+    if output_path is None:
+        output_path = _ROOT / "ensemble_model" / "results" / f"ensemble_comparison_{metric}.png"
+    
+    # Separate individual models and ensembles
+    individual = summary_df[summary_df["source"] == "model"].copy()
+    ensembles = summary_df[summary_df["source"] == "ensemble"].copy()
+    
+    # Combine for plotting
+    plot_data = pd.concat([
+        individual.assign(category="Individual Models"),
+        ensembles.assign(category="Ensemble Strategies")
+    ])
+    
+    # Sort by metric descending
+    plot_data = plot_data.sort_values(metric, ascending=False)
+    
+    # Create the plot
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    # Color scheme: blue for individuals, green for ensembles
+    colors = ["skyblue" if cat == "Individual Models" else "lightgreen" 
+              for cat in plot_data["category"]]
+    
+    bars = ax.bar(
+        plot_data["name"], 
+        plot_data[metric], 
+        color=colors,
+        edgecolor="black",
+        alpha=0.8
+    )
+    
+    # Add value labels on bars
+    for bar, value in zip(bars, plot_data[metric]):
+        ax.text(
+            bar.get_x() + bar.get_width()/2,
+            bar.get_height() + 0.01,
+            f"{value:.3f}",
+            ha="center",
+            va="bottom",
+            fontsize=10,
+            fontweight="bold"
+        )
+    
+    # Formatting
+    metric_label = "AUC-ROC" if metric == "auc_mean" else "F1-Score"
+    ax.set_title(f"Model Performance Comparison: {metric_label} Across 6 Splits\nEnsemble Boost Demonstration", 
+                 fontsize=14, fontweight="bold", pad=20)
+    ax.set_ylabel(f"Mean {metric_label}", fontsize=12)
+    ax.set_xlabel("Models/Strategies", fontsize=12)
+    ax.grid(axis="y", alpha=0.3)
+    
+    # Rotate x labels for readability
+    plt.xticks(rotation=45, ha="right")
+    
+    # Legend
+    handles = [
+        plt.Rectangle((0,0),1,1, color="skyblue", alpha=0.8),
+        plt.Rectangle((0,0),1,1, color="lightgreen", alpha=0.8)
+    ]
+    ax.legend(handles, ["Individual Models", "Ensemble Strategies"], 
+              loc="upper right", fontsize=10)
+    
+    plt.tight_layout()
+    
+    # Save the plot
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    print(f"Saved ensemble comparison chart to: {output_path}")
+    
+    plt.close()

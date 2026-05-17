@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import forecast, summary
 from app.core.config import settings
 
+from app.core.database import start_db_keep_alive
+
 app = FastAPI(
     title="HARIBON: Harmful Algal Bloom Intelligent Observer Network",
     version="2.0.0",
@@ -44,3 +46,7 @@ if __name__ == "__main__":
     import uvicorn
     # Pass import string to enable reload
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+
+@app.on_event("startup")
+async def startup_event():
+    start_db_keep_alive()
