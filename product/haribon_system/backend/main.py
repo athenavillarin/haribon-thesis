@@ -47,6 +47,3 @@ if __name__ == "__main__":
     # Pass import string to enable reload
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
 
-@app.on_event("startup")
-async def startup_event():
-    start_db_keep_alive()
