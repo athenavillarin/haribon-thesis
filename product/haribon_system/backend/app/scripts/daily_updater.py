@@ -645,7 +645,7 @@ def run_daily_update_with_5day_forecast():
             print(f"Skipping {location}: No data found")
             continue
         input_data = latest_row.to_dict()
-        input_data['Date'] = today_str
+        input_data['Date'] = pd.to_datetime(today_str)
 
         gee_feature = location_features.get(location)
         gee_data = None
