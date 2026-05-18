@@ -469,7 +469,7 @@ def _compute_recent_red_tide_signal(
             "recent_positive_rate_365d": None,
         }
 
-    loc_df = loc_df[loc_df["Date"] <= pd.to_datetime(reference_date)]
+    loc_df = loc_df[loc_df["Date"] <= pd.to_datetime(reference_date).tz_localize(None)]
     if loc_df.empty:
         return {
             "has_signal": False,
