@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 from datetime import datetime, date, timedelta
 from fastapi import APIRouter, HTTPException, BackgroundTasks
+import pytz
 from app.core.config import settings
 from app.core.schemas import ForecastResponse, SimplifiedForecastResponse
 import pandas as pd
@@ -384,8 +385,9 @@ def get_latest_forecast():
     """Get the most recent forecast file available; fallback to yesterday's, then most recent."""
     from datetime import datetime, timedelta
 
-    today_str = datetime.now().strftime('%Y-%m-%d')
-    yesterday_str = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+    pht = pytz.timezone('Asia/Manila')
+    today_str = datetime.now(pht).strftime('%Y-%m-%d')  # ← ADD PHT
+    yesterday_str = (datetime.now(pht) - timedelta(days=1)).strftime('%Y-%m-%d')  # ← ADD PHT
 
     processed_dir = settings.PROCESSED_DATA_DIR
 
