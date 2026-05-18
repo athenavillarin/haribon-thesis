@@ -381,16 +381,53 @@ def get_location_detail(location_name: str):
 
 @router.get("/latest")
 def get_latest_forecast():
-    """Get the most recent forecast file available."""
+    """Get the most recent forecast file available; fallback to yesterday's, then most recent."""
+    from datetime import datetime, timedelta
+
+    today_str = datetime.now().strftime('%Y-%m-%d')
+    yesterday_str = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+
     processed_dir = settings.PROCESSED_DATA_DIR
-    files = sorted(processed_dir.glob("daily_forecast_*.json"), reverse=True)
 
-    if not files:
-        raise HTTPException(status_code=404, detail="No forecast file found")
-
-    with open(files[0], "r") as f:
-        data = json.load(f)
-    return data
+    #try today first
+    today_file = processed_dir / f"daily_forecast_{today_str}.json"
+    if today_file.exists():
+        with open(today_file, 'r') as f:
+            return json.load(f)
+    
+    #fallback to yesterday
+    yesterday_file = processed_dir / f"daily_forecast_{yesterday_str}.json"
+    if yesterday_file.exists():
+        with open(yesterday_file, 'r') as f:
+            data = json.load(f)
+            data["is_stale"] = True
+            data["stale_reason"] = "Today's forecast not ready yet. Showing yesterday's forecast." 
+            return data
+        
+    # Fallback: Try yesterday
+    yesterday_file = processed_dir / f"daily_forecast_{yesterday_str}.json"
+    if yesterday_file.exists():
+        with open(yesterday_file, 'r') as f:
+            data = json.load(f)
+            data["is_stale"] = True
+            data["stale_reason"] = "Today's forecast not ready yet. Showing yesterday's forecast."
+            return data
+    
+    # Final fallback: Most recent file if both today and yesterday missing
+    try:
+        files = list(processed_dir.glob("daily_forecast_*.json"))
+        if not files:
+            raise HTTPException(status_code=404, detail="No forecast files found")
+        
+        latest_file = max(files, key=lambda f: f.stat().st_mtime)
+        with open(latest_file, 'r') as f:
+            data = json.load(f)
+            data["is_stale"] = True
+            data["stale_reason"] = f"Showing forecast from {latest_file.stem.replace('daily_forecast_', '')} (older fallback)"
+            return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading forecast: {e}")
+    
 
 @router.get("/predict/{location_name}")
 def get_live_prediction(location_name: str):

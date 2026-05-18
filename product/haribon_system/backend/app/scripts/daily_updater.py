@@ -8,6 +8,7 @@ from sqlalchemy import Date
 from typing import Optional
 from types import SimpleNamespace
 from functools import lru_cache
+import pytz
 
 def _discover_repo_root(start_path: Path) -> Path:
     current = start_path.resolve()
@@ -627,7 +628,9 @@ def run_daily_update_with_5day_forecast():
     except Exception as exc:
         print(f"[WARN] Could not load location features from {settings.LOCATIONS_FILE_PATH}: {exc}")
 
-    today = datetime.now()
+        
+    pht = pytz.timezone('Asia/Manila')
+    today = datetime.now(pht)
     today_str = today.strftime('%Y-%m-%d')
     
     forecasts = []
