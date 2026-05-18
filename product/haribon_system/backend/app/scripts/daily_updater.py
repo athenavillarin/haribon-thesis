@@ -189,7 +189,7 @@ def _build_current_sequence_and_tab(location_df: pd.DataFrame, feature_row: dict
         return None, None, []
 
     row = {c: feature_row.get(c, np.nan) for c in feature_cols}
-    row["Date"] = pd.to_datetime(reference_date)
+    row["Date"] = pd.to_datetime(reference_date).tz_localize(None)
     appended = pd.concat([loc[["Date", *feature_cols]], pd.DataFrame([row])], ignore_index=True)
 
     # Keep the same robust fallback style as updater to avoid NaNs in sequence windows.
@@ -493,7 +493,7 @@ def _compute_recent_red_tide_signal(
     days_since_last_positive = None
     if not positive_rows.empty:
         last_positive_date = positive_rows.iloc[-1]["Date"]
-        days_since_last_positive = int((pd.to_datetime(reference_date) - last_positive_date).days)
+        days_since_last_positive = int((pd.to_datetime(reference_date).tz_localize(None) - last_positive_date).days)
 
     has_signal = False
     if days_since_last_positive is not None and days_since_last_positive <= 90:
