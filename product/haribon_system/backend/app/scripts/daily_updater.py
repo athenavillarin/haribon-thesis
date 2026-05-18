@@ -341,7 +341,7 @@ def _build_feature_row_with_fallbacks(
         if series.empty:
             return np.nan
 
-        target_ts = pd.to_datetime(reference_date)
+        target_ts = pd.to_datetime(reference_date).tz_localize(None)
         series = series[series["Date"] <= target_ts]
         if series.empty:
             return np.nan
@@ -481,8 +481,8 @@ def _compute_recent_red_tide_signal(
     loc_df = loc_df.sort_values("Date")
     loc_df["positive"] = (loc_df["red_tide_label"] >= 0.5).astype(int)
 
-    cutoff_90 = pd.to_datetime(reference_date) - pd.Timedelta(days=90)
-    cutoff_365 = pd.to_datetime(reference_date) - pd.Timedelta(days=365)
+    cutoff_90 = (pd.to_datetime(reference_date) - pd.Timedelta(days=90)).tz_localize(None)
+    cutoff_365 = (pd.to_datetime(reference_date) - pd.Timedelta(days=365)).tz_localize(None)
     recent_90 = loc_df[loc_df["Date"] >= cutoff_90]
     recent_365 = loc_df[loc_df["Date"] >= cutoff_365]
 
