@@ -139,15 +139,46 @@ def _load_best_xgboost_params(
 # Keras 2.x to 3.x Compatibility
 # ---------------------------------------------------------------------------
 
-def _patch_and_load_keras_model(model_path):
+def _build_lstm_model(n_features: int = 11, lookback: int = 30):
+    import tensorflow as tf
+    inp = tf.keras.layers.Input(shape=(lookback, n_features), name="input")
+    x = tf.keras.layers.Masking(mask_value=0.0, name="masking")(inp)
+    x = tf.keras.layers.LSTM(64, return_sequences=True, name="lstm_1")(x)
+    x = tf.keras.layers.Dropout(0.3, name="drop_1")(x)
+    x = tf.keras.layers.LSTM(32, return_sequences=False, name="lstm_2")(x)
+    x = tf.keras.layers.Dense(16, activation="relu", name="dense_1")(x)
+    out = tf.keras.layers.Dense(1, activation="sigmoid", name="output")(x)
+    return tf.keras.Model(inputs=inp, outputs=out)
+
+
+def _build_gru_model(n_features: int = 11, lookback: int = 30):
+    import tensorflow as tf
+    inp = tf.keras.layers.Input(shape=(lookback, n_features), name="input")
+    x = tf.keras.layers.Masking(mask_value=0.0, name="masking")(inp)
+    x = tf.keras.layers.GRU(64, return_sequences=True, name="gru_1")(x)
+    x = tf.keras.layers.Dropout(0.3, name="drop_1")(x)
+    x = tf.keras.layers.GRU(32, return_sequences=False, name="gru_2")(x)
+    x = tf.keras.layers.Dense(16, activation="relu", name="dense_1")(x)
+    out = tf.keras.layers.Dense(1, activation="sigmoid", name="output")(x)
+    return tf.keras.Model(inputs=inp, outputs=out)
+
+def _patch_and_load_keras_model(model_path, model_type: str = "lstm"):
     import tensorflow as tf
     model_path = Path(model_path)
-    
+
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model not found: {model_path}")
+
+    # Build architecture then load weights — version-agnostic
+    model = _build_lstm_model() if model_type == "lstm" else _build_gru_model()
     try:
+        model.load_weights(str(model_path))
+        print(f"    [DEBUG] Loaded weights into {model_type} architecture: {model_path.name}")
+        return model
+    except Exception:
+        # Fall back to full model load
+        print(f"    [DEBUG] Weight load failed, trying full model load: {model_path.name}")
         return tf.keras.models.load_model(str(model_path), compile=False, safe_mode=False)
-    except Exception as e:
-        print(f"    [DEBUG] Direct load failed: {e}")
-        raise
 
 
 # ---------------------------------------------------------------------------
