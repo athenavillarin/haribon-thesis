@@ -140,72 +140,14 @@ def _load_best_xgboost_params(
 # ---------------------------------------------------------------------------
 
 def _patch_and_load_keras_model(model_path):
-    """
-    Load old Keras 2.x model by patching class references in config.json.
-    The .keras file is a ZIP archive; we extract it, fix the config, and load it.
-    Preserves all trained weights without retraining.
-    """
-    import json
-    import tempfile
-    import zipfile
     import tensorflow as tf
-
     model_path = Path(model_path)
     
-    if not model_path.exists():
-        print(f"    [DEBUG] Model not found: {model_path}, trying direct load...")
-        return tf.keras.models.load_model(str(model_path), compile=False)
-    
     try:
-        # Create temp directory for extraction
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_dir = Path(temp_dir)
-            
-            # Extract the .keras file (it's a ZIP)
-            with zipfile.ZipFile(model_path, 'r') as z:
-                z.extractall(temp_dir)
-            
-            # Read config.json
-            config_path = temp_dir / 'config.json'
-            if not config_path.exists():
-                print(f"    [DEBUG] No config.json in {model_path}, using direct load...")
-                return tf.keras.models.load_model(str(model_path), compile=False)
-            
-            with open(config_path, 'r') as f:
-                config_str = f.read()
-            
-            # Patch old Keras 2.x paths to Keras 3.x equivalents
-            patches = {
-                'keras.src.models.functional': 'keras.models',
-                'keras.src.layers': 'keras.layers',
-                'keras.src.models': 'keras.models',
-                'keras.src.optimizers': 'keras.optimizers',
-            }
-            
-            for old_path, new_path in patches.items():
-                if old_path in config_str:
-                    print(f"    [DEBUG] Patching: {old_path} to {new_path}")
-                    config_str = config_str.replace(old_path, new_path)
-            
-            # Write patched config back
-            with open(config_path, 'w') as f:
-                f.write(config_str)
-            
-            # Re-zip into temp file
-            temp_model_path = temp_dir.parent / f"{model_path.stem}_patched.keras"
-            with zipfile.ZipFile(temp_model_path, 'w', zipfile.ZIP_DEFLATED) as z:
-                for file_path in temp_dir.rglob('*'):
-                    if file_path.is_file():
-                        arcname = file_path.relative_to(temp_dir)
-                        z.write(file_path, arcname)
-            
-            # Load the patched model
-            print(f"    [DEBUG] Loaded patched Keras model: {model_path.name}")
-            return tf.keras.models.load_model(str(temp_model_path), compile=False)
-            
-    except Exception as patch_error:
-        print(f"    [DEBUG] Patching failed: {type(patch_error).__name__}: {patch_error}, fallback to direct load...")
-        return tf.keras.models.load_model(str(model_path), compile=False)
+        return tf.keras.models.load_model(str(model_path), compile=False, safe_mode=False)
+    except Exception as e:
+        print(f"    [DEBUG] Direct load failed: {e}")
+        raise
 
 
 # ---------------------------------------------------------------------------
