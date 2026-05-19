@@ -176,10 +176,10 @@ def _patch_and_load_keras_model(model_path):
             
             # Patch old Keras 2.x paths to Keras 3.x equivalents
             patches = {
-                'keras.src.models.functional': 'keras.api.models',
-                'keras.src.layers': 'keras.api.layers',
-                'keras.src.models': 'keras.api.models',
-                'keras.src.optimizers': 'keras.api.optimizers',
+                'keras.src.models.functional': 'keras.models',
+                'keras.src.layers': 'keras.layers',
+                'keras.src.models': 'keras.models',
+                'keras.src.optimizers': 'keras.optimizers',
             }
             
             for old_path, new_path in patches.items():

@@ -19,3 +19,4 @@ pandas
 sqlalchemy
 tensorflow==2.19.0
 pytz
+torch
