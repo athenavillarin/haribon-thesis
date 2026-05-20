@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-05-19T18:12:16.118132",
+  "last_updated": "2026-05-20T00:44:51.032759",
   "system_version": "v2.0 (Ensemble (Weighted Average))",
   "manifest": {
     "path": "/home/runner/work/haribon-thesis/haribon-thesis/artifacts/THESIS_WINNERS.json",
@@ -13,7 +13,7 @@
       "longitude": 123.018,
       "date": "2026-05-20",
       "risk_level": "Moderate Risk",
-      "confidence": "55.1%",
+      "confidence": "54.3%",
       "red_tide_probability": "Moderate",
       "recommendations": [
         "Elevated risk detected.",
@@ -24,17 +24,17 @@
         "chl-a": 0.201,
         "sst": 25.68,
         "salinity": 34.09,
-        "rainfall": 0.1
+        "rainfall": 2.5
       },
       "environmental_data": {
         "Chlorophyll-a": "0.2 mg/m3",
         "Temperature": "25.68 \u00b0C",
         "Salinity (PSU)": "34.09 PSU",
         "MLD (m)": "10.35 m",
-        "Precipitation": "0.05 mm",
+        "Precipitation": "2.48 mm",
         "NDVI": "0.6657",
         "U-Wind Speed (m/s)": "-0.33 m/s",
-        "V-Wind Speed (m/s)": "-0.57 m/s",
+        "V-Wind Speed (m/s)": "-0.58 m/s",
         "U-VEL (m/s)": "-0.008 m/s",
         "V-VEL (m/s)": "0.006 m/s"
       },
@@ -47,7 +47,7 @@
         "environment_data_source": "cmems_gee_merged",
         "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
         "forecasting_model": "Ensemble (Weighted Average)",
-        "base_xgboost_probability": 0.363026,
+        "base_xgboost_probability": 0.331264,
         "final_probability_source": "weighted_avg_ensemble",
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -85,7 +85,7 @@
           "date": "2026-05-21",
           "day_label": "Thu",
           "risk_level": "Moderate Risk",
-          "confidence": "52.4%",
+          "confidence": "51.6%",
           "probability": "Moderate"
         },
         {
@@ -93,23 +93,23 @@
           "date": "2026-05-22",
           "day_label": "Fri",
           "risk_level": "Moderate Risk",
-          "confidence": "49.8%",
+          "confidence": "49.0%",
           "probability": "Moderate"
         },
         {
           "forecast_day": 3,
           "date": "2026-05-23",
           "day_label": "Sat",
-          "risk_level": "Moderate Risk",
-          "confidence": "47.3%",
-          "probability": "Moderate"
+          "risk_level": "Low Risk",
+          "confidence": "46.6%",
+          "probability": "Low"
         },
         {
           "forecast_day": 4,
           "date": "2026-05-24",
           "day_label": "Sun",
           "risk_level": "Low Risk",
-          "confidence": "44.9%",
+          "confidence": "44.3%",
           "probability": "Low"
         },
         {
@@ -117,7 +117,7 @@
           "date": "2026-05-25",
           "day_label": "Mon",
           "risk_level": "Low Risk",
-          "confidence": "42.7%",
+          "confidence": "42.0%",
           "probability": "Low"
         },
         {
@@ -125,7 +125,7 @@
           "date": "2026-05-26",
           "day_label": "Tue",
           "risk_level": "Low Risk",
-          "confidence": "40.5%",
+          "confidence": "39.9%",
           "probability": "Low"
         }
       ]
@@ -136,7 +136,7 @@
       "longitude": 123.3364,
       "date": "2026-05-20",
       "risk_level": "Low Risk",
-      "confidence": "68.9%",
+      "confidence": "68.7%",
       "red_tide_probability": "Low",
       "recommendations": [
         "Conditions are favorable.",
@@ -147,17 +147,17 @@
         "chl-a": 0.35,
         "sst": 30.12,
         "salinity": 34.16,
-        "rainfall": 0.0
+        "rainfall": 1.4
       },
       "environmental_data": {
         "Chlorophyll-a": "0.35 mg/m3",
         "Temperature": "30.12 \u00b0C",
         "Salinity (PSU)": "34.16 PSU",
         "MLD (m)": "11.03 m",
-        "Precipitation": "0.0 mm",
+        "Precipitation": "1.4 mm",
         "NDVI": "-0.0723",
-        "U-Wind Speed (m/s)": "-0.48 m/s",
-        "V-Wind Speed (m/s)": "0.69 m/s",
+        "U-Wind Speed (m/s)": "-0.57 m/s",
+        "V-Wind Speed (m/s)": "0.61 m/s",
         "U-VEL (m/s)": "-0.032 m/s",
         "V-VEL (m/s)": "0.016 m/s"
       },
@@ -170,7 +170,7 @@
         "environment_data_source": "cmems_gee_merged",
         "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
         "forecasting_model": "Ensemble (Weighted Average)",
-        "base_xgboost_probability": 0.784174,
+        "base_xgboost_probability": 0.792717,
         "final_probability_source": "weighted_avg_ensemble",
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -206,7 +206,7 @@
           "date": "2026-05-21",
           "day_label": "Thu",
           "risk_level": "Low Risk",
-          "confidence": "65.5%",
+          "confidence": "65.3%",
           "probability": "Low"
         },
         {
@@ -214,7 +214,7 @@
           "date": "2026-05-22",
           "day_label": "Fri",
           "risk_level": "Low Risk",
-          "confidence": "62.2%",
+          "confidence": "62.0%",
           "probability": "Low"
         },
         {
@@ -222,7 +222,7 @@
           "date": "2026-05-23",
           "day_label": "Sat",
           "risk_level": "Low Risk",
-          "confidence": "59.1%",
+          "confidence": "58.9%",
           "probability": "Low"
         },
         {
@@ -230,7 +230,7 @@
           "date": "2026-05-24",
           "day_label": "Sun",
           "risk_level": "Low Risk",
-          "confidence": "56.1%",
+          "confidence": "56.0%",
           "probability": "Low"
         },
         {
@@ -238,7 +238,7 @@
           "date": "2026-05-25",
           "day_label": "Mon",
           "risk_level": "Low Risk",
-          "confidence": "53.3%",
+          "confidence": "53.2%",
           "probability": "Low"
         },
         {
@@ -246,7 +246,7 @@
           "date": "2026-05-26",
           "day_label": "Tue",
           "risk_level": "Low Risk",
-          "confidence": "50.7%",
+          "confidence": "50.5%",
           "probability": "Low"
         }
       ]
@@ -257,7 +257,7 @@
       "longitude": 125.55,
       "date": "2026-05-20",
       "risk_level": "Moderate Risk",
-      "confidence": "67.8%",
+      "confidence": "68.5%",
       "red_tide_probability": "Moderate",
       "recommendations": [
         "Elevated risk detected.",
@@ -268,17 +268,17 @@
         "chl-a": 0.206,
         "sst": 25.68,
         "salinity": 34.09,
-        "rainfall": 0.0
+        "rainfall": 4.3
       },
       "environmental_data": {
         "Chlorophyll-a": "0.21 mg/m3",
         "Temperature": "25.68 \u00b0C",
         "Salinity (PSU)": "34.09 PSU",
         "MLD (m)": "10.35 m",
-        "Precipitation": "0.0 mm",
+        "Precipitation": "4.26 mm",
         "NDVI": "0.6346",
-        "U-Wind Speed (m/s)": "-0.39 m/s",
-        "V-Wind Speed (m/s)": "-0.54 m/s",
+        "U-Wind Speed (m/s)": "-0.4 m/s",
+        "V-Wind Speed (m/s)": "-0.56 m/s",
         "U-VEL (m/s)": "-0.008 m/s",
         "V-VEL (m/s)": "0.006 m/s"
       },
@@ -291,7 +291,7 @@
         "environment_data_source": "cmems_gee_merged",
         "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
         "forecasting_model": "Ensemble (Weighted Average)",
-        "base_xgboost_probability": 0.356501,
+        "base_xgboost_probability": 0.331264,
         "final_probability_source": "weighted_avg_ensemble",
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -329,7 +329,7 @@
           "date": "2026-05-21",
           "day_label": "Thu",
           "risk_level": "Low Risk",
-          "confidence": "64.5%",
+          "confidence": "65.1%",
           "probability": "Low"
         },
         {
@@ -337,7 +337,7 @@
           "date": "2026-05-22",
           "day_label": "Fri",
           "risk_level": "Low Risk",
-          "confidence": "61.2%",
+          "confidence": "61.8%",
           "probability": "Low"
         },
         {
@@ -345,7 +345,7 @@
           "date": "2026-05-23",
           "day_label": "Sat",
           "risk_level": "Low Risk",
-          "confidence": "58.2%",
+          "confidence": "58.7%",
           "probability": "Low"
         },
         {
@@ -353,7 +353,7 @@
           "date": "2026-05-24",
           "day_label": "Sun",
           "risk_level": "Low Risk",
-          "confidence": "55.3%",
+          "confidence": "55.8%",
           "probability": "Low"
         },
         {
@@ -361,7 +361,7 @@
           "date": "2026-05-25",
           "day_label": "Mon",
           "risk_level": "Low Risk",
-          "confidence": "52.5%",
+          "confidence": "53.0%",
           "probability": "Low"
         },
         {
@@ -369,7 +369,7 @@
           "date": "2026-05-26",
           "day_label": "Tue",
           "risk_level": "Low Risk",
-          "confidence": "49.9%",
+          "confidence": "50.3%",
           "probability": "Low"
         }
       ]
@@ -391,17 +391,17 @@
         "chl-a": 0.307,
         "sst": 28.4,
         "salinity": 34.08,
-        "rainfall": 2.4
+        "rainfall": 5.7
       },
       "environmental_data": {
         "Chlorophyll-a": "0.31 mg/m3",
         "Temperature": "28.4 \u00b0C",
         "Salinity (PSU)": "34.08 PSU",
         "MLD (m)": "10.53 m",
-        "Precipitation": "2.42 mm",
+        "Precipitation": "5.69 mm",
         "NDVI": "0.1793",
-        "U-Wind Speed (m/s)": "-0.88 m/s",
-        "V-Wind Speed (m/s)": "0.0 m/s",
+        "U-Wind Speed (m/s)": "-0.92 m/s",
+        "V-Wind Speed (m/s)": "-0.04 m/s",
         "U-VEL (m/s)": "-0.018 m/s",
         "V-VEL (m/s)": "0.012 m/s"
       },
@@ -514,17 +514,17 @@
         "chl-a": 0.305,
         "sst": 28.55,
         "salinity": 34.03,
-        "rainfall": 1.8
+        "rainfall": 6.1
       },
       "environmental_data": {
         "Chlorophyll-a": "0.31 mg/m3",
         "Temperature": "28.55 \u00b0C",
         "Salinity (PSU)": "34.03 PSU",
         "MLD (m)": "10.51 m",
-        "Precipitation": "1.83 mm",
+        "Precipitation": "6.14 mm",
         "NDVI": "0.2471",
-        "U-Wind Speed (m/s)": "-0.84 m/s",
-        "V-Wind Speed (m/s)": "0.14 m/s",
+        "U-Wind Speed (m/s)": "-0.87 m/s",
+        "V-Wind Speed (m/s)": "0.08 m/s",
         "U-VEL (m/s)": "-0.016 m/s",
         "V-VEL (m/s)": "0.009 m/s"
       },
@@ -607,7 +607,7 @@
           "date": "2026-05-25",
           "day_label": "Mon",
           "risk_level": "Low Risk",
-          "confidence": "52.5%",
+          "confidence": "52.4%",
           "probability": "Low"
         },
         {
@@ -626,7 +626,7 @@
       "longitude": 122.7511,
       "date": "2026-05-20",
       "risk_level": "Low Risk",
-      "confidence": "66.3%",
+      "confidence": "66.2%",
       "red_tide_probability": "Low",
       "recommendations": [
         "Conditions are favorable.",
@@ -637,17 +637,17 @@
         "chl-a": 0.301,
         "sst": 28.13,
         "salinity": 34.03,
-        "rainfall": 0.0
+        "rainfall": 17.4
       },
       "environmental_data": {
         "Chlorophyll-a": "0.3 mg/m3",
         "Temperature": "28.13 \u00b0C",
         "Salinity (PSU)": "34.03 PSU",
         "MLD (m)": "10.47 m",
-        "Precipitation": "0.0 mm",
+        "Precipitation": "17.38 mm",
         "NDVI": "0.5328",
-        "U-Wind Speed (m/s)": "-0.68 m/s",
-        "V-Wind Speed (m/s)": "-0.01 m/s",
+        "U-Wind Speed (m/s)": "-0.71 m/s",
+        "V-Wind Speed (m/s)": "-0.06 m/s",
         "U-VEL (m/s)": "-0.013 m/s",
         "V-VEL (m/s)": "0.011 m/s"
       },
@@ -660,7 +660,7 @@
         "environment_data_source": "cmems_gee_merged",
         "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
         "forecasting_model": "Ensemble (Weighted Average)",
-        "base_xgboost_probability": 0.944219,
+        "base_xgboost_probability": 0.949871,
         "final_probability_source": "weighted_avg_ensemble",
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -698,7 +698,7 @@
           "date": "2026-05-21",
           "day_label": "Thu",
           "risk_level": "Low Risk",
-          "confidence": "63.0%",
+          "confidence": "62.9%",
           "probability": "Low"
         },
         {
@@ -706,7 +706,7 @@
           "date": "2026-05-22",
           "day_label": "Fri",
           "risk_level": "Low Risk",
-          "confidence": "59.8%",
+          "confidence": "59.7%",
           "probability": "Low"
         },
         {
@@ -714,7 +714,7 @@
           "date": "2026-05-23",
           "day_label": "Sat",
           "risk_level": "Low Risk",
-          "confidence": "56.9%",
+          "confidence": "56.7%",
           "probability": "Low"
         },
         {
@@ -722,7 +722,7 @@
           "date": "2026-05-24",
           "day_label": "Sun",
           "risk_level": "Low Risk",
-          "confidence": "54.0%",
+          "confidence": "53.9%",
           "probability": "Low"
         },
         {
@@ -730,7 +730,7 @@
           "date": "2026-05-25",
           "day_label": "Mon",
           "risk_level": "Low Risk",
-          "confidence": "51.3%",
+          "confidence": "51.2%",
           "probability": "Low"
         },
         {
@@ -738,7 +738,7 @@
           "date": "2026-05-26",
           "day_label": "Tue",
           "risk_level": "Low Risk",
-          "confidence": "48.7%",
+          "confidence": "48.6%",
           "probability": "Low"
         }
       ]
@@ -749,7 +749,7 @@
       "longitude": 122.6186,
       "date": "2026-05-20",
       "risk_level": "Very Low Risk",
-      "confidence": "85.1%",
+      "confidence": "85.4%",
       "red_tide_probability": "Very",
       "recommendations": [
         "Conditions are favorable.",
@@ -760,17 +760,17 @@
         "chl-a": 0.251,
         "sst": 26.34,
         "salinity": 34.09,
-        "rainfall": 0.1
+        "rainfall": 16.0
       },
       "environmental_data": {
         "Chlorophyll-a": "0.25 mg/m3",
         "Temperature": "26.34 \u00b0C",
         "Salinity (PSU)": "34.09 PSU",
         "MLD (m)": "10.23 m",
-        "Precipitation": "0.05 mm",
+        "Precipitation": "15.97 mm",
         "NDVI": "0.7259",
-        "U-Wind Speed (m/s)": "-0.5 m/s",
-        "V-Wind Speed (m/s)": "-0.36 m/s",
+        "U-Wind Speed (m/s)": "-0.51 m/s",
+        "V-Wind Speed (m/s)": "-0.4 m/s",
         "U-VEL (m/s)": "-0.006 m/s",
         "V-VEL (m/s)": "0.009 m/s"
       },
@@ -783,7 +783,7 @@
         "environment_data_source": "cmems_gee_merged",
         "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
         "forecasting_model": "Ensemble (Weighted Average)",
-        "base_xgboost_probability": 0.12105,
+        "base_xgboost_probability": 0.106906,
         "final_probability_source": "weighted_avg_ensemble",
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -821,7 +821,7 @@
           "date": "2026-05-21",
           "day_label": "Thu",
           "risk_level": "Low Risk",
-          "confidence": "80.8%",
+          "confidence": "81.2%",
           "probability": "Low"
         },
         {
@@ -829,7 +829,7 @@
           "date": "2026-05-22",
           "day_label": "Fri",
           "risk_level": "Low Risk",
-          "confidence": "76.8%",
+          "confidence": "77.1%",
           "probability": "Low"
         },
         {
@@ -837,7 +837,7 @@
           "date": "2026-05-23",
           "day_label": "Sat",
           "risk_level": "Low Risk",
-          "confidence": "72.9%",
+          "confidence": "73.2%",
           "probability": "Low"
         },
         {
@@ -845,7 +845,7 @@
           "date": "2026-05-24",
           "day_label": "Sun",
           "risk_level": "Low Risk",
-          "confidence": "69.3%",
+          "confidence": "69.6%",
           "probability": "Low"
         },
         {
@@ -853,7 +853,7 @@
           "date": "2026-05-25",
           "day_label": "Mon",
           "risk_level": "Low Risk",
-          "confidence": "65.8%",
+          "confidence": "66.1%",
           "probability": "Low"
         },
         {
@@ -861,7 +861,7 @@
           "date": "2026-05-26",
           "day_label": "Tue",
           "risk_level": "Low Risk",
-          "confidence": "62.5%",
+          "confidence": "62.8%",
           "probability": "Low"
         }
       ]
