@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-06-01T20:27:06.112409",
+  "last_updated": "2026-06-02T03:05:43.450273",
   "system_version": "v2.0 (Ensemble (Weighted Average))",
   "manifest": {
     "path": "/home/runner/work/haribon-thesis/haribon-thesis/artifacts/THESIS_WINNERS.json",
@@ -21,27 +21,27 @@
         "Check for latest local advisories."
       ],
       "contributing_factors": {
-        "chl-a": 1.014,
+        "chl-a": 0.385,
         "sst": 25.9,
         "salinity": 34.1,
         "rainfall": 31.8
       },
       "environmental_data": {
-        "Chlorophyll-a": "1.01 mg/m3",
+        "Chlorophyll-a": "0.39 mg/m3",
         "Temperature": "25.9 \u00b0C",
         "Salinity (PSU)": "34.1 PSU",
         "MLD (m)": "15.54 m",
         "Precipitation": "31.82 mm",
         "NDVI": "0.6932",
-        "U-Wind Speed (m/s)": "-0.0 m/s",
-        "V-Wind Speed (m/s)": "0.37 m/s",
+        "U-Wind Speed (m/s)": "-0.01 m/s",
+        "V-Wind Speed (m/s)": "0.34 m/s",
         "U-VEL (m/s)": "0.022 m/s",
         "V-VEL (m/s)": "-0.005 m/s"
       },
       "data_quality": {
-        "quality_score": 0.91,
+        "quality_score": 1.0,
         "confidence_level": "High",
-        "critical_features_available": 3,
+        "critical_features_available": 4,
         "critical_features_total": 4,
         "coverage_note": "sufficient",
         "environment_data_source": "cmems_gee_merged",
@@ -50,7 +50,7 @@
         "base_xgboost_probability": 0.546851,
         "final_probability_source": "weighted_avg_ensemble",
         "environment_imputation_sources": {
-          "CHL": "climatological_location_month",
+          "CHL": "observed",
           "thetao": "observed",
           "so": "observed",
           "precip_mm_day": "observed",
@@ -136,7 +136,7 @@
       "longitude": 123.3364,
       "date": "2026-06-02",
       "risk_level": "Low Risk",
-      "confidence": "67.1%",
+      "confidence": "67.2%",
       "red_tide_probability": "Low",
       "recommendations": [
         "Conditions are favorable.",
@@ -144,27 +144,27 @@
         "Continue regular monitoring."
       ],
       "contributing_factors": {
-        "chl-a": 0.625,
+        "chl-a": 0.607,
         "sst": 30.38,
         "salinity": 34.11,
         "rainfall": 0.0
       },
       "environmental_data": {
-        "Chlorophyll-a": "0.63 mg/m3",
+        "Chlorophyll-a": "0.61 mg/m3",
         "Temperature": "30.38 \u00b0C",
         "Salinity (PSU)": "34.11 PSU",
         "MLD (m)": "14.45 m",
         "Precipitation": "0.0 mm",
         "NDVI": "-0.0809",
-        "U-Wind Speed (m/s)": "4.0 m/s",
-        "V-Wind Speed (m/s)": "5.4 m/s",
+        "U-Wind Speed (m/s)": "3.71 m/s",
+        "V-Wind Speed (m/s)": "5.17 m/s",
         "U-VEL (m/s)": "0.062 m/s",
         "V-VEL (m/s)": "-0.009 m/s"
       },
       "data_quality": {
-        "quality_score": 0.82,
+        "quality_score": 0.91,
         "confidence_level": "High",
-        "critical_features_available": 3,
+        "critical_features_available": 4,
         "critical_features_total": 4,
         "coverage_note": "sufficient",
         "environment_data_source": "cmems_gee_merged",
@@ -173,7 +173,7 @@
         "base_xgboost_probability": 0.853235,
         "final_probability_source": "weighted_avg_ensemble",
         "environment_imputation_sources": {
-          "CHL": "climatological_location_month",
+          "CHL": "observed",
           "thetao": "observed",
           "so": "observed",
           "precip_mm_day": "observed",
@@ -265,27 +265,27 @@
         "Check for latest local advisories."
       ],
       "contributing_factors": {
-        "chl-a": 0.569,
+        "chl-a": 0.414,
         "sst": 25.9,
         "salinity": 34.1,
         "rainfall": 32.9
       },
       "environmental_data": {
-        "Chlorophyll-a": "0.57 mg/m3",
+        "Chlorophyll-a": "0.41 mg/m3",
         "Temperature": "25.9 \u00b0C",
         "Salinity (PSU)": "34.1 PSU",
         "MLD (m)": "15.54 m",
         "Precipitation": "32.94 mm",
         "NDVI": "0.7126",
-        "U-Wind Speed (m/s)": "0.12 m/s",
-        "V-Wind Speed (m/s)": "0.6 m/s",
-        "U-VEL (m/s)": "0.022 m/s",
+        "U-Wind Speed (m/s)": "0.1 m/s",
+        "V-Wind Speed (m/s)": "0.56 m/s",
+        "U-VEL (m/s)": "0.023 m/s",
         "V-VEL (m/s)": "-0.005 m/s"
       },
       "data_quality": {
-        "quality_score": 0.91,
+        "quality_score": 1.0,
         "confidence_level": "High",
-        "critical_features_available": 3,
+        "critical_features_available": 4,
         "critical_features_total": 4,
         "coverage_note": "sufficient",
         "environment_data_source": "cmems_gee_merged",
@@ -294,7 +294,7 @@
         "base_xgboost_probability": 0.546851,
         "final_probability_source": "weighted_avg_ensemble",
         "environment_imputation_sources": {
-          "CHL": "climatological_location_month",
+          "CHL": "observed",
           "thetao": "observed",
           "so": "observed",
           "precip_mm_day": "observed",
@@ -380,7 +380,7 @@
       "longitude": 122.941,
       "date": "2026-06-02",
       "risk_level": "Low Risk",
-      "confidence": "66.6%",
+      "confidence": "66.9%",
       "red_tide_probability": "Low",
       "recommendations": [
         "Conditions are favorable.",
@@ -388,36 +388,36 @@
         "Continue regular monitoring."
       ],
       "contributing_factors": {
-        "chl-a": 1.323,
+        "chl-a": 0.591,
         "sst": 28.72,
         "salinity": 34.07,
         "rainfall": 11.6
       },
       "environmental_data": {
-        "Chlorophyll-a": "1.32 mg/m3",
+        "Chlorophyll-a": "0.59 mg/m3",
         "Temperature": "28.72 \u00b0C",
         "Salinity (PSU)": "34.07 PSU",
         "MLD (m)": "14.42 m",
         "Precipitation": "11.6 mm",
         "NDVI": "0.2739",
-        "U-Wind Speed (m/s)": "1.14 m/s",
-        "V-Wind Speed (m/s)": "2.34 m/s",
-        "U-VEL (m/s)": "0.029 m/s",
+        "U-Wind Speed (m/s)": "1.03 m/s",
+        "V-Wind Speed (m/s)": "2.22 m/s",
+        "U-VEL (m/s)": "0.026 m/s",
         "V-VEL (m/s)": "-0.0 m/s"
       },
       "data_quality": {
-        "quality_score": 0.91,
+        "quality_score": 1.0,
         "confidence_level": "High",
-        "critical_features_available": 3,
+        "critical_features_available": 4,
         "critical_features_total": 4,
         "coverage_note": "sufficient",
         "environment_data_source": "cmems_gee_merged",
         "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
         "forecasting_model": "Ensemble (Weighted Average)",
-        "base_xgboost_probability": 0.828479,
+        "base_xgboost_probability": 0.816504,
         "final_probability_source": "weighted_avg_ensemble",
         "environment_imputation_sources": {
-          "CHL": "climatological_location_month",
+          "CHL": "observed",
           "thetao": "observed",
           "so": "observed",
           "precip_mm_day": "observed",
@@ -452,7 +452,7 @@
           "date": "2026-06-03",
           "day_label": "Wed",
           "risk_level": "Low Risk",
-          "confidence": "63.3%",
+          "confidence": "63.6%",
           "probability": "Low"
         },
         {
@@ -460,7 +460,7 @@
           "date": "2026-06-04",
           "day_label": "Thu",
           "risk_level": "Low Risk",
-          "confidence": "60.1%",
+          "confidence": "60.4%",
           "probability": "Low"
         },
         {
@@ -468,7 +468,7 @@
           "date": "2026-06-05",
           "day_label": "Fri",
           "risk_level": "Low Risk",
-          "confidence": "57.1%",
+          "confidence": "57.4%",
           "probability": "Low"
         },
         {
@@ -476,7 +476,7 @@
           "date": "2026-06-06",
           "day_label": "Sat",
           "risk_level": "Low Risk",
-          "confidence": "54.3%",
+          "confidence": "54.5%",
           "probability": "Low"
         },
         {
@@ -484,7 +484,7 @@
           "date": "2026-06-07",
           "day_label": "Sun",
           "risk_level": "Low Risk",
-          "confidence": "51.5%",
+          "confidence": "51.8%",
           "probability": "Low"
         },
         {
@@ -492,7 +492,7 @@
           "date": "2026-06-08",
           "day_label": "Mon",
           "risk_level": "Low Risk",
-          "confidence": "49.0%",
+          "confidence": "49.2%",
           "probability": "Low"
         }
       ]
@@ -503,7 +503,7 @@
       "longitude": 122.914,
       "date": "2026-06-02",
       "risk_level": "Low Risk",
-      "confidence": "66.2%",
+      "confidence": "58.6%",
       "red_tide_probability": "Low",
       "recommendations": [
         "Conditions are favorable.",
@@ -511,36 +511,36 @@
         "Continue regular monitoring."
       ],
       "contributing_factors": {
-        "chl-a": 2.467,
+        "chl-a": 0.595,
         "sst": 28.85,
         "salinity": 34.03,
         "rainfall": 12.5
       },
       "environmental_data": {
-        "Chlorophyll-a": "2.47 mg/m3",
+        "Chlorophyll-a": "0.6 mg/m3",
         "Temperature": "28.85 \u00b0C",
         "Salinity (PSU)": "34.03 PSU",
         "MLD (m)": "13.78 m",
         "Precipitation": "12.51 mm",
         "NDVI": "0.2694",
-        "U-Wind Speed (m/s)": "1.46 m/s",
-        "V-Wind Speed (m/s)": "3.0 m/s",
-        "U-VEL (m/s)": "0.017 m/s",
+        "U-Wind Speed (m/s)": "1.35 m/s",
+        "V-Wind Speed (m/s)": "2.87 m/s",
+        "U-VEL (m/s)": "0.012 m/s",
         "V-VEL (m/s)": "0.004 m/s"
       },
       "data_quality": {
-        "quality_score": 0.91,
+        "quality_score": 1.0,
         "confidence_level": "High",
-        "critical_features_available": 3,
+        "critical_features_available": 4,
         "critical_features_total": 4,
         "coverage_note": "sufficient",
         "environment_data_source": "cmems_gee_merged",
         "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
         "forecasting_model": "Ensemble (Weighted Average)",
-        "base_xgboost_probability": 0.823841,
+        "base_xgboost_probability": 0.813873,
         "final_probability_source": "weighted_avg_ensemble",
         "environment_imputation_sources": {
-          "CHL": "climatological_location_month",
+          "CHL": "observed",
           "thetao": "observed",
           "so": "observed",
           "precip_mm_day": "observed",
@@ -575,7 +575,7 @@
           "date": "2026-06-03",
           "day_label": "Wed",
           "risk_level": "Low Risk",
-          "confidence": "62.9%",
+          "confidence": "55.6%",
           "probability": "Low"
         },
         {
@@ -583,7 +583,7 @@
           "date": "2026-06-04",
           "day_label": "Thu",
           "risk_level": "Low Risk",
-          "confidence": "59.8%",
+          "confidence": "52.9%",
           "probability": "Low"
         },
         {
@@ -591,7 +591,7 @@
           "date": "2026-06-05",
           "day_label": "Fri",
           "risk_level": "Low Risk",
-          "confidence": "56.8%",
+          "confidence": "50.2%",
           "probability": "Low"
         },
         {
@@ -599,7 +599,7 @@
           "date": "2026-06-06",
           "day_label": "Sat",
           "risk_level": "Low Risk",
-          "confidence": "53.9%",
+          "confidence": "47.7%",
           "probability": "Low"
         },
         {
@@ -607,7 +607,7 @@
           "date": "2026-06-07",
           "day_label": "Sun",
           "risk_level": "Low Risk",
-          "confidence": "51.2%",
+          "confidence": "45.3%",
           "probability": "Low"
         },
         {
@@ -615,7 +615,7 @@
           "date": "2026-06-08",
           "day_label": "Mon",
           "risk_level": "Low Risk",
-          "confidence": "48.7%",
+          "confidence": "43.1%",
           "probability": "Low"
         }
       ]
@@ -634,27 +634,27 @@
         "Continue regular monitoring."
       ],
       "contributing_factors": {
-        "chl-a": 0.968,
+        "chl-a": 0.6,
         "sst": 28.43,
-        "salinity": 34.04,
+        "salinity": 34.05,
         "rainfall": 5.7
       },
       "environmental_data": {
-        "Chlorophyll-a": "0.97 mg/m3",
+        "Chlorophyll-a": "0.6 mg/m3",
         "Temperature": "28.43 \u00b0C",
-        "Salinity (PSU)": "34.04 PSU",
+        "Salinity (PSU)": "34.05 PSU",
         "MLD (m)": "13.5 m",
         "Precipitation": "5.74 mm",
         "NDVI": "0.499",
-        "U-Wind Speed (m/s)": "1.18 m/s",
-        "V-Wind Speed (m/s)": "2.77 m/s",
-        "U-VEL (m/s)": "0.009 m/s",
+        "U-Wind Speed (m/s)": "1.1 m/s",
+        "V-Wind Speed (m/s)": "2.63 m/s",
+        "U-VEL (m/s)": "0.006 m/s",
         "V-VEL (m/s)": "0.002 m/s"
       },
       "data_quality": {
-        "quality_score": 0.91,
+        "quality_score": 1.0,
         "confidence_level": "High",
-        "critical_features_available": 3,
+        "critical_features_available": 4,
         "critical_features_total": 4,
         "coverage_note": "sufficient",
         "environment_data_source": "cmems_gee_merged",
@@ -663,7 +663,7 @@
         "base_xgboost_probability": 0.962411,
         "final_probability_source": "weighted_avg_ensemble",
         "environment_imputation_sources": {
-          "CHL": "climatological_location_month",
+          "CHL": "observed",
           "thetao": "observed",
           "so": "observed",
           "precip_mm_day": "observed",
@@ -757,27 +757,27 @@
         "Continue regular monitoring."
       ],
       "contributing_factors": {
-        "chl-a": 1.463,
+        "chl-a": 0.51,
         "sst": 26.61,
-        "salinity": 34.1,
+        "salinity": 34.11,
         "rainfall": 7.5
       },
       "environmental_data": {
-        "Chlorophyll-a": "1.46 mg/m3",
+        "Chlorophyll-a": "0.51 mg/m3",
         "Temperature": "26.61 \u00b0C",
-        "Salinity (PSU)": "34.1 PSU",
+        "Salinity (PSU)": "34.11 PSU",
         "MLD (m)": "13.83 m",
         "Precipitation": "7.46 mm",
         "NDVI": "0.4492",
-        "U-Wind Speed (m/s)": "0.59 m/s",
-        "V-Wind Speed (m/s)": "1.8 m/s",
-        "U-VEL (m/s)": "0.008 m/s",
+        "U-Wind Speed (m/s)": "0.55 m/s",
+        "V-Wind Speed (m/s)": "1.69 m/s",
+        "U-VEL (m/s)": "0.009 m/s",
         "V-VEL (m/s)": "-0.003 m/s"
       },
       "data_quality": {
-        "quality_score": 0.91,
+        "quality_score": 1.0,
         "confidence_level": "High",
-        "critical_features_available": 3,
+        "critical_features_available": 4,
         "critical_features_total": 4,
         "coverage_note": "sufficient",
         "environment_data_source": "cmems_gee_merged",
@@ -786,7 +786,7 @@
         "base_xgboost_probability": 0.967836,
         "final_probability_source": "weighted_avg_ensemble",
         "environment_imputation_sources": {
-          "CHL": "climatological_location_month",
+          "CHL": "observed",
           "thetao": "observed",
           "so": "observed",
           "precip_mm_day": "observed",
