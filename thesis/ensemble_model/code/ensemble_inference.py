@@ -139,73 +139,46 @@ def _load_best_xgboost_params(
 # Keras 2.x to 3.x Compatibility
 # ---------------------------------------------------------------------------
 
-def _patch_and_load_keras_model(model_path):
-    """
-    Load old Keras 2.x model by patching class references in config.json.
-    The .keras file is a ZIP archive; we extract it, fix the config, and load it.
-    Preserves all trained weights without retraining.
-    """
-    import json
-    import tempfile
-    import zipfile
+def _build_lstm_model(n_features: int = 11, lookback: int = 30):
     import tensorflow as tf
+    inp = tf.keras.layers.Input(shape=(lookback, n_features), name="input")
+    x = tf.keras.layers.Masking(mask_value=0.0, name="masking")(inp)
+    x = tf.keras.layers.LSTM(64, return_sequences=True, name="lstm_1")(x)
+    x = tf.keras.layers.Dropout(0.3, name="drop_1")(x)
+    x = tf.keras.layers.LSTM(32, return_sequences=False, name="lstm_2")(x)
+    x = tf.keras.layers.Dense(16, activation="relu", name="dense_1")(x)
+    out = tf.keras.layers.Dense(1, activation="sigmoid", name="output")(x)
+    return tf.keras.Model(inputs=inp, outputs=out)
 
+
+def _build_gru_model(n_features: int = 11, lookback: int = 30):
+    import tensorflow as tf
+    inp = tf.keras.layers.Input(shape=(lookback, n_features), name="input")
+    x = tf.keras.layers.Masking(mask_value=0.0, name="masking")(inp)
+    x = tf.keras.layers.GRU(64, return_sequences=True, name="gru_1")(x)
+    x = tf.keras.layers.Dropout(0.3, name="drop_1")(x)
+    x = tf.keras.layers.GRU(32, return_sequences=False, name="gru_2")(x)
+    x = tf.keras.layers.Dense(16, activation="relu", name="dense_1")(x)
+    out = tf.keras.layers.Dense(1, activation="sigmoid", name="output")(x)
+    return tf.keras.Model(inputs=inp, outputs=out)
+
+def _patch_and_load_keras_model(model_path, model_type: str = "lstm"):
+    import tensorflow as tf
     model_path = Path(model_path)
-    
+
     if not model_path.exists():
-        print(f"    [DEBUG] Model not found: {model_path}, trying direct load...")
-        return tf.keras.models.load_model(str(model_path), compile=False)
-    
+        raise FileNotFoundError(f"Model not found: {model_path}")
+
+    # Build architecture then load weights — version-agnostic
+    model = _build_lstm_model() if model_type == "lstm" else _build_gru_model()
     try:
-        # Create temp directory for extraction
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_dir = Path(temp_dir)
-            
-            # Extract the .keras file (it's a ZIP)
-            with zipfile.ZipFile(model_path, 'r') as z:
-                z.extractall(temp_dir)
-            
-            # Read config.json
-            config_path = temp_dir / 'config.json'
-            if not config_path.exists():
-                print(f"    [DEBUG] No config.json in {model_path}, using direct load...")
-                return tf.keras.models.load_model(str(model_path), compile=False)
-            
-            with open(config_path, 'r') as f:
-                config_str = f.read()
-            
-            # Patch old Keras 2.x paths to Keras 3.x equivalents
-            patches = {
-                'keras.src.models.functional': 'keras.api.models',
-                'keras.src.layers': 'keras.api.layers',
-                'keras.src.models': 'keras.api.models',
-                'keras.src.optimizers': 'keras.api.optimizers',
-            }
-            
-            for old_path, new_path in patches.items():
-                if old_path in config_str:
-                    print(f"    [DEBUG] Patching: {old_path} to {new_path}")
-                    config_str = config_str.replace(old_path, new_path)
-            
-            # Write patched config back
-            with open(config_path, 'w') as f:
-                f.write(config_str)
-            
-            # Re-zip into temp file
-            temp_model_path = temp_dir.parent / f"{model_path.stem}_patched.keras"
-            with zipfile.ZipFile(temp_model_path, 'w', zipfile.ZIP_DEFLATED) as z:
-                for file_path in temp_dir.rglob('*'):
-                    if file_path.is_file():
-                        arcname = file_path.relative_to(temp_dir)
-                        z.write(file_path, arcname)
-            
-            # Load the patched model
-            print(f"    [DEBUG] Loaded patched Keras model: {model_path.name}")
-            return tf.keras.models.load_model(str(temp_model_path), compile=False)
-            
-    except Exception as patch_error:
-        print(f"    [DEBUG] Patching failed: {type(patch_error).__name__}: {patch_error}, fallback to direct load...")
-        return tf.keras.models.load_model(str(model_path), compile=False)
+        model.load_weights(str(model_path))
+        print(f"    [DEBUG] Loaded weights into {model_type} architecture: {model_path.name}")
+        return model
+    except Exception:
+        # Fall back to full model load
+        print(f"    [DEBUG] Weight load failed, trying full model load: {model_path.name}")
+        return tf.keras.models.load_model(str(model_path), compile=False, safe_mode=False)
 
 
 # ---------------------------------------------------------------------------
