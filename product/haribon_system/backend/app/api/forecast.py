@@ -3,6 +3,7 @@ import json
 from datetime import datetime, date, timedelta
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 import pytz
+from requests import session
 from app.core.config import settings
 from app.core.schemas import ForecastResponse, SimplifiedForecastResponse
 import pandas as pd
@@ -40,7 +41,29 @@ def _resolve_historical_dataset_path() -> Path:
     )
 
 def _load_latest_forecast_data():
-    """Helper to load today's processed forecast file. If not found, load the most recent one."""
+    """
+    Priority 1: Fetch from Neon Databse (Live Data)
+    Priority 2: Load from latest generated JSON file (Fallback)
+    """
+    # --- STEP 1: TRY DATABASE ---
+    if SessionLocal is not None and DailyForecast is not None:
+        try:
+            session = SessionLocal()
+            # Get the record with the most recent forecast_date
+            db_row = (
+                session.query(DailyForecast)
+                .order_by(DailyForecast.forecast_date.desc())
+                .first()
+            )
+            session.close()
+
+            if db_row and db_row.payload:
+                print("DEBUG: Successfully loaded forecast from DATABASE.")
+                return db_row.payload
+        except Exception as db_exc:
+            print(f"[WARN] Database fetch failed, falling back to JSON: {db_exc}")
+
+    # --- STEP 2: FALLBACK TO JSON FILE ---
     today_str = datetime.now().strftime('%Y-%m-%d')
     filepath = settings.PROCESSED_DATA_DIR / f"daily_forecast_{today_str}.json"
     
@@ -48,20 +71,21 @@ def _load_latest_forecast_data():
         with open(filepath, 'r') as f:
             return json.load(f)
             
-    # Fallback: Find the most recent file
+    # Fallback to the most recent file in the directory
     try:
         files = list(settings.PROCESSED_DATA_DIR.glob("daily_forecast_*.json"))
-        if not files:
-            raise FileNotFoundError("No forecast files found")
-            
-        latest_file = max(files, key=lambda f: f.stat().st_mtime)
-        with open(latest_file, 'r') as f:
-            return json.load(f)
+        if files:
+            latest_file = max(files, key=lambda f: f.stat().st_mtime)
+            with open(latest_file, 'r') as f:
+                return json.load(f)
     except Exception:
-        raise HTTPException(
-            status_code=404,
-            detail="Forecast not found. The daily update script may not have run yet."
-        )
+        pass
+
+    # --- STEP 3: FINAL ERROR IF BOTH FAIL ---
+    raise HTTPException(
+        status_code=404,
+        detail="Forecast data not found in Database or Local Files."
+    )
 
 
 def _find_latest_location_forecast(location_name: str) -> dict:

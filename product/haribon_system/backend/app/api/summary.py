@@ -1,7 +1,17 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from datetime import datetime, timedelta
 import json
 from app.core.config import settings
+
+
+try:
+    from app.core.database import SessionLocal
+    from app.models.forecast import DailyForecast
+
+except Exception:
+    SessionLocal = None
+    DailyForecast = None
+
 
 router = APIRouter()
 
@@ -9,15 +19,18 @@ router = APIRouter()
 def get_risk_summary():
     """Get a summary of current risk levels across all locations."""
     try:
-        # Load latest forecast
-        processed_dir = settings.PROCESSED_DATA_DIR
-        files = sorted(processed_dir.glob("daily_forecast_*.json"), reverse=True)
+        # database query
+        if SessionLocal is None:
+            return {"error": "Database not configured"}
+        
+        session = SessionLocal()
+        record = session.query(DailyForecast).order_by(DailyForecast.forecast_date.desc()).first()
+        session.close()
 
-        if not files:
-            return {"error": "No forecast data available"}
+        if not record or not record.payload:
+            return {"error": "No forecast data found in database"}
 
-        with open(files[0], "r") as f:
-            data = json.load(f)
+        data = record.payload
 
         # Calculate summary statistics
         risk_counts = {"green": 0, "yellow": 0, "orange": 0, "red": 0}
@@ -59,15 +72,19 @@ def get_risk_summary():
 def get_environmental_overview():
     """Get overview of current environmental conditions."""
     try:
-        processed_dir = settings.PROCESSED_DATA_DIR
-        files = sorted(processed_dir.glob("daily_forecast_*.json"), reverse=True)
+        # database query
+        if SessionLocal is None:
+            return {"error": "Database not configured"}
+        
+        session = SessionLocal()
+        record = session.query(DailyForecast).order_by(DailyForecast.forecast_date.desc()).first()
+        session.close()
 
-        if not files:
-            return {"error": "No forecast data available"}
+        if not record or not record.payload:
+            return {"error": "No forecast data found in database"}
 
-        with open(files[0], "r") as f:
-            data = json.load(f)
-
+        data = record.payload
+        
         # Aggregate environmental data
         env_summary = {
             "avg_chlorophyll": 0,
