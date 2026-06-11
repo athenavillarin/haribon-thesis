@@ -11,7 +11,12 @@ from sqlalchemy import text
 # features are effectively disabled but the app can still run.
 DATABASE_URL = settings.DATABASE_URL
 
-engine = create_engine(DATABASE_URL) if DATABASE_URL else None
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"connect_timeout": 5}
+) if DATABASE_URL else None
+
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine) if engine else None
 
 Base = declarative_base()
