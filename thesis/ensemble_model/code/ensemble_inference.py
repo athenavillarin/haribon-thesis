@@ -175,10 +175,13 @@ def _patch_and_load_keras_model(model_path, model_type: str = "lstm"):
         model.load_weights(str(model_path))
         print(f"    [DEBUG] Loaded weights into {model_type} architecture: {model_path.name}")
         return model
-    except Exception:
+    except Exception as exc:
         # Fall back to full model load
-        print(f"    [DEBUG] Weight load failed, trying full model load: {model_path.name}")
-        return tf.keras.models.load_model(str(model_path), compile=False, safe_mode=False)
+        print(f"    [DEBUG] Weight load failed ({exc}), trying full model load: {model_path.name}")
+        try:
+            return tf.keras.models.load_model(str(model_path), compile=False, safe_mode=False)
+        except Exception as fallback_exc:
+            raise fallback_exc from exc
 
 
 # ---------------------------------------------------------------------------
@@ -253,7 +256,7 @@ def predict_gru(
     tf.keras.layers.Dense.from_config = _safe_dense_from_config
     try:
         model_path = model_dir / f"haribon_gru_hybrid_adaptive_split{split_data.split_num}.keras"
-        model = _patch_and_load_keras_model(str(model_path))
+        model = _patch_and_load_keras_model(str(model_path), model_type="gru")
     finally:
         tf.keras.layers.Dense.from_config = classmethod(_orig_dense_from_config)
 
