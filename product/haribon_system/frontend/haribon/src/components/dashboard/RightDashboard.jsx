@@ -159,7 +159,7 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
 
         {isSnapshotOpen && (
           <div className="space-y-2 mt-4">
-            {forecastData?.locations?.slice(0, 5).map(loc => (
+            {forecastData?.locations?.map(loc => (
               <div key={loc.id} className="bg-[#F8F9FA] rounded-lg p-3 flex justify-between items-center border border-transparent hover:border-gray-200 transition-colors">
                 <span className="text-xs font-medium text-gray-600">{loc.name}</span>
                 <span className={`text-[10px] font-bold ${
