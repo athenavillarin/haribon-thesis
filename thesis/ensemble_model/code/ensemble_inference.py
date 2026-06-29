@@ -218,7 +218,8 @@ def predict_lstm(
     finally:
         tf.keras.layers.Dense.from_config = classmethod(_orig_dense_from_config)
 
-    scaler = joblib.load(str(scaler_path))
+    split_scaler = model_dir / f"feature_scaler_split{split_data.split_num}.joblib"
+    scaler = joblib.load(str(split_scaler if split_scaler.exists() else scaler_path))
 
     X_test = split_data.X_seq_test
     if X_test.shape[0] == 0:
@@ -260,7 +261,8 @@ def predict_gru(
     finally:
         tf.keras.layers.Dense.from_config = classmethod(_orig_dense_from_config)
 
-    scaler = joblib.load(str(scaler_path))
+    split_scaler = model_dir / f"feature_scaler_split{split_data.split_num}.joblib"
+    scaler = joblib.load(str(split_scaler if split_scaler.exists() else scaler_path))
 
     X_test = split_data.X_seq_test
     if X_test.shape[0] == 0:
