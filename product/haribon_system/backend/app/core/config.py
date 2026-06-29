@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     HISTORICAL_DATA_DIR: Path = DATA_DIR / "historical"
 
     # Location geometry file (GeoJSON FeatureCollection)
-    LOCATIONS_FILE_PATH: Path = DATA_DIR / "locations.json"
+    LOCATIONS_FILE_PATH: Path = DATA_DIR / "processed" / "locations.json"
 
     # ML model directory
     ML_DIR: Path = _discover_ml_dir(REPO_ROOT)
