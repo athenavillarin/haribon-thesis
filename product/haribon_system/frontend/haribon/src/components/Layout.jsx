@@ -113,7 +113,7 @@ export default function Layout() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-[280px] min-h-screen overflow-y-auto pt-[82px] lg:pt-0">
+      <main className="flex-1 lg:ml-[280px] min-h-screen overflow-y-auto overflow-x-hidden pt-[82px] lg:pt-0">
         <Outlet />
       </main>
     </div>
