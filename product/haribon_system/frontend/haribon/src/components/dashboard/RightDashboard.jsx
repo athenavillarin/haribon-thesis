@@ -158,19 +158,21 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
         </div>
 
         {isSnapshotOpen && (
-          <div className="space-y-2 mt-4">
-            {forecastData?.locations?.map(loc => (
-              <div key={loc.id} className="bg-[#F8F9FA] rounded-lg p-3 flex justify-between items-center border border-transparent hover:border-gray-200 transition-colors">
-                <span className="text-xs font-medium text-gray-600">{loc.name}</span>
-                <span className={`text-[10px] font-bold ${
-                  loc.risk_color === 'red' ? 'text-red-500' :
-                  loc.risk_color === 'orange' ? 'text-orange-500' :
-                  loc.risk_color === 'yellow' ? 'text-yellow-500' : 'text-green-500'
-                }`}>
-                  {loc.risk_level}
-                </span>
-              </div>
-            ))}
+          <div className="mt-4">
+            <div className="space-y-2 max-h-[184px] overflow-y-auto pr-1">
+              {forecastData?.locations?.map(loc => (
+                <div key={loc.id} className="bg-[#F8F9FA] rounded-lg p-3 flex justify-between items-center border border-transparent hover:border-gray-200 transition-colors">
+                  <span className="text-xs font-medium text-gray-600">{loc.name}</span>
+                  <span className={`text-[10px] font-bold ${
+                    loc.risk_color === 'red' ? 'text-red-500' :
+                    loc.risk_color === 'orange' ? 'text-orange-500' :
+                    loc.risk_color === 'yellow' ? 'text-yellow-500' : 'text-green-500'
+                  }`}>
+                    {loc.risk_level}
+                  </span>
+                </div>
+              ))}
+            </div>
             <div className="pt-2 text-right">
               <button
                 type="button"
