@@ -40,4 +40,10 @@ jobs:
           cd product/haribon_system/backend
           python app/scripts/daily_updater.py
 
-      
+      - name: Commit updated forecast
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add product/haribon_system/data/processed/
+          git diff --cached --quiet || git commit -m "chore: update daily forecast for $(date +%Y-%m-%d)"
+          git push
