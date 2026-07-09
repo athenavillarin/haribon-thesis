@@ -332,22 +332,12 @@ def _get_risk_key(risk_level):
 
 @router.post("/update")
 def trigger_daily_update(background_tasks: BackgroundTasks):
-    """Trigger the daily updater to regenerate today's forecast in the background."""
-    try:
-        from app.scripts.daily_updater import run_daily_update_with_5day_forecast
-        background_tasks.add_task(run_daily_update_with_5day_forecast)
-        return {"status": "started", "message": "Daily forecast update initiated"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to start daily update: {e}")
+    # Forecast generation runs via GitHub Actions, not on this server.
+    return {"status": "ok", "message": "Forecast is updated automatically via GitHub Actions."}
 
 
 @router.post("/trigger-update")
 def trigger_daily_update_compat(background_tasks: BackgroundTasks):
-    """Compatibility endpoint used by the frontend to refresh data.
-
-    Delegates to the same daily updater as /update so older frontend
-    code calling /api/forecast/trigger-update continues to work.
-    """
     return trigger_daily_update(background_tasks)
 
 @router.get("/today", response_model=ForecastResponse)
