@@ -1,0 +1,858 @@
+{
+  "last_updated": "2026-08-14T16:55:06.765166",
+  "system_version": "v2.0 (Ensemble (Weighted Average))",
+  "manifest": {
+    "path": "/home/runner/work/haribon-thesis/haribon-thesis/artifacts/THESIS_WINNERS.json",
+    "imputation_primary": "Hybrid: Gap-Type Adaptive",
+    "forecasting_primary": "Ensemble (Weighted Average)"
+  },
+  "forecasts": [
+    {
+      "location": "Dumanquillas Bay",
+      "latitude": 7.697,
+      "longitude": 123.018,
+      "date": "2026-08-15",
+      "risk_level": "Moderate Risk",
+      "confidence": "67.0%",
+      "red_tide_probability": "Moderate",
+      "recommendations": [
+        "Elevated risk detected.",
+        "Limit harvesting and monitor water color changes.",
+        "Check for latest local advisories."
+      ],
+      "contributing_factors": {
+        "chl-a": 0.411,
+        "sst": 25.86,
+        "salinity": 34.21,
+        "rainfall": 2.8
+      },
+      "environmental_data": {
+        "Chlorophyll-a": "0.41 mg/m3",
+        "Temperature": "25.86 \u00b0C",
+        "Salinity (PSU)": "34.21 PSU",
+        "MLD (m)": "20.03 m",
+        "Precipitation": "2.78 mm",
+        "NDVI": "0.3814",
+        "U-Wind Speed (m/s)": "0.78 m/s",
+        "V-Wind Speed (m/s)": "1.1 m/s",
+        "U-VEL (m/s)": "-0.027 m/s",
+        "V-VEL (m/s)": "-0.023 m/s"
+      },
+      "data_quality": {
+        "quality_score": 0.91,
+        "confidence_level": "High",
+        "critical_features_available": 4,
+        "critical_features_total": 4,
+        "coverage_note": "sufficient",
+        "environment_data_source": "cmems_gee_merged",
+        "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
+        "forecasting_model": "Ensemble (Weighted Average)",
+        "base_xgboost_probability": 0.82322,
+        "final_probability_source": "weighted_avg_ensemble",
+        "environment_imputation_sources": {
+          "CHL": "observed",
+          "thetao": "observed",
+          "so": "observed",
+          "precip_mm_day": "observed",
+          "mlotst": "observed",
+          "NDVI_daily": "climatological_location_month",
+          "wind_speed_ms": "observed",
+          "wind_u_ms": "observed",
+          "wind_v_ms": "observed",
+          "uo": "observed",
+          "vo": "observed"
+        },
+        "historical_positive_signal": true,
+        "days_since_last_positive": 176,
+        "recent_positive_rate_90d": null,
+        "recent_positive_rate_365d": 1.0,
+        "cmems_source": "cmems_live",
+        "cmems_date": "2026-08-15",
+        "gee_available": true,
+        "gee_params": [
+          "precip_mm_day",
+          "wind_speed_ms",
+          "wind_u_ms",
+          "wind_v_ms"
+        ]
+      },
+      "explanation": "Moderate bloom risk retained due to persistent recent positive red tide history in this location.",
+      "five_day_forecast": [
+        {
+          "forecast_day": 1,
+          "date": "2026-08-16",
+          "day_label": "Sun",
+          "risk_level": "Moderate Risk",
+          "confidence": "63.6%",
+          "probability": "Moderate"
+        },
+        {
+          "forecast_day": 2,
+          "date": "2026-08-17",
+          "day_label": "Mon",
+          "risk_level": "Moderate Risk",
+          "confidence": "60.4%",
+          "probability": "Moderate"
+        },
+        {
+          "forecast_day": 3,
+          "date": "2026-08-18",
+          "day_label": "Tue",
+          "risk_level": "Moderate Risk",
+          "confidence": "57.4%",
+          "probability": "Moderate"
+        },
+        {
+          "forecast_day": 4,
+          "date": "2026-08-19",
+          "day_label": "Wed",
+          "risk_level": "Moderate Risk",
+          "confidence": "54.5%",
+          "probability": "Moderate"
+        },
+        {
+          "forecast_day": 5,
+          "date": "2026-08-20",
+          "day_label": "Thu",
+          "risk_level": "Low Risk",
+          "confidence": "51.8%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 6,
+          "date": "2026-08-21",
+          "day_label": "Fri",
+          "risk_level": "Low Risk",
+          "confidence": "49.2%",
+          "probability": "Low"
+        }
+      ]
+    },
+    {
+      "location": "Gigantes Islands",
+      "latitude": 11.5975,
+      "longitude": 123.3364,
+      "date": "2026-08-15",
+      "risk_level": "Low Risk",
+      "confidence": "69.3%",
+      "red_tide_probability": "Low",
+      "recommendations": [
+        "Conditions are favorable.",
+        "Shellfish harvesting is permitted.",
+        "Continue regular monitoring."
+      ],
+      "contributing_factors": {
+        "chl-a": 0.706,
+        "sst": 29.94,
+        "salinity": 33.99,
+        "rainfall": 0.1
+      },
+      "environmental_data": {
+        "Chlorophyll-a": "0.71 mg/m3",
+        "Temperature": "29.94 \u00b0C",
+        "Salinity (PSU)": "33.99 PSU",
+        "MLD (m)": "18.62 m",
+        "Precipitation": "0.05 mm",
+        "NDVI": "-0.0642",
+        "U-Wind Speed (m/s)": "7.57 m/s",
+        "V-Wind Speed (m/s)": "7.5 m/s",
+        "U-VEL (m/s)": "0.092 m/s",
+        "V-VEL (m/s)": "-0.015 m/s"
+      },
+      "data_quality": {
+        "quality_score": 0.91,
+        "confidence_level": "High",
+        "critical_features_available": 4,
+        "critical_features_total": 4,
+        "coverage_note": "sufficient",
+        "environment_data_source": "cmems_gee_merged",
+        "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
+        "forecasting_model": "Ensemble (Weighted Average)",
+        "base_xgboost_probability": 0.763756,
+        "final_probability_source": "weighted_avg_ensemble",
+        "environment_imputation_sources": {
+          "CHL": "observed",
+          "thetao": "observed",
+          "so": "observed",
+          "precip_mm_day": "observed",
+          "mlotst": "observed",
+          "NDVI_daily": "climatological_location_month",
+          "wind_speed_ms": "observed",
+          "wind_u_ms": "observed",
+          "wind_v_ms": "observed",
+          "uo": "observed",
+          "vo": "observed"
+        },
+        "historical_positive_signal": false,
+        "days_since_last_positive": 971,
+        "recent_positive_rate_90d": null,
+        "recent_positive_rate_365d": 0.0,
+        "cmems_source": "cmems_live",
+        "cmems_date": "2026-08-15",
+        "gee_available": true,
+        "gee_params": [
+          "precip_mm_day",
+          "wind_speed_ms",
+          "wind_u_ms",
+          "wind_v_ms"
+        ]
+      },
+      "explanation": "Low bloom risk under current environmental conditions, but routine monitoring is still advised.",
+      "five_day_forecast": [
+        {
+          "forecast_day": 1,
+          "date": "2026-08-16",
+          "day_label": "Sun",
+          "risk_level": "Low Risk",
+          "confidence": "65.8%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 2,
+          "date": "2026-08-17",
+          "day_label": "Mon",
+          "risk_level": "Low Risk",
+          "confidence": "62.5%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 3,
+          "date": "2026-08-18",
+          "day_label": "Tue",
+          "risk_level": "Low Risk",
+          "confidence": "59.4%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 4,
+          "date": "2026-08-19",
+          "day_label": "Wed",
+          "risk_level": "Low Risk",
+          "confidence": "56.4%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 5,
+          "date": "2026-08-20",
+          "day_label": "Thu",
+          "risk_level": "Low Risk",
+          "confidence": "53.6%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 6,
+          "date": "2026-08-21",
+          "day_label": "Fri",
+          "risk_level": "Low Risk",
+          "confidence": "50.9%",
+          "probability": "Low"
+        }
+      ]
+    },
+    {
+      "location": "Matarinao Bay",
+      "latitude": 11.23,
+      "longitude": 125.55,
+      "date": "2026-08-15",
+      "risk_level": "Moderate Risk",
+      "confidence": "53.3%",
+      "red_tide_probability": "Moderate",
+      "recommendations": [
+        "Elevated risk detected.",
+        "Limit harvesting and monitor water color changes.",
+        "Check for latest local advisories."
+      ],
+      "contributing_factors": {
+        "chl-a": 0.411,
+        "sst": 25.86,
+        "salinity": 34.21,
+        "rainfall": 4.4
+      },
+      "environmental_data": {
+        "Chlorophyll-a": "0.41 mg/m3",
+        "Temperature": "25.86 \u00b0C",
+        "Salinity (PSU)": "34.21 PSU",
+        "MLD (m)": "20.03 m",
+        "Precipitation": "4.36 mm",
+        "NDVI": "0.4682",
+        "U-Wind Speed (m/s)": "0.89 m/s",
+        "V-Wind Speed (m/s)": "1.42 m/s",
+        "U-VEL (m/s)": "-0.027 m/s",
+        "V-VEL (m/s)": "-0.023 m/s"
+      },
+      "data_quality": {
+        "quality_score": 0.91,
+        "confidence_level": "High",
+        "critical_features_available": 4,
+        "critical_features_total": 4,
+        "coverage_note": "sufficient",
+        "environment_data_source": "cmems_gee_merged",
+        "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
+        "forecasting_model": "Ensemble (Weighted Average)",
+        "base_xgboost_probability": 0.923955,
+        "final_probability_source": "weighted_avg_ensemble",
+        "environment_imputation_sources": {
+          "CHL": "observed",
+          "thetao": "observed",
+          "so": "observed",
+          "precip_mm_day": "observed",
+          "mlotst": "observed",
+          "NDVI_daily": "climatological_location_month",
+          "wind_speed_ms": "observed",
+          "wind_u_ms": "observed",
+          "wind_v_ms": "observed",
+          "uo": "observed",
+          "vo": "observed"
+        },
+        "historical_positive_signal": true,
+        "days_since_last_positive": 176,
+        "recent_positive_rate_90d": null,
+        "recent_positive_rate_365d": 1.0,
+        "cmems_source": "cmems_live",
+        "cmems_date": "2026-08-15",
+        "gee_available": true,
+        "gee_params": [
+          "precip_mm_day",
+          "wind_speed_ms",
+          "wind_u_ms",
+          "wind_v_ms"
+        ]
+      },
+      "explanation": "Moderate bloom risk retained due to persistent recent positive red tide history in this location.",
+      "five_day_forecast": [
+        {
+          "forecast_day": 1,
+          "date": "2026-08-16",
+          "day_label": "Sun",
+          "risk_level": "Moderate Risk",
+          "confidence": "50.6%",
+          "probability": "Moderate"
+        },
+        {
+          "forecast_day": 2,
+          "date": "2026-08-17",
+          "day_label": "Mon",
+          "risk_level": "Low Risk",
+          "confidence": "48.1%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 3,
+          "date": "2026-08-18",
+          "day_label": "Tue",
+          "risk_level": "Low Risk",
+          "confidence": "45.7%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 4,
+          "date": "2026-08-19",
+          "day_label": "Wed",
+          "risk_level": "Low Risk",
+          "confidence": "43.4%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 5,
+          "date": "2026-08-20",
+          "day_label": "Thu",
+          "risk_level": "Low Risk",
+          "confidence": "41.2%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 6,
+          "date": "2026-08-21",
+          "day_label": "Fri",
+          "risk_level": "Low Risk",
+          "confidence": "39.2%",
+          "probability": "Low"
+        }
+      ]
+    },
+    {
+      "location": "Pilar",
+      "latitude": 11.504,
+      "longitude": 122.941,
+      "date": "2026-08-15",
+      "risk_level": "Low Risk",
+      "confidence": "66.4%",
+      "red_tide_probability": "Low",
+      "recommendations": [
+        "Conditions are favorable.",
+        "Shellfish harvesting is permitted.",
+        "Continue regular monitoring."
+      ],
+      "contributing_factors": {
+        "chl-a": 0.72,
+        "sst": 28.29,
+        "salinity": 34.06,
+        "rainfall": 0.2
+      },
+      "environmental_data": {
+        "Chlorophyll-a": "0.72 mg/m3",
+        "Temperature": "28.29 \u00b0C",
+        "Salinity (PSU)": "34.06 PSU",
+        "MLD (m)": "18.12 m",
+        "Precipitation": "0.18 mm",
+        "NDVI": "0.1843",
+        "U-Wind Speed (m/s)": "2.63 m/s",
+        "V-Wind Speed (m/s)": "3.51 m/s",
+        "U-VEL (m/s)": "0.02 m/s",
+        "V-VEL (m/s)": "-0.044 m/s"
+      },
+      "data_quality": {
+        "quality_score": 0.91,
+        "confidence_level": "High",
+        "critical_features_available": 4,
+        "critical_features_total": 4,
+        "coverage_note": "sufficient",
+        "environment_data_source": "cmems_gee_merged",
+        "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
+        "forecasting_model": "Ensemble (Weighted Average)",
+        "base_xgboost_probability": 0.83613,
+        "final_probability_source": "weighted_avg_ensemble",
+        "environment_imputation_sources": {
+          "CHL": "observed",
+          "thetao": "observed",
+          "so": "observed",
+          "precip_mm_day": "observed",
+          "mlotst": "observed",
+          "NDVI_daily": "climatological_location_month",
+          "wind_speed_ms": "observed",
+          "wind_u_ms": "observed",
+          "wind_v_ms": "observed",
+          "uo": "observed",
+          "vo": "observed"
+        },
+        "historical_positive_signal": false,
+        "days_since_last_positive": 995,
+        "recent_positive_rate_90d": null,
+        "recent_positive_rate_365d": 0.0,
+        "cmems_source": "cmems_live",
+        "cmems_date": "2026-08-15",
+        "gee_available": true,
+        "gee_params": [
+          "precip_mm_day",
+          "wind_speed_ms",
+          "wind_u_ms",
+          "wind_v_ms"
+        ]
+      },
+      "explanation": "Low bloom risk under current environmental conditions, but routine monitoring is still advised.",
+      "five_day_forecast": [
+        {
+          "forecast_day": 1,
+          "date": "2026-08-16",
+          "day_label": "Sun",
+          "risk_level": "Low Risk",
+          "confidence": "63.1%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 2,
+          "date": "2026-08-17",
+          "day_label": "Mon",
+          "risk_level": "Low Risk",
+          "confidence": "59.9%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 3,
+          "date": "2026-08-18",
+          "day_label": "Tue",
+          "risk_level": "Low Risk",
+          "confidence": "56.9%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 4,
+          "date": "2026-08-19",
+          "day_label": "Wed",
+          "risk_level": "Low Risk",
+          "confidence": "54.1%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 5,
+          "date": "2026-08-20",
+          "day_label": "Thu",
+          "risk_level": "Low Risk",
+          "confidence": "51.4%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 6,
+          "date": "2026-08-21",
+          "day_label": "Fri",
+          "risk_level": "Low Risk",
+          "confidence": "48.8%",
+          "probability": "Low"
+        }
+      ]
+    },
+    {
+      "location": "President Roxas",
+      "latitude": 11.496,
+      "longitude": 122.914,
+      "date": "2026-08-15",
+      "risk_level": "Moderate Risk",
+      "confidence": "57.5%",
+      "red_tide_probability": "Moderate",
+      "recommendations": [
+        "Elevated risk detected.",
+        "Limit harvesting and monitor water color changes.",
+        "Check for latest local advisories."
+      ],
+      "contributing_factors": {
+        "chl-a": 0.703,
+        "sst": 28.37,
+        "salinity": 34.03,
+        "rainfall": 0.1
+      },
+      "environmental_data": {
+        "Chlorophyll-a": "0.7 mg/m3",
+        "Temperature": "28.37 \u00b0C",
+        "Salinity (PSU)": "34.03 PSU",
+        "MLD (m)": "16.86 m",
+        "Precipitation": "0.12 mm",
+        "NDVI": "0.2536",
+        "U-Wind Speed (m/s)": "3.03 m/s",
+        "V-Wind Speed (m/s)": "4.06 m/s",
+        "U-VEL (m/s)": "0.007 m/s",
+        "V-VEL (m/s)": "-0.027 m/s"
+      },
+      "data_quality": {
+        "quality_score": 0.91,
+        "confidence_level": "High",
+        "critical_features_available": 4,
+        "critical_features_total": 4,
+        "coverage_note": "sufficient",
+        "environment_data_source": "cmems_gee_merged",
+        "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
+        "forecasting_model": "Ensemble (Weighted Average)",
+        "base_xgboost_probability": 0.83613,
+        "final_probability_source": "weighted_avg_ensemble",
+        "environment_imputation_sources": {
+          "CHL": "observed",
+          "thetao": "observed",
+          "so": "observed",
+          "precip_mm_day": "observed",
+          "mlotst": "observed",
+          "NDVI_daily": "climatological_location_month",
+          "wind_speed_ms": "observed",
+          "wind_u_ms": "observed",
+          "wind_v_ms": "observed",
+          "uo": "observed",
+          "vo": "observed"
+        },
+        "historical_positive_signal": false,
+        "days_since_last_positive": 995,
+        "recent_positive_rate_90d": null,
+        "recent_positive_rate_365d": 0.0,
+        "cmems_source": "cmems_live",
+        "cmems_date": "2026-08-15",
+        "gee_available": true,
+        "gee_params": [
+          "precip_mm_day",
+          "wind_speed_ms",
+          "wind_u_ms",
+          "wind_v_ms"
+        ]
+      },
+      "explanation": "Moderate bloom risk based on a combination of environmental factors; continue close monitoring.",
+      "five_day_forecast": [
+        {
+          "forecast_day": 1,
+          "date": "2026-08-16",
+          "day_label": "Sun",
+          "risk_level": "Moderate Risk",
+          "confidence": "54.6%",
+          "probability": "Moderate"
+        },
+        {
+          "forecast_day": 2,
+          "date": "2026-08-17",
+          "day_label": "Mon",
+          "risk_level": "Moderate Risk",
+          "confidence": "51.9%",
+          "probability": "Moderate"
+        },
+        {
+          "forecast_day": 3,
+          "date": "2026-08-18",
+          "day_label": "Tue",
+          "risk_level": "Moderate Risk",
+          "confidence": "49.3%",
+          "probability": "Moderate"
+        },
+        {
+          "forecast_day": 4,
+          "date": "2026-08-19",
+          "day_label": "Wed",
+          "risk_level": "Low Risk",
+          "confidence": "46.8%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 5,
+          "date": "2026-08-20",
+          "day_label": "Thu",
+          "risk_level": "Low Risk",
+          "confidence": "44.5%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 6,
+          "date": "2026-08-21",
+          "day_label": "Fri",
+          "risk_level": "Low Risk",
+          "confidence": "42.3%",
+          "probability": "Low"
+        }
+      ]
+    },
+    {
+      "location": "Roxas City",
+      "latitude": 11.5853,
+      "longitude": 122.7511,
+      "date": "2026-08-15",
+      "risk_level": "Low Risk",
+      "confidence": "68.8%",
+      "red_tide_probability": "Low",
+      "recommendations": [
+        "Conditions are favorable.",
+        "Shellfish harvesting is permitted.",
+        "Continue regular monitoring."
+      ],
+      "contributing_factors": {
+        "chl-a": 0.63,
+        "sst": 28.01,
+        "salinity": 34.07,
+        "rainfall": 0.1
+      },
+      "environmental_data": {
+        "Chlorophyll-a": "0.63 mg/m3",
+        "Temperature": "28.01 \u00b0C",
+        "Salinity (PSU)": "34.07 PSU",
+        "MLD (m)": "16.21 m",
+        "Precipitation": "0.09 mm",
+        "NDVI": "-0.0562",
+        "U-Wind Speed (m/s)": "2.44 m/s",
+        "V-Wind Speed (m/s)": "3.85 m/s",
+        "U-VEL (m/s)": "-0.01 m/s",
+        "V-VEL (m/s)": "-0.021 m/s"
+      },
+      "data_quality": {
+        "quality_score": 0.91,
+        "confidence_level": "High",
+        "critical_features_available": 4,
+        "critical_features_total": 4,
+        "coverage_note": "sufficient",
+        "environment_data_source": "cmems_gee_merged",
+        "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
+        "forecasting_model": "Ensemble (Weighted Average)",
+        "base_xgboost_probability": 0.841176,
+        "final_probability_source": "weighted_avg_ensemble",
+        "environment_imputation_sources": {
+          "CHL": "observed",
+          "thetao": "observed",
+          "so": "observed",
+          "precip_mm_day": "observed",
+          "mlotst": "observed",
+          "NDVI_daily": "climatological_location_month",
+          "wind_speed_ms": "observed",
+          "wind_u_ms": "observed",
+          "wind_v_ms": "observed",
+          "uo": "observed",
+          "vo": "observed"
+        },
+        "historical_positive_signal": false,
+        "days_since_last_positive": 971,
+        "recent_positive_rate_90d": null,
+        "recent_positive_rate_365d": 0.0,
+        "cmems_source": "cmems_live",
+        "cmems_date": "2026-08-15",
+        "gee_available": true,
+        "gee_params": [
+          "precip_mm_day",
+          "wind_speed_ms",
+          "wind_u_ms",
+          "wind_v_ms"
+        ]
+      },
+      "explanation": "Low bloom risk under current environmental conditions, but routine monitoring is still advised.",
+      "five_day_forecast": [
+        {
+          "forecast_day": 1,
+          "date": "2026-08-16",
+          "day_label": "Sun",
+          "risk_level": "Low Risk",
+          "confidence": "65.4%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 2,
+          "date": "2026-08-17",
+          "day_label": "Mon",
+          "risk_level": "Low Risk",
+          "confidence": "62.1%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 3,
+          "date": "2026-08-18",
+          "day_label": "Tue",
+          "risk_level": "Low Risk",
+          "confidence": "59.0%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 4,
+          "date": "2026-08-19",
+          "day_label": "Wed",
+          "risk_level": "Low Risk",
+          "confidence": "56.0%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 5,
+          "date": "2026-08-20",
+          "day_label": "Thu",
+          "risk_level": "Low Risk",
+          "confidence": "53.2%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 6,
+          "date": "2026-08-21",
+          "day_label": "Fri",
+          "risk_level": "Low Risk",
+          "confidence": "50.6%",
+          "probability": "Low"
+        }
+      ]
+    },
+    {
+      "location": "Sapian Bay",
+      "latitude": 11.4936,
+      "longitude": 122.6186,
+      "date": "2026-08-15",
+      "risk_level": "Low Risk",
+      "confidence": "67.0%",
+      "red_tide_probability": "Low",
+      "recommendations": [
+        "Conditions are favorable.",
+        "Shellfish harvesting is permitted.",
+        "Continue regular monitoring."
+      ],
+      "contributing_factors": {
+        "chl-a": 0.456,
+        "sst": 26.49,
+        "salinity": 34.23,
+        "rainfall": 3.9
+      },
+      "environmental_data": {
+        "Chlorophyll-a": "0.46 mg/m3",
+        "Temperature": "26.49 \u00b0C",
+        "Salinity (PSU)": "34.23 PSU",
+        "MLD (m)": "18.08 m",
+        "Precipitation": "3.93 mm",
+        "NDVI": "0.2814",
+        "U-Wind Speed (m/s)": "1.35 m/s",
+        "V-Wind Speed (m/s)": "2.89 m/s",
+        "U-VEL (m/s)": "-0.041 m/s",
+        "V-VEL (m/s)": "-0.022 m/s"
+      },
+      "data_quality": {
+        "quality_score": 0.91,
+        "confidence_level": "High",
+        "critical_features_available": 4,
+        "critical_features_total": 4,
+        "coverage_note": "sufficient",
+        "environment_data_source": "cmems_gee_merged",
+        "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
+        "forecasting_model": "Ensemble (Weighted Average)",
+        "base_xgboost_probability": 0.84512,
+        "final_probability_source": "weighted_avg_ensemble",
+        "environment_imputation_sources": {
+          "CHL": "observed",
+          "thetao": "observed",
+          "so": "observed",
+          "precip_mm_day": "observed",
+          "mlotst": "observed",
+          "NDVI_daily": "climatological_location_month",
+          "wind_speed_ms": "observed",
+          "wind_u_ms": "observed",
+          "wind_v_ms": "observed",
+          "uo": "observed",
+          "vo": "observed"
+        },
+        "historical_positive_signal": false,
+        "days_since_last_positive": 971,
+        "recent_positive_rate_90d": null,
+        "recent_positive_rate_365d": 0.0,
+        "cmems_source": "cmems_live",
+        "cmems_date": "2026-08-15",
+        "gee_available": true,
+        "gee_params": [
+          "precip_mm_day",
+          "wind_speed_ms",
+          "wind_u_ms",
+          "wind_v_ms"
+        ]
+      },
+      "explanation": "Low bloom risk under current environmental conditions, but routine monitoring is still advised.",
+      "five_day_forecast": [
+        {
+          "forecast_day": 1,
+          "date": "2026-08-16",
+          "day_label": "Sun",
+          "risk_level": "Low Risk",
+          "confidence": "63.7%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 2,
+          "date": "2026-08-17",
+          "day_label": "Mon",
+          "risk_level": "Low Risk",
+          "confidence": "60.5%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 3,
+          "date": "2026-08-18",
+          "day_label": "Tue",
+          "risk_level": "Low Risk",
+          "confidence": "57.4%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 4,
+          "date": "2026-08-19",
+          "day_label": "Wed",
+          "risk_level": "Low Risk",
+          "confidence": "54.6%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 5,
+          "date": "2026-08-20",
+          "day_label": "Thu",
+          "risk_level": "Low Risk",
+          "confidence": "51.8%",
+          "probability": "Low"
+        },
+        {
+          "forecast_day": 6,
+          "date": "2026-08-21",
+          "day_label": "Fri",
+          "risk_level": "Low Risk",
+          "confidence": "49.3%",
+          "probability": "Low"
+        }
+      ]
+    }
+  ]
+}
