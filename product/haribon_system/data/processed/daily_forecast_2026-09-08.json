@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-09-07T19:45:29.799338",
+  "last_updated": "2026-09-08T02:27:45.428198",
   "system_version": "v2.0 (Ensemble (Weighted Average))",
   "manifest": {
     "path": "/home/runner/work/haribon-thesis/haribon-thesis/artifacts/THESIS_WINNERS.json",
@@ -24,17 +24,17 @@
         "chl-a": 0.163,
         "sst": 25.55,
         "salinity": 34.16,
-        "rainfall": 18.4
+        "rainfall": 25.8
       },
       "environmental_data": {
         "Chlorophyll-a": "0.16 mg/m3",
         "Temperature": "25.55 \u00b0C",
         "Salinity (PSU)": "34.16 PSU",
         "MLD (m)": "27.4 m",
-        "Precipitation": "18.44 mm",
+        "Precipitation": "25.79 mm",
         "NDVI": "0.3397",
-        "U-Wind Speed (m/s)": "0.38 m/s",
-        "V-Wind Speed (m/s)": "0.62 m/s",
+        "U-Wind Speed (m/s)": "0.34 m/s",
+        "V-Wind Speed (m/s)": "0.6 m/s",
         "U-VEL (m/s)": "-0.023 m/s",
         "V-VEL (m/s)": "-0.01 m/s"
       },
@@ -145,17 +145,17 @@
         "chl-a": 0.544,
         "sst": 29.78,
         "salinity": 34.06,
-        "rainfall": 29.5
+        "rainfall": 29.8
       },
       "environmental_data": {
         "Chlorophyll-a": "0.54 mg/m3",
         "Temperature": "29.78 \u00b0C",
         "Salinity (PSU)": "34.06 PSU",
         "MLD (m)": "19.22 m",
-        "Precipitation": "29.51 mm",
+        "Precipitation": "29.84 mm",
         "NDVI": "-0.0611",
-        "U-Wind Speed (m/s)": "6.2 m/s",
-        "V-Wind Speed (m/s)": "5.43 m/s",
+        "U-Wind Speed (m/s)": "6.03 m/s",
+        "V-Wind Speed (m/s)": "5.19 m/s",
         "U-VEL (m/s)": "0.066 m/s",
         "V-VEL (m/s)": "-0.026 m/s"
       },
@@ -266,17 +266,17 @@
         "chl-a": 0.177,
         "sst": 25.55,
         "salinity": 34.16,
-        "rainfall": 22.2
+        "rainfall": 30.7
       },
       "environmental_data": {
         "Chlorophyll-a": "0.18 mg/m3",
         "Temperature": "25.55 \u00b0C",
         "Salinity (PSU)": "34.16 PSU",
         "MLD (m)": "27.4 m",
-        "Precipitation": "22.17 mm",
+        "Precipitation": "30.69 mm",
         "NDVI": "0.4476",
-        "U-Wind Speed (m/s)": "0.47 m/s",
-        "V-Wind Speed (m/s)": "0.8 m/s",
+        "U-Wind Speed (m/s)": "0.44 m/s",
+        "V-Wind Speed (m/s)": "0.77 m/s",
         "U-VEL (m/s)": "-0.023 m/s",
         "V-VEL (m/s)": "-0.01 m/s"
       },
@@ -357,7 +357,7 @@
           "date": "2026-09-13",
           "day_label": "Sun",
           "risk_level": "Low Risk",
-          "confidence": "41.4%",
+          "confidence": "41.3%",
           "probability": "Low"
         },
         {
@@ -387,17 +387,17 @@
         "chl-a": 0.544,
         "sst": 28.07,
         "salinity": 34.06,
-        "rainfall": 51.0
+        "rainfall": 57.3
       },
       "environmental_data": {
         "Chlorophyll-a": "0.54 mg/m3",
         "Temperature": "28.07 \u00b0C",
         "Salinity (PSU)": "34.06 PSU",
         "MLD (m)": "21.63 m",
-        "Precipitation": "51.0 mm",
+        "Precipitation": "57.28 mm",
         "NDVI": "0.4627",
-        "U-Wind Speed (m/s)": "1.73 m/s",
-        "V-Wind Speed (m/s)": "2.12 m/s",
+        "U-Wind Speed (m/s)": "1.68 m/s",
+        "V-Wind Speed (m/s)": "2.01 m/s",
         "U-VEL (m/s)": "0.018 m/s",
         "V-VEL (m/s)": "-0.019 m/s"
       },
@@ -510,17 +510,17 @@
         "chl-a": 0.527,
         "sst": 28.16,
         "salinity": 34.04,
-        "rainfall": 55.2
+        "rainfall": 63.5
       },
       "environmental_data": {
         "Chlorophyll-a": "0.53 mg/m3",
         "Temperature": "28.16 \u00b0C",
         "Salinity (PSU)": "34.04 PSU",
         "MLD (m)": "19.98 m",
-        "Precipitation": "55.2 mm",
+        "Precipitation": "63.55 mm",
         "NDVI": "0.429",
-        "U-Wind Speed (m/s)": "2.02 m/s",
-        "V-Wind Speed (m/s)": "2.69 m/s",
+        "U-Wind Speed (m/s)": "1.96 m/s",
+        "V-Wind Speed (m/s)": "2.58 m/s",
         "U-VEL (m/s)": "0.016 m/s",
         "V-VEL (m/s)": "-0.012 m/s"
       },
@@ -579,7 +579,7 @@
           "date": "2026-09-10",
           "day_label": "Thu",
           "risk_level": "Moderate Risk",
-          "confidence": "54.1%",
+          "confidence": "54.2%",
           "probability": "Moderate"
         },
         {
@@ -587,7 +587,7 @@
           "date": "2026-09-11",
           "day_label": "Fri",
           "risk_level": "Moderate Risk",
-          "confidence": "51.4%",
+          "confidence": "51.5%",
           "probability": "Moderate"
         },
         {
@@ -595,7 +595,7 @@
           "date": "2026-09-12",
           "day_label": "Sat",
           "risk_level": "Low Risk",
-          "confidence": "48.8%",
+          "confidence": "48.9%",
           "probability": "Low"
         },
         {
@@ -603,7 +603,7 @@
           "date": "2026-09-13",
           "day_label": "Sun",
           "risk_level": "Low Risk",
-          "confidence": "46.4%",
+          "confidence": "46.5%",
           "probability": "Low"
         },
         {
@@ -633,17 +633,17 @@
         "chl-a": 0.438,
         "sst": 27.77,
         "salinity": 34.08,
-        "rainfall": 51.4
+        "rainfall": 61.9
       },
       "environmental_data": {
         "Chlorophyll-a": "0.44 mg/m3",
         "Temperature": "27.77 \u00b0C",
         "Salinity (PSU)": "34.08 PSU",
         "MLD (m)": "19.86 m",
-        "Precipitation": "51.36 mm",
+        "Precipitation": "61.88 mm",
         "NDVI": "0.6535",
-        "U-Wind Speed (m/s)": "1.58 m/s",
-        "V-Wind Speed (m/s)": "2.5 m/s",
+        "U-Wind Speed (m/s)": "1.52 m/s",
+        "V-Wind Speed (m/s)": "2.39 m/s",
         "U-VEL (m/s)": "0.007 m/s",
         "V-VEL (m/s)": "-0.01 m/s"
       },
@@ -756,17 +756,17 @@
         "chl-a": 0.252,
         "sst": 26.19,
         "salinity": 34.2,
-        "rainfall": 37.7
+        "rainfall": 44.5
       },
       "environmental_data": {
         "Chlorophyll-a": "0.25 mg/m3",
         "Temperature": "26.19 \u00b0C",
         "Salinity (PSU)": "34.2 PSU",
         "MLD (m)": "25.2 m",
-        "Precipitation": "37.69 mm",
+        "Precipitation": "44.54 mm",
         "NDVI": "0.3051",
-        "U-Wind Speed (m/s)": "0.8 m/s",
-        "V-Wind Speed (m/s)": "1.74 m/s",
+        "U-Wind Speed (m/s)": "0.77 m/s",
+        "V-Wind Speed (m/s)": "1.66 m/s",
         "U-VEL (m/s)": "-0.024 m/s",
         "V-VEL (m/s)": "-0.008 m/s"
       },
