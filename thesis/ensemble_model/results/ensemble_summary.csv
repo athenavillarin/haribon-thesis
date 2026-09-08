@@ -1,6 +1,8 @@
 rank_auc,source,name,accuracy_mean,accuracy_std,precision_mean,precision_std,recall_mean,recall_std,f1_mean,f1_std,auc_mean,auc_std,n_splits,imputation_method
-1,model,lstm,0.942834,,0.0,,0.0,,0.0,,0.878971,,1,hybrid_adaptive
-2,ensemble,soft_vote,0.942834,,0.0,,0.0,,0.0,,0.847043,,1,hybrid_adaptive
-3,model,gru,0.94525,,1.0,,0.042254,,0.081081,,0.639593,,1,hybrid_adaptive
-4,model,transformer,0.942432,,0.0,,0.0,,0.0,,0.353228,,1,hybrid_adaptive
-5,model,xgboost,,,,,,,,,,,1,hybrid_adaptive
+1,model,transformer,0.787332,0.137143,0.326016,0.505253,0.138751,0.216867,0.19395,0.301576,0.845073,0.163571,6,hybrid_adaptive
+2,ensemble,weighted_avg,0.810769,0.182876,0.635365,0.394437,0.344063,0.367461,0.403342,0.38475,0.753944,0.19763,6,hybrid_adaptive
+3,ensemble,soft_vote,0.805387,0.186612,0.653664,0.395619,0.345971,0.35795,0.40713,0.366518,0.748471,0.201956,6,hybrid_adaptive
+4,model,xgboost,0.455081,0.13214,0.277453,0.138055,0.837476,0.235008,0.392277,0.173902,0.726564,0.18384,6,hybrid_adaptive
+5,model,lstm,0.760213,0.153995,0.321433,0.361575,0.137076,0.247613,0.161359,0.286429,0.682701,0.22842,6,hybrid_adaptive
+6,model,gru,0.782253,0.169482,0.493548,0.447705,0.234202,0.311058,0.279993,0.342417,0.673713,0.220801,6,hybrid_adaptive
+7,ensemble,stacked,0.749389,0.156118,0.400987,0.237888,0.458319,0.402449,0.399784,0.306257,0.65054,0.281525,6,hybrid_adaptive
