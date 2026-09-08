@@ -40,8 +40,8 @@ export default function MapSection({ forecastData, selectedLocation, onLocationS
         attributionControl: false
     }).setView([11.5, 122.5], 9);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '© OpenStreetMap contributors, © CARTO',
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
       maxZoom: 19
     }).addTo(map);
     L.control.zoom({ position: 'topright' }).addTo(map);
