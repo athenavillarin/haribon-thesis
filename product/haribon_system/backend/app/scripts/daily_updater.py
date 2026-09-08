@@ -777,11 +777,11 @@ def run_daily_update_with_5day_forecast():
                 reference_date=today,
             )
 
-            if probability >= 0.8:
+            if probability >= 0.60:
                 risk_level = "High Risk"
-            elif probability >= 0.5:
+            elif probability >= 0.45:
                 risk_level = "Moderate Risk"
-            elif probability >= 0.2:
+            elif probability >= 0.32:
                 risk_level = "Low Risk"
             else:
                 risk_level = "Very Low Risk"
@@ -810,15 +810,15 @@ def run_daily_update_with_5day_forecast():
                     "Moderate bloom risk based on a combination of "
                     "environmental factors; continue close monitoring."
                 )
-            elif "Low" in risk_level:
-                explanation = (
-                    "Low bloom risk under current environmental "
-                    "conditions, but routine monitoring is still advised."
-                )
-            else:
+            elif "Very Low" in risk_level:
                 explanation = (
                     "Very low bloom risk; environmental conditions are "
                     "currently unfavorable for red tide development."
+                )
+            else:
+                explanation = (
+                    "Low bloom risk under current environmental "
+                    "conditions, but routine monitoring is still advised."
                 )
 
             if data_limited:
@@ -892,7 +892,7 @@ def run_daily_update_with_5day_forecast():
                 "date": today_str,
                 "risk_level": risk_level,
                 "confidence": confidence,
-                "red_tide_probability": risk_level.split(" ")[0], # "High", "Moderate"
+                "red_tide_probability": risk_level.replace(" Risk", ""), # "High", "Moderate", "Low", "Very Low"
                 "recommendations": recommendations,
                 "contributing_factors": {
                     "chl-a": safe_float(display_chl, 3),
@@ -955,11 +955,14 @@ def run_daily_update_with_5day_forecast():
 
                 future_prob = probability * (decay_factor ** i)
 
-                future_risk_label = "Low Risk"
-                if future_prob > 0.7:
+                if future_prob >= 0.60:
                     future_risk_label = "High Risk"
-                elif future_prob > 0.4:
+                elif future_prob >= 0.45:
                     future_risk_label = "Moderate Risk"
+                elif future_prob >= 0.32:
+                    future_risk_label = "Low Risk"
+                else:
+                    future_risk_label = "Very Low Risk"
 
                 future_conf_score = base_confidence * (horizon_conf_decay ** i)
                 if base_confidence > 0.7:
@@ -973,7 +976,7 @@ def run_daily_update_with_5day_forecast():
                     "day_label": future_date.strftime('%a'),
                     "risk_level": future_risk_label,
                     "confidence": f"{future_conf_score * 100:.1f}%",
-                    "probability": future_risk_label.split(" ")[0]
+                    "probability": future_risk_label.replace(" Risk", "")
                 }
                 five_day.append(day_forecast)
                 

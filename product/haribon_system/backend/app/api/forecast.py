@@ -324,6 +324,8 @@ def _get_risk_key(risk_level):
         return "red"
     elif "orange" in normalized or "moderate" in normalized:
         return "orange"
+    elif "very low" in normalized:
+        return "green"
     elif "yellow" in normalized or "low" in normalized:
         return "yellow"
     else:
