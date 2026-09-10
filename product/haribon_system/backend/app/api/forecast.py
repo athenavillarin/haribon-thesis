@@ -154,9 +154,9 @@ def _simplify_forecast_for_frontend(raw_data):
     """Convert complex forecast data to frontend-friendly format."""
     current_forecast_date = datetime.now().date()
     try:
-        last_updated = raw_data.get("last_updated")
-        if last_updated:
-            current_forecast_date = datetime.fromisoformat(last_updated.replace("Z", "+00:00")).date()
+        forecast_date_str = raw_data.get("forecasts", [{}])[0].get("date")
+        if forecast_date_str:
+            current_forecast_date = datetime.strptime(forecast_date_str, "%Y-%m-%d").date()
     except Exception:
         current_forecast_date = datetime.now().date()
 

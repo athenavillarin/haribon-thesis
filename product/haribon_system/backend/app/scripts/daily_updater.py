@@ -1038,7 +1038,7 @@ def run_daily_update_with_5day_forecast():
             traceback.print_exc()
 
     output_data = {
-        "last_updated": datetime.now().isoformat(),
+        "last_updated": today.isoformat(),
         "system_version": f"v2.0 ({manifest_forecasting})",
         "manifest": {
             "path": str(settings.THESIS_WINNERS_PATH),
