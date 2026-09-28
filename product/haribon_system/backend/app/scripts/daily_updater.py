@@ -257,7 +257,9 @@ def _predict_weighted_avg_probability(
         transformer_scenario = _get_manifest_transformer_scenario(manifest)
         lstm_prob = float(predict_lstm(split_like)[0])
         gru_prob = float(predict_gru(split_like)[0])
-        transformer_prob = float(predict_transformer(split_like, scenario=transformer_scenario)[0])
+        transformer_prob = float(
+            predict_transformer(split_like, scenario=transformer_scenario, fallback_retrain=False)[0]
+        )
 
         # Weights proportional to AUC scores from thesis results, normalized to sum to 1
         # LSTM=0.7363, GRU=0.6990, Transformer=0.6265, XGBoost=0.7082
@@ -611,7 +613,7 @@ def run_daily_update_with_5day_forecast():
         print(f"Failed to load ML components or data: {e}")
         import traceback
         traceback.print_exc()
-        return
+        sys.exit(1)
 
     locations = historical_df['Location_Name'].unique()
     print(f"Generating forecasts for {len(locations)} locations: {locations}")
@@ -634,6 +636,7 @@ def run_daily_update_with_5day_forecast():
     today_str = today.strftime('%Y-%m-%d')
     
     forecasts = []
+    failed_locations = []
 
     for location in locations:
         if not isinstance(location, str):
@@ -1036,9 +1039,26 @@ def run_daily_update_with_5day_forecast():
             print(f"Error generating forecast for {location}: {e}")
             import traceback
             traceback.print_exc()
+            failed_locations.append(location)
+
+    if not forecasts:
+        print("[ERROR] No forecasts generated for any location; leaving previous forecast in place.")
+        sys.exit(1)
+
+    ensemble_fallbacks = [
+        f["location"] for f in forecasts
+        if f["data_quality"]["final_probability_source"] != "weighted_avg_ensemble"
+    ]
+    status = "partial" if failed_locations else "ok"
+    print(f"Run status: {status} ({len(forecasts)} generated, failed: {failed_locations or 'none'})")
+    if ensemble_fallbacks:
+        print(f"[WARN] XGBoost-only fallback used for: {ensemble_fallbacks}")
 
     output_data = {
         "last_updated": today.isoformat(),
+        "status": status,
+        "failed_locations": failed_locations,
+        "ensemble_fallback_locations": ensemble_fallbacks,
         "system_version": f"v2.0 ({manifest_forecasting})",
         "manifest": {
             "path": str(settings.THESIS_WINNERS_PATH),
@@ -1060,15 +1080,15 @@ def run_daily_update_with_5day_forecast():
 
     if SessionLocal is not None and DailyForecast is not None:
         try:
-            session = SessionLocal()
-            db_obj = DailyForecast(
-                forecast_date=today.date(),
-                system_version=output_data["system_version"],
-                payload=output_data,
-            )
-            session.add(db_obj)
-            session.commit()
-            session.close()
+            with SessionLocal() as session:
+                db_obj = session.query(DailyForecast).filter_by(forecast_date=today.date()).first()
+                if db_obj is None:
+                    db_obj = DailyForecast(forecast_date=today.date())
+                    session.add(db_obj)
+                db_obj.system_version = output_data["system_version"]
+                db_obj.payload = output_data
+                db_obj.created_at = datetime.utcnow()
+                session.commit()
             print("Daily forecast also stored in PostgreSQL (daily_forecasts table).")
         except Exception as exc:
             print(f"[WARN] Failed to store daily forecast in PostgreSQL: {exc}")

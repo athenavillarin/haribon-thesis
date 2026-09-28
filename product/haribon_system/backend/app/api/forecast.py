@@ -52,7 +52,7 @@ def _load_latest_forecast_data():
             # Get the record with the most recent forecast_date
             db_row = (
                 session.query(DailyForecast)
-                .order_by(DailyForecast.forecast_date.desc())
+                .order_by(DailyForecast.forecast_date.desc(), DailyForecast.created_at.desc())
                 .first()
             )
             session.close()

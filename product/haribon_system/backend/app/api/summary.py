@@ -24,7 +24,7 @@ def get_risk_summary():
             return {"error": "Database not configured"}
         
         session = SessionLocal()
-        record = session.query(DailyForecast).order_by(DailyForecast.forecast_date.desc()).first()
+        record = session.query(DailyForecast).order_by(DailyForecast.forecast_date.desc(), DailyForecast.created_at.desc()).first()
         session.close()
 
         if not record or not record.payload:
@@ -77,7 +77,7 @@ def get_environmental_overview():
             return {"error": "Database not configured"}
         
         session = SessionLocal()
-        record = session.query(DailyForecast).order_by(DailyForecast.forecast_date.desc()).first()
+        record = session.query(DailyForecast).order_by(DailyForecast.forecast_date.desc(), DailyForecast.created_at.desc()).first()
         session.close()
 
         if not record or not record.payload:
