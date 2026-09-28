@@ -150,6 +150,44 @@ def load_historical_data():
     return df
 
 
+def load_recent_model_inputs(since: datetime) -> pd.DataFrame:
+    """Model inputs saved by previous runs, used to extend the frozen training CSV."""
+    if SessionLocal is None or DailyForecast is None:
+        return pd.DataFrame()
+
+    try:
+        with SessionLocal() as session:
+            rows = (
+                session.query(DailyForecast.forecast_date, DailyForecast.payload)
+                .filter(DailyForecast.forecast_date >= since.date())
+                .all()
+            )
+    except Exception as exc:
+        print(f"[WARN] Could not load recent model inputs from PostgreSQL: {exc}")
+        return pd.DataFrame()
+
+    records = []
+    for forecast_date, payload in rows:
+        for item in (payload or {}).get("forecasts", []):
+            inputs = item.get("model_inputs")
+            if not item.get("location") or not inputs:
+                continue
+            sources = item.get("data_quality", {}).get("environment_imputation_sources", {})
+            observed = {k: v for k, v in inputs.items() if sources.get(k) == "observed"}
+            records.append({"Location_Name": item["location"], "Date": pd.to_datetime(forecast_date), **observed})
+
+    print(f"Loaded {len(records)} saved model-input rows since {since.date()}.")
+    return pd.DataFrame(records)
+
+
+def extend_history(historical_df: pd.DataFrame, recent_df: pd.DataFrame) -> pd.DataFrame:
+    if recent_df.empty:
+        return historical_df
+    combined = pd.concat([historical_df, recent_df], ignore_index=True)
+    combined = combined.drop_duplicates(subset=["Location_Name", "Date"], keep="first")
+    return combined.sort_values(["Location_Name", "Date"]).reset_index(drop=True)
+
+
 def _resolve_split_num_for_date(reference_date: datetime) -> int:
     year = int(reference_date.year)
     if year <= 2020:
@@ -188,12 +226,23 @@ def _build_current_sequence_and_tab(location_df: pd.DataFrame, feature_row: dict
     if not feature_cols:
         return None, None, []
 
+    target_day = pd.to_datetime(reference_date).tz_localize(None).normalize()
     row = {c: feature_row.get(c, np.nan) for c in feature_cols}
-    row["Date"] = pd.to_datetime(reference_date).tz_localize(None)
+    row["Date"] = target_day
+    loc = loc[loc["Date"] < target_day]
     appended = pd.concat([loc[["Date", *feature_cols]], pd.DataFrame([row])], ignore_index=True)
+    appended = (
+        appended.drop_duplicates(subset="Date", keep="last")
+        .set_index("Date")
+        .asfreq("D")
+    )
 
-    # Keep the same robust fallback style as updater to avoid NaNs in sequence windows.
-    appended[feature_cols] = appended[feature_cols].ffill().bfill()
+    window_start = target_day - pd.Timedelta(days=LOOKBACK - 1)
+    real_days = int(appended.loc[window_start:, feature_cols].notna().any(axis=1).sum())
+    print(f"  [WINDOW] {window_start.date()} to {target_day.date()}: {real_days}/{LOOKBACK} days with data")
+
+    appended[feature_cols] = appended[feature_cols].interpolate(method="time").ffill().bfill()
+    appended = appended.reset_index()
     if appended[feature_cols].isna().any().any():
         appended[feature_cols] = appended[feature_cols].fillna(appended[feature_cols].mean())
     if appended[feature_cols].isna().any().any():
@@ -634,7 +683,12 @@ def run_daily_update_with_5day_forecast():
     pht = pytz.timezone('Asia/Manila')
     today = datetime.now(pht)
     today_str = today.strftime('%Y-%m-%d')
-    
+
+    history_df = extend_history(
+        historical_df,
+        load_recent_model_inputs(since=today - timedelta(days=90)),
+    )
+
     forecasts = []
     failed_locations = []
 
@@ -647,8 +701,7 @@ def run_daily_update_with_5day_forecast():
         if latest_row is None:
             print(f"Skipping {location}: No data found")
             continue
-        input_data = latest_row.to_dict()
-        input_data['Date'] = pd.to_datetime(today_str)
+        input_data = {'Date': pd.to_datetime(today_str)}
 
         gee_feature = location_features.get(location)
         gee_data = None
@@ -730,7 +783,7 @@ def run_daily_update_with_5day_forecast():
                 location=location,
                 month=current_month,
                 reference_date=today,
-                historical_df=historical_df,
+                historical_df=history_df,
                 loc_month_means=loc_month_means,
                 loc_means=loc_means,
                 global_means=global_means,
@@ -761,7 +814,7 @@ def run_daily_update_with_5day_forecast():
                 print(f"  [MODEL] Ensemble mode enabled by manifest: {manifest_forecasting}")
                 weighted_prob = _predict_weighted_avg_probability(
                     manifest=manifest,
-                    historical_df=historical_df,
+                    historical_df=history_df,
                     location=location,
                     feature_row=feature_row,
                     xgb_probability=xgb_prob,
@@ -945,7 +998,8 @@ def run_daily_update_with_5day_forecast():
                     "recent_positive_rate_365d": historical_signal["recent_positive_rate_365d"],
                     **env_source_meta,
                 },
-                "explanation": explanation
+                "explanation": explanation,
+                "model_inputs": {col: safe_float(feature_row.get(col), 6) for col in feature_names},
             }
 
             five_day = []
