@@ -1,9 +1,10 @@
 from pathlib import Path
 import json
+import time
 from datetime import datetime, date, timedelta
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from functools import lru_cache
+from fastapi import APIRouter, HTTPException
 import pytz
-from requests import session
 from app.core.config import settings
 from app.core.schemas import ForecastResponse, SimplifiedForecastResponse
 import pandas as pd
@@ -16,6 +17,16 @@ except Exception:
     DailyForecast = None
 
 router = APIRouter()
+
+PHT = pytz.timezone("Asia/Manila")
+DB_CACHE_TTL_SECONDS = 600
+FALLBACK_CACHE_TTL_SECONDS = 60
+_latest_cache = {"data": None, "expires": 0.0}
+_yesterday_cache = {}
+
+
+def _today_pht() -> date:
+    return datetime.now(PHT).date()
 
 
 def _normalize_location_key(value: str) -> str:
@@ -40,7 +51,30 @@ def _resolve_historical_dataset_path() -> Path:
         + ", ".join(str(path) for path in candidates)
     )
 
+
+@lru_cache(maxsize=1)
+def _load_historical_alerts() -> pd.DataFrame:
+    df = pd.read_csv(_resolve_historical_dataset_path(), usecols=["Location_Name", "Date", "red_tide_label"])
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    df = df.dropna(subset=["Date"])
+    labels = pd.to_numeric(df["red_tide_label"], errors="coerce").fillna(0.0)
+    # Red-tide event threshold from the binary label.
+    df["is_alert"] = (labels >= 0.5).astype(int)
+    return df
+
+
 def _load_latest_forecast_data():
+    now = time.monotonic()
+    if _latest_cache["data"] is not None and now < _latest_cache["expires"]:
+        return _latest_cache["data"]
+
+    data, from_db = _fetch_latest_forecast_data()
+    ttl = DB_CACHE_TTL_SECONDS if from_db else FALLBACK_CACHE_TTL_SECONDS
+    _latest_cache.update(data=data, expires=now + ttl)
+    return data
+
+
+def _fetch_latest_forecast_data():
     """
     Priority 1: Fetch from Neon Databse (Live Data)
     Priority 2: Load from latest generated JSON file (Fallback)
@@ -48,38 +82,28 @@ def _load_latest_forecast_data():
     # --- STEP 1: TRY DATABASE ---
     if SessionLocal is not None and DailyForecast is not None:
         try:
-            session = SessionLocal()
-            # Get the record with the most recent forecast_date
-            db_row = (
-                session.query(DailyForecast)
-                .order_by(DailyForecast.forecast_date.desc(), DailyForecast.created_at.desc())
-                .first()
-            )
-            session.close()
+            with SessionLocal() as session:
+                db_row = (
+                    session.query(DailyForecast)
+                    .order_by(DailyForecast.forecast_date.desc(), DailyForecast.created_at.desc())
+                    .first()
+                )
 
             if db_row and db_row.payload:
-                print("DEBUG: Successfully loaded forecast from DATABASE.")
-                return db_row.payload
+                return db_row.payload, True
         except Exception as db_exc:
             print(f"[WARN] Database fetch failed, falling back to JSON: {db_exc}")
 
     # --- STEP 2: FALLBACK TO JSON FILE ---
-    today_str = datetime.now().strftime('%Y-%m-%d')
-    filepath = settings.PROCESSED_DATA_DIR / f"daily_forecast_{today_str}.json"
-    
-    if filepath.exists():
-        with open(filepath, 'r') as f:
-            return json.load(f)
-            
-    # Fallback to the most recent file in the directory
-    try:
-        files = list(settings.PROCESSED_DATA_DIR.glob("daily_forecast_*.json"))
-        if files:
-            latest_file = max(files, key=lambda f: f.stat().st_mtime)
-            with open(latest_file, 'r') as f:
-                return json.load(f)
-    except Exception:
-        pass
+    processed_dir = settings.PROCESSED_DATA_DIR
+    candidates = [processed_dir / "latest.json"]
+    candidates += sorted(processed_dir.glob("daily_forecast_*.json"), reverse=True)
+    for filepath in candidates:
+        try:
+            with open(filepath, 'r') as f:
+                return json.load(f), False
+        except (OSError, ValueError):
+            continue
 
     # --- STEP 3: FINAL ERROR IF BOTH FAIL ---
     raise HTTPException(
@@ -113,16 +137,18 @@ def _load_yesterday_forecasts_from_db(current_forecast_date: date):
         return {}
 
     target_date = current_forecast_date - timedelta(days=1)
+    cached = _yesterday_cache.get(target_date)
+    if cached is not None and time.monotonic() < cached[1]:
+        return cached[0]
 
     try:
-        session = SessionLocal()
-        db_row = (
-            session.query(DailyForecast)
-            .filter(DailyForecast.forecast_date == target_date)
-            .order_by(DailyForecast.created_at.desc())
-            .first()
-        )
-        session.close()
+        with SessionLocal() as session:
+            db_row = (
+                session.query(DailyForecast)
+                .filter(DailyForecast.forecast_date == target_date)
+                .order_by(DailyForecast.created_at.desc())
+                .first()
+            )
     except Exception:
         return {}
 
@@ -148,17 +174,19 @@ def _load_yesterday_forecasts_from_db(current_forecast_date: date):
             "is_historical": True,
         }
 
+    _yesterday_cache.clear()
+    _yesterday_cache[target_date] = (by_location, time.monotonic() + DB_CACHE_TTL_SECONDS)
     return by_location
 
 def _simplify_forecast_for_frontend(raw_data):
     """Convert complex forecast data to frontend-friendly format."""
-    current_forecast_date = datetime.now().date()
+    current_forecast_date = _today_pht()
     try:
         forecast_date_str = raw_data.get("forecasts", [{}])[0].get("date")
         if forecast_date_str:
             current_forecast_date = datetime.strptime(forecast_date_str, "%Y-%m-%d").date()
     except Exception:
-        current_forecast_date = datetime.now().date()
+        current_forecast_date = _today_pht()
 
     yesterday_by_location = _load_yesterday_forecasts_from_db(current_forecast_date)
 
@@ -332,16 +360,6 @@ def _get_risk_key(risk_level):
         return "green"
 
 
-@router.post("/update")
-def trigger_daily_update(background_tasks: BackgroundTasks):
-    # Forecast generation runs via GitHub Actions, not on this server.
-    return {"status": "ok", "message": "Forecast is updated automatically via GitHub Actions."}
-
-
-@router.post("/trigger-update")
-def trigger_daily_update_compat(background_tasks: BackgroundTasks):
-    return trigger_daily_update(background_tasks)
-
 @router.get("/today", response_model=ForecastResponse)
 def get_full_forecast():
     """Serves the pre-generated forecast for today for all monitored locations."""
@@ -410,21 +428,9 @@ def get_historical_data(
 ):
     """Return historical red-tide alerts for charts (monthly bars + timeline)."""
     try:
-        historical_data = pd.read_csv(_resolve_historical_dataset_path())
+        historical_data = _load_historical_alerts()
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to load historical data: {exc}")
-
-    if historical_data.empty:
-        return {
-            "location": location_name,
-            "monthly_alerts": [],
-            "timeline": [],
-            "available_range": None,
-        }
-
-    historical_data["Date"] = pd.to_datetime(historical_data["Date"], errors="coerce")
-    historical_data = historical_data.dropna(subset=["Date"])
-    historical_data["red_tide_label"] = pd.to_numeric(historical_data["red_tide_label"], errors="coerce").fillna(0.0)
 
     if historical_data.empty:
         return {
@@ -478,10 +484,6 @@ def get_historical_data(
                 "end": historical_data["Date"].max().strftime("%Y-%m-%d"),
             },
         }
-
-    # Red-tide event threshold from the binary label.
-    selected_df = selected_df.copy()
-    selected_df["is_alert"] = (selected_df["red_tide_label"] >= 0.5).astype(int)
 
     monthly_counts = (
         selected_df
