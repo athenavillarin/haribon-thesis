@@ -197,12 +197,6 @@ export default function SeaStats() {
   const { selectedLocation, setSelectedLocation } = useAppLocation();
 
   useEffect(() => {
-    if (forecastData?.locations?.length > 0 && !selectedLocation) {
-      setSelectedLocation(forecastData.locations[0]);
-    }
-  }, [forecastData, selectedLocation, setSelectedLocation]);
-
-  useEffect(() => {
     if (!forecastData?.locations?.length) return;
     fetchHistoricalData();
   }, [forecastData, trendArea, fromDate, toDate, trendMode]);

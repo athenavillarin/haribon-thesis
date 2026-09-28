@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useAppLocation } from '../context/LocationContext';
 import MapSection from '../components/dashboard/MapSection';
 import RightDashboard from '../components/dashboard/RightDashboard';
@@ -10,16 +10,6 @@ export default function Dashboard() {
   const forecast = useLatestForecast();
   const { data: forecastData, loading, slow, error, refresh } = forecast;
   const { selectedLocation, setSelectedLocation } = useAppLocation();
-
-  // Always rebind selectedLocation to the newest payload object to avoid stale UI fields.
-  useEffect(() => {
-    if (!forecastData?.locations?.length) return;
-    const refreshedSelected = selectedLocation?.id
-      ? forecastData.locations.find((loc) => loc.id === selectedLocation.id)
-      : null;
-    setSelectedLocation(refreshedSelected || forecastData.locations[0]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forecastData]);
 
   const handleLocationSelect = (location) => {
     setSelectedLocation(location);
