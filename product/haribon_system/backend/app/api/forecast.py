@@ -19,7 +19,7 @@ except Exception:
 router = APIRouter()
 
 PHT = pytz.timezone("Asia/Manila")
-DB_CACHE_TTL_SECONDS = 600
+DB_CACHE_TTL_SECONDS = 60
 FALLBACK_CACHE_TTL_SECONDS = 60
 _latest_cache = {"data": None, "expires": 0.0}
 _yesterday_cache = {}
