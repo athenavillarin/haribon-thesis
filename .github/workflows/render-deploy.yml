@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'product/haribon_system/backend/**'
+      - 'thesis/final_compiled_dataset/**'
+      - '.github/workflows/render-deploy.yml'
 
 jobs:
   deploy:
