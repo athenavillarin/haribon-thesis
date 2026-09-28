@@ -14,7 +14,7 @@
       "properties": { "Name": "Dumanquillas Bay" },
       "geometry": {
         "type": "Point",
-        "coordinates": [122.45, 11.65]
+        "coordinates": [123.018, 7.697]
       }
     },
     {
@@ -22,7 +22,7 @@
       "properties": { "Name": "Matarinao Bay" },
       "geometry": {
         "type": "Point",
-        "coordinates": [122.48, 11.62]
+        "coordinates": [125.55, 11.23]
       }
     },
     {
