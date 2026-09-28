@@ -4,7 +4,7 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from app.api import forecast, summary
@@ -30,14 +30,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
-
-
-@app.middleware("http")
-async def add_cache_headers(request: Request, call_next):
-    response = await call_next(request)
-    if request.method == "GET" and request.url.path.startswith("/api/") and response.status_code == 200:
-        response.headers.setdefault("Cache-Control", "public, max-age=600")
-    return response
 
 
 app.include_router(forecast.router, prefix="/api/forecast")
