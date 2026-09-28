@@ -53,6 +53,6 @@ jobs:
             echo "No forecast changes to commit."
           else
             git commit -m "chore: update daily forecast for $(TZ=Asia/Manila date +%Y-%m-%d)"
-            git pull --rebase
+            git pull --rebase --autostash
             git push
           fi
