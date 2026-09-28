@@ -2,68 +2,93 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';  // Fallback for local dev
 
+const LATEST_TTL_MS = 10 * 60 * 1000;
+const RETRY_DELAYS_MS = [3000, 8000];
+const FORECAST_STORAGE_KEY = 'haribon:lastForecast';
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isRetryable = (error) => {
+  if (!error.response) return true;
+  return error.response.status >= 500;
+};
+
 class ApiService {
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
-      timeout: 30000,
+      timeout: 45000,
     });
+    this.latest = { promise: null, fetchedAt: 0 };
   }
 
-  async getLatestForecast() {
-    try {
-      const response = await this.client.get('/api/forecast/latest');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching latest forecast:', error);
-      throw error;
+  // Render's free tier sleeps when idle; ping early so it starts waking up.
+  warmUp() {
+    this.client.get('/health').catch(() => {});
+  }
+
+  async getWithRetry(url, config) {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        const response = await this.client.get(url, config);
+        return response.data;
+      } catch (error) {
+        if (attempt >= RETRY_DELAYS_MS.length || !isRetryable(error)) throw error;
+        await sleep(RETRY_DELAYS_MS[attempt]);
+      }
     }
+  }
+
+  getCachedForecast() {
+    try {
+      const raw = localStorage.getItem(FORECAST_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  saveCachedForecast(data) {
+    try {
+      localStorage.setItem(FORECAST_STORAGE_KEY, JSON.stringify({ data, savedAt: Date.now() }));
+    } catch {
+      // Storage may be unavailable (private mode, quota); the live data still renders.
+    }
+  }
+
+  getLatestForecast({ force = false } = {}) {
+    const fresh = Date.now() - this.latest.fetchedAt < LATEST_TTL_MS;
+    if (this.latest.promise && !force && fresh) {
+      return this.latest.promise;
+    }
+
+    const promise = this.getWithRetry('/api/forecast/latest')
+      .then((data) => {
+        this.saveCachedForecast(data);
+        return data;
+      })
+      .catch((error) => {
+        if (this.latest.promise === promise) this.latest = { promise: null, fetchedAt: 0 };
+        console.error('Error fetching latest forecast:', error);
+        throw error;
+      });
+
+    this.latest = { promise, fetchedAt: Date.now() };
+    return promise;
   }
 
   async getLocations() {
     try {
-      const response = await this.client.get('/api/forecast/locations');
-      return response.data;
+      return await this.getWithRetry('/api/forecast/locations');
     } catch (error) {
       console.error('Error fetching locations:', error);
       throw error;
     }
   }
 
-  async getRiskSummary() {
-    try {
-      const response = await this.client.get('/api/forecast/risk-summary');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching risk summary:', error);
-      throw error;
-    }
-  }
-
-  async getEnvironmentalOverview() {
-    try {
-      const response = await this.client.get('/api/forecast/environmental-overview');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching environmental overview:', error);
-      throw error;
-    }
-  }
-
-  async triggerDailyUpdate() {
-    try {
-      const response = await this.client.post('/api/forecast/trigger-update');
-      return response.data;
-    } catch (error) {
-      console.error('Error triggering daily update:', error);
-      throw error;
-    }
-  }
-
   async getLocationDetails(locationId) {
     try {
-      const response = await this.client.get(`/api/forecast/location/${locationId}`);
-      return response.data;
+      return await this.getWithRetry(`/api/forecast/location/${locationId}`);
     } catch (error) {
       console.error('Error fetching location details:', error);
       throw error;
@@ -76,10 +101,7 @@ class ApiService {
       if (options.fromDate) params.from_date = options.fromDate;
       if (options.toDate) params.to_date = options.toDate;
 
-      const response = await this.client.get(`/api/forecast/historical/${locationId}`, {
-        params,
-      });
-      return response.data;
+      return await this.getWithRetry(`/api/forecast/historical/${locationId}`, { params });
     } catch (error) {
       console.error('Error fetching historical data:', error);
       throw error;
