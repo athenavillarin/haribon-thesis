@@ -1124,12 +1124,10 @@ def run_daily_update_with_5day_forecast():
     processed_dir = settings.PROCESSED_DATA_DIR
     processed_dir.mkdir(parents=True, exist_ok=True)
 
-    output_file = processed_dir / f"daily_forecast_{today_str}.json"
-
-    with open(output_file, 'w') as f:
-        json.dump(output_data, f, indent=2)
-
-    print(f"Forecast saved to: {output_file}")
+    for output_file in (processed_dir / f"daily_forecast_{today_str}.json", processed_dir / "latest.json"):
+        with open(output_file, 'w') as f:
+            json.dump(output_data, f, indent=2)
+        print(f"Forecast saved to: {output_file}")
 
     if SessionLocal is not None and DailyForecast is not None:
         try:
