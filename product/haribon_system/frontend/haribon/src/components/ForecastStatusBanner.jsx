@@ -1,11 +1,16 @@
 import React from 'react';
 
 export default function ForecastStatusBanner({ data, stale, loading, slow, error, onRetry, className = '' }) {
-  if (!stale) return null;
+  const refreshFailed = !stale && !loading && error && data;
+  if (!stale && !refreshFailed) return null;
 
   const forecastDate = data?.metadata?.forecast_date;
   let message = forecastDate ? `Showing saved forecast for ${forecastDate}.` : 'Showing saved forecast.';
-  if (loading) {
+  if (refreshFailed) {
+    message = forecastDate
+      ? `Could not refresh; showing forecast for ${forecastDate}.`
+      : 'Could not refresh; showing the last loaded forecast.';
+  } else if (loading) {
     message += slow ? ' Waking up the server, this can take up to a minute…' : ' Checking for updates…';
   } else if (error) {
     message += ' Could not reach the server.';
