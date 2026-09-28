@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAppLocation } from '../context/LocationContext';
 import ApiService from '../services/api';
 import ForecastStrip from '../components/dashboard/ForecastStrip';
+import ForecastStatusBanner from '../components/ForecastStatusBanner';
+import useLatestForecast from '../hooks/useLatestForecast';
 
 function TrendBars({ data }) {
   if (!data.length) {
@@ -183,10 +185,9 @@ function TrendLine({ data }) {
 }
 
 export default function SeaStats() {
-  const [forecastData, setForecastData] = useState(null);
+  const forecast = useLatestForecast();
+  const { data: forecastData, loading, slow, error, refresh } = forecast;
   const [historicalData, setHistoricalData] = useState({ monthly_alerts: [], timeline: [], available_range: null });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [trendMode, setTrendMode] = useState('monthly');
   const [trendArea, setTrendArea] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -196,32 +197,9 @@ export default function SeaStats() {
   const { selectedLocation, setSelectedLocation } = useAppLocation();
 
   useEffect(() => {
-    fetchForecastData();
-  }, []);
-
-  useEffect(() => {
     if (!forecastData?.locations?.length) return;
     fetchHistoricalData();
   }, [forecastData, trendArea, fromDate, toDate, trendMode]);
-
-  const fetchForecastData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await ApiService.getLatestForecast();
-      setForecastData(data);
-
-      // Default selected location if none is set yet
-      if (data?.locations && data.locations.length > 0 && !selectedLocation) {
-        setSelectedLocation(data.locations[0]);
-      }
-    } catch (err) {
-      console.error('Error fetching forecast data:', err);
-      setError('Failed to load SeaStats data');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleLocationChange = (location) => {
     setSelectedLocation(location);
@@ -262,15 +240,6 @@ export default function SeaStats() {
   const formatMetricValue = (value, decimals = 1) => {
     if (value === null || value === undefined || Number.isNaN(value)) return '--';
     return Number(value).toFixed(decimals);
-  };
-
-  const handleRefresh = async () => {
-    try {
-      await ApiService.triggerDailyUpdate();
-    } catch (e) {
-      console.warn('Failed to trigger daily update, will just refetch latest:', e);
-    }
-    await fetchForecastData();
   };
 
   const handleResetTrends = () => {
@@ -322,24 +291,26 @@ export default function SeaStats() {
     setParameterPage(0);
   }, [selectedLocation?.id]);
 
-  if (loading) {
+  if (!forecastData && loading) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-haribon-dark mx-auto mb-4" />
-          <p className="text-lg text-gray-600">Loading SeaStats data...</p>
+          <p className="text-lg text-gray-600">
+            {slow ? 'Waking up the server, this can take up to a minute...' : 'Loading SeaStats data...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (!forecastData && error) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="bg-red-50 border border-red-200 rounded-xl px-6 py-4 text-center max-w-md">
-          <p className="text-red-600 font-medium mb-3">{error}</p>
+          <p className="text-red-600 font-medium mb-3">Failed to load SeaStats data</p>
           <button
-            onClick={fetchForecastData}
+            onClick={refresh}
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-haribon-dark text-white text-sm font-medium hover:bg-opacity-90 transition-colors"
           >
             Retry
@@ -497,13 +468,14 @@ export default function SeaStats() {
   return (
     <div className="p-6 pb-4 pr-5">
       <div className="w-full min-w-0 flex flex-col gap-6 h-full">
+        <ForecastStatusBanner {...forecast} onRetry={refresh} />
         {/* 5-Day Forecast strip (reuses dashboard styling, still Tailwind-only) */}
         {selectedLocation && (
           <div className="-mt-2 mb-1">
             <ForecastStrip
               forecastData={forecastData}
               selectedLocation={selectedLocation}
-              onRefresh={handleRefresh}
+              onRefresh={refresh}
             />
           </div>
         )}

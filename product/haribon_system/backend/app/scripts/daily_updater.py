@@ -47,9 +47,9 @@ except Exception as gee_import_error:
     print(f"[WARN] GEE service unavailable; forecasts will use non-GEE fallback data: {gee_import_error}")
 
 try:
-    from app.services.cmems_marine_service import get_cmems_data_for_location
+    from app.services.cmems_marine_service import fetch_cmems_for_sites
 except Exception as cmems_import_error:
-    get_cmems_data_for_location = None
+    fetch_cmems_for_sites = None
     print(f"[WARN] CMEMS service unavailable: {cmems_import_error}")
 
 
@@ -150,6 +150,44 @@ def load_historical_data():
     return df
 
 
+def load_recent_model_inputs(since: datetime) -> pd.DataFrame:
+    """Model inputs saved by previous runs, used to extend the frozen training CSV."""
+    if SessionLocal is None or DailyForecast is None:
+        return pd.DataFrame()
+
+    try:
+        with SessionLocal() as session:
+            rows = (
+                session.query(DailyForecast.forecast_date, DailyForecast.payload)
+                .filter(DailyForecast.forecast_date >= since.date())
+                .all()
+            )
+    except Exception as exc:
+        print(f"[WARN] Could not load recent model inputs from PostgreSQL: {exc}")
+        return pd.DataFrame()
+
+    records = []
+    for forecast_date, payload in rows:
+        for item in (payload or {}).get("forecasts", []):
+            inputs = item.get("model_inputs")
+            if not item.get("location") or not inputs:
+                continue
+            sources = item.get("data_quality", {}).get("environment_imputation_sources", {})
+            observed = {k: v for k, v in inputs.items() if sources.get(k) == "observed"}
+            records.append({"Location_Name": item["location"], "Date": pd.to_datetime(forecast_date), **observed})
+
+    print(f"Loaded {len(records)} saved model-input rows since {since.date()}.")
+    return pd.DataFrame(records)
+
+
+def extend_history(historical_df: pd.DataFrame, recent_df: pd.DataFrame) -> pd.DataFrame:
+    if recent_df.empty:
+        return historical_df
+    combined = pd.concat([historical_df, recent_df], ignore_index=True)
+    combined = combined.drop_duplicates(subset=["Location_Name", "Date"], keep="first")
+    return combined.sort_values(["Location_Name", "Date"]).reset_index(drop=True)
+
+
 def _resolve_split_num_for_date(reference_date: datetime) -> int:
     year = int(reference_date.year)
     if year <= 2020:
@@ -188,12 +226,23 @@ def _build_current_sequence_and_tab(location_df: pd.DataFrame, feature_row: dict
     if not feature_cols:
         return None, None, []
 
+    target_day = pd.to_datetime(reference_date).tz_localize(None).normalize()
     row = {c: feature_row.get(c, np.nan) for c in feature_cols}
-    row["Date"] = pd.to_datetime(reference_date).tz_localize(None)
+    row["Date"] = target_day
+    loc = loc[loc["Date"] < target_day]
     appended = pd.concat([loc[["Date", *feature_cols]], pd.DataFrame([row])], ignore_index=True)
+    appended = (
+        appended.drop_duplicates(subset="Date", keep="last")
+        .set_index("Date")
+        .asfreq("D")
+    )
 
-    # Keep the same robust fallback style as updater to avoid NaNs in sequence windows.
-    appended[feature_cols] = appended[feature_cols].ffill().bfill()
+    window_start = target_day - pd.Timedelta(days=LOOKBACK - 1)
+    real_days = int(appended.loc[window_start:, feature_cols].notna().any(axis=1).sum())
+    print(f"  [WINDOW] {window_start.date()} to {target_day.date()}: {real_days}/{LOOKBACK} days with data")
+
+    appended[feature_cols] = appended[feature_cols].interpolate(method="time").ffill().bfill()
+    appended = appended.reset_index()
     if appended[feature_cols].isna().any().any():
         appended[feature_cols] = appended[feature_cols].fillna(appended[feature_cols].mean())
     if appended[feature_cols].isna().any().any():
@@ -257,7 +306,9 @@ def _predict_weighted_avg_probability(
         transformer_scenario = _get_manifest_transformer_scenario(manifest)
         lstm_prob = float(predict_lstm(split_like)[0])
         gru_prob = float(predict_gru(split_like)[0])
-        transformer_prob = float(predict_transformer(split_like, scenario=transformer_scenario)[0])
+        transformer_prob = float(
+            predict_transformer(split_like, scenario=transformer_scenario, fallback_retrain=False)[0]
+        )
 
         # Weights proportional to AUC scores from thesis results, normalized to sum to 1
         # LSTM=0.7363, GRU=0.6990, Transformer=0.6265, XGBoost=0.7082
@@ -611,7 +662,7 @@ def run_daily_update_with_5day_forecast():
         print(f"Failed to load ML components or data: {e}")
         import traceback
         traceback.print_exc()
-        return
+        sys.exit(1)
 
     locations = historical_df['Location_Name'].unique()
     print(f"Generating forecasts for {len(locations)} locations: {locations}")
@@ -632,8 +683,26 @@ def run_daily_update_with_5day_forecast():
     pht = pytz.timezone('Asia/Manila')
     today = datetime.now(pht)
     today_str = today.strftime('%Y-%m-%d')
-    
+
+    history_df = extend_history(
+        historical_df,
+        load_recent_model_inputs(since=today - timedelta(days=90)),
+    )
+
+    cmems_by_site = {}
+    if fetch_cmems_for_sites is not None:
+        sites = {
+            name: tuple(feat["geometry"]["coordinates"][:2])
+            for name, feat in location_features.items()
+            if feat.get("geometry", {}).get("type") == "Point"
+        }
+        try:
+            cmems_by_site = fetch_cmems_for_sites(sites, today_str)
+        except Exception as exc:
+            print(f"[WARN] CMEMS fetch failed: {exc}")
+
     forecasts = []
+    failed_locations = []
 
     for location in locations:
         if not isinstance(location, str):
@@ -644,24 +713,14 @@ def run_daily_update_with_5day_forecast():
         if latest_row is None:
             print(f"Skipping {location}: No data found")
             continue
-        input_data = latest_row.to_dict()
-        input_data['Date'] = pd.to_datetime(today_str)
+        input_data = {'Date': pd.to_datetime(today_str)}
 
         gee_feature = location_features.get(location)
         gee_data = None
-        cmems_data = None
+        cmems_data = cmems_by_site.get(location)
         env_source = "historical_latest"
         env_source_meta = {}
-        
-        # Try CMEMS first (includes internal baseline fallback)
-        if get_cmems_data_for_location is not None:
-            try:
-                coords = (gee_feature["geometry"]["coordinates"] if gee_feature else None)
-                if coords:
-                    cmems_data = get_cmems_data_for_location(location, coords, today_str)
-            except Exception as exc:
-                print(f"[WARN] CMEMS fetch failed for {location}")
-        
+
         # Try GEE as supplement
         if gee_feature is not None and get_environmental_data_for_feature is not None:
             try:
@@ -678,10 +737,7 @@ def run_daily_update_with_5day_forecast():
         gee_env = {}
         if cmems_data:
             cmems_env = {k: v for k, v in cmems_data.items() if not k.startswith("_")}
-            print(
-                f"Using {'live CMEMS' if cmems_data.get('_source') == 'cmems_live' else 'Copernicus baseline'} "
-                f"for {location} (marine data): {cmems_env}"
-            )
+            print(f"Using live CMEMS for {location} (marine data): {cmems_env}")
         
         if mapped_gee:
             gee_env = mapped_gee
@@ -696,7 +752,7 @@ def run_daily_update_with_5day_forecast():
             env_source = "cmems_gee_merged"
             env_source_meta = {
                 "cmems_source": cmems_data.get("_source"),
-                "cmems_date": cmems_data.get("_source_date"),
+                "cmems_source_dates": cmems_data.get("_source_dates"),
                 "gee_available": len(mapped_gee) > 0,
                 "gee_params": list(mapped_gee.keys()),
             }
@@ -704,8 +760,7 @@ def run_daily_update_with_5day_forecast():
         elif cmems_data:
             env_source = cmems_data.get("_fetch_status", "cmems_live")
             env_source_meta = {
-                "cmems_source_date": cmems_data.get("_source_date"),
-                "cmems_source_location": cmems_data.get("_source_location"),
+                "cmems_source_dates": cmems_data.get("_source_dates"),
                 "cmems_fetch_status": cmems_data.get("_fetch_status"),
             }
         elif mapped_gee:
@@ -727,7 +782,7 @@ def run_daily_update_with_5day_forecast():
                 location=location,
                 month=current_month,
                 reference_date=today,
-                historical_df=historical_df,
+                historical_df=history_df,
                 loc_month_means=loc_month_means,
                 loc_means=loc_means,
                 global_means=global_means,
@@ -758,7 +813,7 @@ def run_daily_update_with_5day_forecast():
                 print(f"  [MODEL] Ensemble mode enabled by manifest: {manifest_forecasting}")
                 weighted_prob = _predict_weighted_avg_probability(
                     manifest=manifest,
-                    historical_df=historical_df,
+                    historical_df=history_df,
                     location=location,
                     feature_row=feature_row,
                     xgb_probability=xgb_prob,
@@ -942,7 +997,8 @@ def run_daily_update_with_5day_forecast():
                     "recent_positive_rate_365d": historical_signal["recent_positive_rate_365d"],
                     **env_source_meta,
                 },
-                "explanation": explanation
+                "explanation": explanation,
+                "model_inputs": {col: safe_float(feature_row.get(col), 6) for col in feature_names},
             }
 
             five_day = []
@@ -1036,9 +1092,26 @@ def run_daily_update_with_5day_forecast():
             print(f"Error generating forecast for {location}: {e}")
             import traceback
             traceback.print_exc()
+            failed_locations.append(location)
+
+    if not forecasts:
+        print("[ERROR] No forecasts generated for any location; leaving previous forecast in place.")
+        sys.exit(1)
+
+    ensemble_fallbacks = [
+        f["location"] for f in forecasts
+        if f["data_quality"]["final_probability_source"] != "weighted_avg_ensemble"
+    ]
+    status = "partial" if failed_locations else "ok"
+    print(f"Run status: {status} ({len(forecasts)} generated, failed: {failed_locations or 'none'})")
+    if ensemble_fallbacks:
+        print(f"[WARN] XGBoost-only fallback used for: {ensemble_fallbacks}")
 
     output_data = {
         "last_updated": today.isoformat(),
+        "status": status,
+        "failed_locations": failed_locations,
+        "ensemble_fallback_locations": ensemble_fallbacks,
         "system_version": f"v2.0 ({manifest_forecasting})",
         "manifest": {
             "path": str(settings.THESIS_WINNERS_PATH),
@@ -1051,24 +1124,22 @@ def run_daily_update_with_5day_forecast():
     processed_dir = settings.PROCESSED_DATA_DIR
     processed_dir.mkdir(parents=True, exist_ok=True)
 
-    output_file = processed_dir / f"daily_forecast_{today_str}.json"
-
-    with open(output_file, 'w') as f:
-        json.dump(output_data, f, indent=2)
-
-    print(f"Forecast saved to: {output_file}")
+    for output_file in (processed_dir / f"daily_forecast_{today_str}.json", processed_dir / "latest.json"):
+        with open(output_file, 'w') as f:
+            json.dump(output_data, f, indent=2)
+        print(f"Forecast saved to: {output_file}")
 
     if SessionLocal is not None and DailyForecast is not None:
         try:
-            session = SessionLocal()
-            db_obj = DailyForecast(
-                forecast_date=today.date(),
-                system_version=output_data["system_version"],
-                payload=output_data,
-            )
-            session.add(db_obj)
-            session.commit()
-            session.close()
+            with SessionLocal() as session:
+                db_obj = session.query(DailyForecast).filter_by(forecast_date=today.date()).first()
+                if db_obj is None:
+                    db_obj = DailyForecast(forecast_date=today.date())
+                    session.add(db_obj)
+                db_obj.system_version = output_data["system_version"]
+                db_obj.payload = output_data
+                db_obj.created_at = datetime.utcnow()
+                session.commit()
             print("Daily forecast also stored in PostgreSQL (daily_forecasts table).")
         except Exception as exc:
             print(f"[WARN] Failed to store daily forecast in PostgreSQL: {exc}")

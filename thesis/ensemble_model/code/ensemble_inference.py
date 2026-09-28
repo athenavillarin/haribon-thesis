@@ -20,6 +20,7 @@ from __future__ import annotations
 import re
 import shutil
 import warnings
+from functools import lru_cache
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -184,6 +185,39 @@ def _patch_and_load_keras_model(model_path, model_type: str = "lstm"):
             raise fallback_exc from exc
 
 
+@lru_cache(maxsize=None)
+def _load_keras_model_cached(model_path: str, model_type: str):
+    import tensorflow as tf
+
+    _orig_dense_from_config = tf.keras.layers.Dense.from_config.__func__
+
+    @classmethod  # type: ignore[misc]
+    def _safe_dense_from_config(cls, config):
+        config = dict(config)
+        config.pop("quantization_config", None)
+        return _orig_dense_from_config(cls, config)
+
+    tf.keras.layers.Dense.from_config = _safe_dense_from_config
+    try:
+        return _patch_and_load_keras_model(model_path, model_type=model_type)
+    finally:
+        tf.keras.layers.Dense.from_config = classmethod(_orig_dense_from_config)
+
+
+@lru_cache(maxsize=None)
+def _load_scaler_cached(scaler_path: str):
+    import joblib
+
+    return joblib.load(scaler_path)
+
+
+@lru_cache(maxsize=None)
+def _load_torch_checkpoint_cached(weights_path: str, device_type: str):
+    import torch
+
+    return torch.load(weights_path, map_location=torch.device(device_type), weights_only=False)
+
+
 # ---------------------------------------------------------------------------
 # LSTM
 # ---------------------------------------------------------------------------
@@ -200,26 +234,11 @@ def predict_lstm(
     We use that scaler (not the ensemble-level scaler) to match training
     preprocessing exactly.
     """
-    import joblib
-    import tensorflow as tf  # noqa: F401
-
-    _orig_dense_from_config = tf.keras.layers.Dense.from_config.__func__
-
-    @classmethod  # type: ignore[misc]
-    def _safe_dense_from_config(cls, config):
-        config = dict(config)
-        config.pop("quantization_config", None)
-        return _orig_dense_from_config(cls, config)
-
-    tf.keras.layers.Dense.from_config = _safe_dense_from_config
-    try:
-        model_path = model_dir / f"haribon_lstm_hybrid_adaptive_split{split_data.split_num}.keras"
-        model = _patch_and_load_keras_model(str(model_path))
-    finally:
-        tf.keras.layers.Dense.from_config = classmethod(_orig_dense_from_config)
+    model_path = model_dir / f"haribon_lstm_hybrid_adaptive_split{split_data.split_num}.keras"
+    model = _load_keras_model_cached(str(model_path), "lstm")
 
     split_scaler = model_dir / f"feature_scaler_split{split_data.split_num}.joblib"
-    scaler = joblib.load(str(split_scaler if split_scaler.exists() else scaler_path))
+    scaler = _load_scaler_cached(str(split_scaler if split_scaler.exists() else scaler_path))
 
     X_test = split_data.X_seq_test
     if X_test.shape[0] == 0:
@@ -243,26 +262,11 @@ def predict_gru(
     scaler_path: Path = DEFAULT_GRU_SCALER,
 ) -> np.ndarray:
     """Load saved GRU model and produce test-set probabilities."""
-    import joblib
-    import tensorflow as tf  # noqa: F401
-
-    _orig_dense_from_config = tf.keras.layers.Dense.from_config.__func__
-
-    @classmethod  # type: ignore[misc]
-    def _safe_dense_from_config(cls, config):
-        config = dict(config)
-        config.pop("quantization_config", None)
-        return _orig_dense_from_config(cls, config)
-
-    tf.keras.layers.Dense.from_config = _safe_dense_from_config
-    try:
-        model_path = model_dir / f"haribon_gru_hybrid_adaptive_split{split_data.split_num}.keras"
-        model = _patch_and_load_keras_model(str(model_path), model_type="gru")
-    finally:
-        tf.keras.layers.Dense.from_config = classmethod(_orig_dense_from_config)
+    model_path = model_dir / f"haribon_gru_hybrid_adaptive_split{split_data.split_num}.keras"
+    model = _load_keras_model_cached(str(model_path), "gru")
 
     split_scaler = model_dir / f"feature_scaler_split{split_data.split_num}.joblib"
-    scaler = joblib.load(str(split_scaler if split_scaler.exists() else scaler_path))
+    scaler = _load_scaler_cached(str(split_scaler if split_scaler.exists() else scaler_path))
 
     X_test = split_data.X_seq_test
     if X_test.shape[0] == 0:
@@ -381,9 +385,7 @@ def predict_transformer(
 
     if weights_path.exists():
         try:
-            checkpoint = torch.load(
-                str(weights_path), map_location=device, weights_only=False
-            )
+            checkpoint = _load_torch_checkpoint_cached(str(weights_path), device.type)
             print(f"[transformer] loaded weights file: {weights_path}")
 
             if isinstance(checkpoint, dict):
@@ -470,7 +472,9 @@ def predict_transformer(
             dropout=cfg.dropout,
         ).to(device)
 
-        if fallback_retrain and X_train_n.shape[0] >= 20:
+        if not fallback_retrain:
+            raise FileNotFoundError(f"Transformer weights not loaded: {weights_path}")
+        if X_train_n.shape[0] >= 20:
             _train_transformer_inplace(
                 model, X_train_n, split_data.y_train, cfg, device, torch, nn
             )

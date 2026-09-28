@@ -12,7 +12,7 @@ class DailyForecast(Base):
     __tablename__ = "daily_forecasts"
 
     id = Column(Integer, primary_key=True, index=True)
-    forecast_date = Column(Date, index=True, nullable=False)
+    forecast_date = Column(Date, index=True, unique=True, nullable=False)
     system_version = Column(String, nullable=False)
     payload = Column(JSONB, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

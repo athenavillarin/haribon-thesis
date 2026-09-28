@@ -6,10 +6,9 @@ sys.path.insert(0, str(project_root))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from app.api import forecast, summary
 from app.core.config import settings
-
-from app.core.database import start_db_keep_alive
 
 app = FastAPI(
     title="HARIBON: Harmful Algal Bloom Intelligent Observer Network",
@@ -26,10 +25,12 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_credentials=False,
+    allow_methods=["GET"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 
 app.include_router(forecast.router, prefix="/api/forecast")
 app.include_router(summary.router, prefix="/api/summary")
@@ -42,11 +43,11 @@ def read_root():
         "docs": "/docs"
     }
 
+@app.api_route("/health", methods=["GET", "HEAD"])
+async def health():
+    return {"status": "alive"}
+
 if __name__ == "__main__":
     import uvicorn
     # Pass import string to enable reload
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
-
-@app.get("/health")
-async def health():
-    return {"status": "alive"}

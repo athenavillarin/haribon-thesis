@@ -1,0 +1,9 @@
+-r requirements.txt
+--extra-index-url https://download.pytorch.org/whl/cpu
+xgboost-cpu==3.2.0
+scikit-learn==1.7.2
+joblib==1.6.0
+copernicusmarine==2.4.1
+earthengine-api==1.7.45
+tensorflow==2.19.0
+torch==2.14.0+cpu
