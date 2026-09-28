@@ -47,9 +47,9 @@ except Exception as gee_import_error:
     print(f"[WARN] GEE service unavailable; forecasts will use non-GEE fallback data: {gee_import_error}")
 
 try:
-    from app.services.cmems_marine_service import get_cmems_data_for_location
+    from app.services.cmems_marine_service import fetch_cmems_for_sites
 except Exception as cmems_import_error:
-    get_cmems_data_for_location = None
+    fetch_cmems_for_sites = None
     print(f"[WARN] CMEMS service unavailable: {cmems_import_error}")
 
 
@@ -689,6 +689,18 @@ def run_daily_update_with_5day_forecast():
         load_recent_model_inputs(since=today - timedelta(days=90)),
     )
 
+    cmems_by_site = {}
+    if fetch_cmems_for_sites is not None:
+        sites = {
+            name: tuple(feat["geometry"]["coordinates"][:2])
+            for name, feat in location_features.items()
+            if feat.get("geometry", {}).get("type") == "Point"
+        }
+        try:
+            cmems_by_site = fetch_cmems_for_sites(sites, today_str)
+        except Exception as exc:
+            print(f"[WARN] CMEMS fetch failed: {exc}")
+
     forecasts = []
     failed_locations = []
 
@@ -705,19 +717,10 @@ def run_daily_update_with_5day_forecast():
 
         gee_feature = location_features.get(location)
         gee_data = None
-        cmems_data = None
+        cmems_data = cmems_by_site.get(location)
         env_source = "historical_latest"
         env_source_meta = {}
-        
-        # Try CMEMS first (includes internal baseline fallback)
-        if get_cmems_data_for_location is not None:
-            try:
-                coords = (gee_feature["geometry"]["coordinates"] if gee_feature else None)
-                if coords:
-                    cmems_data = get_cmems_data_for_location(location, coords, today_str)
-            except Exception as exc:
-                print(f"[WARN] CMEMS fetch failed for {location}")
-        
+
         # Try GEE as supplement
         if gee_feature is not None and get_environmental_data_for_feature is not None:
             try:
@@ -734,10 +737,7 @@ def run_daily_update_with_5day_forecast():
         gee_env = {}
         if cmems_data:
             cmems_env = {k: v for k, v in cmems_data.items() if not k.startswith("_")}
-            print(
-                f"Using {'live CMEMS' if cmems_data.get('_source') == 'cmems_live' else 'Copernicus baseline'} "
-                f"for {location} (marine data): {cmems_env}"
-            )
+            print(f"Using live CMEMS for {location} (marine data): {cmems_env}")
         
         if mapped_gee:
             gee_env = mapped_gee
@@ -752,7 +752,7 @@ def run_daily_update_with_5day_forecast():
             env_source = "cmems_gee_merged"
             env_source_meta = {
                 "cmems_source": cmems_data.get("_source"),
-                "cmems_date": cmems_data.get("_source_date"),
+                "cmems_source_dates": cmems_data.get("_source_dates"),
                 "gee_available": len(mapped_gee) > 0,
                 "gee_params": list(mapped_gee.keys()),
             }
@@ -760,8 +760,7 @@ def run_daily_update_with_5day_forecast():
         elif cmems_data:
             env_source = cmems_data.get("_fetch_status", "cmems_live")
             env_source_meta = {
-                "cmems_source_date": cmems_data.get("_source_date"),
-                "cmems_source_location": cmems_data.get("_source_location"),
+                "cmems_source_dates": cmems_data.get("_source_dates"),
                 "cmems_fetch_status": cmems_data.get("_fetch_status"),
             }
         elif mapped_gee:
