@@ -53,6 +53,10 @@ except Exception as cmems_import_error:
     print(f"[WARN] CMEMS service unavailable: {cmems_import_error}")
 
 
+XGB_JUMP_THRESHOLD = 0.4
+XGB_DAMPING_FACTOR = 0.5
+PREVIOUS_FORECAST_MAX_GAP_DAYS = 3
+
 
 def _get_manifest_model_path(manifest: Optional[dict]) -> Optional[Path]:
     """Return XGBoost model artifact path declared in thesis manifest, if present."""
@@ -180,6 +184,63 @@ def load_recent_model_inputs(since: datetime) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
+def _load_previous_payload(processed_dir: Path, today: datetime) -> Optional[dict]:
+    """Most recent saved forecast payload from before today, within the allowed gap."""
+    earliest = (today - timedelta(days=PREVIOUS_FORECAST_MAX_GAP_DAYS)).date()
+    found = []
+
+    if SessionLocal is not None and DailyForecast is not None:
+        try:
+            with SessionLocal() as session:
+                row = (
+                    session.query(DailyForecast.forecast_date, DailyForecast.payload)
+                    .filter(DailyForecast.forecast_date < today.date())
+                    .filter(DailyForecast.forecast_date >= earliest)
+                    .order_by(DailyForecast.forecast_date.desc())
+                    .first()
+                )
+            if row is not None and row.payload:
+                found.append((row.forecast_date, row.payload))
+        except Exception as exc:
+            print(f"[WARN] Could not load previous forecast from PostgreSQL: {exc}")
+
+    candidates = [
+        processed_dir / f"daily_forecast_{(today - timedelta(days=d)).strftime('%Y-%m-%d')}.json"
+        for d in range(1, PREVIOUS_FORECAST_MAX_GAP_DAYS + 1)
+    ] + [processed_dir / "latest.json"]
+    for path in candidates:
+        if not path.exists():
+            continue
+        try:
+            with open(path, 'r') as f:
+                payload = json.load(f)
+            run_date = datetime.fromisoformat(payload["last_updated"]).date()
+        except Exception as exc:
+            print(f"[WARN] Could not read previous forecast {path.name}: {exc}")
+            continue
+        if earliest <= run_date < today.date():
+            found.append((run_date, payload))
+
+    if not found:
+        return None
+    return max(found, key=lambda item: item[0])[1]
+
+
+def load_previous_xgb_probabilities(processed_dir: Path, today: datetime) -> dict:
+    """Per-location XGBoost probability from the most recent forecast before today."""
+    payload = _load_previous_payload(processed_dir, today)
+    if payload is None:
+        print("No recent previous forecast found; XGBoost jump damping disabled for this run.")
+        return {}
+    previous = {}
+    for item in payload.get("forecasts", []):
+        prob = item.get("data_quality", {}).get("base_xgboost_probability")
+        if item.get("location") and prob is not None:
+            previous[item["location"]] = float(prob)
+    print(f"Loaded previous XGBoost probabilities for {len(previous)} locations from {payload.get('last_updated')}.")
+    return previous
+
+
 def extend_history(historical_df: pd.DataFrame, recent_df: pd.DataFrame) -> pd.DataFrame:
     if recent_df.empty:
         return historical_df
@@ -276,9 +337,10 @@ def _predict_weighted_avg_probability(
     location: str,
     feature_row: dict,
     xgb_probability: float,
+    previous_xgb_probability: Optional[float],
     reference_date: datetime,
-) -> Optional[float]:
-    """Return weighted average ensemble probability for one location/date, or None on failure."""
+) -> Optional[dict]:
+    """Return weighted average ensemble probability and its parts for one location/date, or None on failure."""
     try:
         _ensure_ensemble_code_on_path()
         from ensemble_inference import predict_gru, predict_lstm, predict_transformer  # type: ignore
@@ -320,13 +382,31 @@ def _predict_weighted_avg_probability(
             "xgboost": 0.7077 / total_auc,
         }
 
-        weighted_prob = (
+        deep_weight = weights["lstm"] + weights["gru"] + weights["transformer"]
+        deep_prob = (
             lstm_prob * weights["lstm"] +
             gru_prob * weights["gru"] +
-            transformer_prob * weights["transformer"] +
-            float(xgb_probability) * weights["xgboost"]
+            transformer_prob * weights["transformer"]
+        ) / deep_weight
+
+        # XGBoost reacts sharply to small threshold crossings (e.g. MLD, NDVI);
+        # halve its say on a day it swings far from its own previous value.
+        xgb_weight = weights["xgboost"]
+        xgb_damped = (
+            previous_xgb_probability is not None
+            and abs(float(xgb_probability) - previous_xgb_probability) > XGB_JUMP_THRESHOLD
         )
-        return float(weighted_prob)
+        if xgb_damped:
+            xgb_weight *= XGB_DAMPING_FACTOR
+
+        weighted_prob = (
+            deep_prob * deep_weight + float(xgb_probability) * xgb_weight
+        ) / (deep_weight + xgb_weight)
+        return {
+            "probability": float(weighted_prob),
+            "deep_probability": float(deep_prob),
+            "xgb_damped": xgb_damped,
+        }
     except Exception as exc:
         print(f"[WARN] Weighted average ensemble inference failed, fallback to XGBoost: {exc}")
         return None
@@ -701,6 +781,8 @@ def run_daily_update_with_5day_forecast():
         except Exception as exc:
             print(f"[WARN] CMEMS fetch failed: {exc}")
 
+    previous_xgb_probabilities = load_previous_xgb_probabilities(settings.PROCESSED_DATA_DIR, today)
+
     forecasts = []
     failed_locations = []
 
@@ -807,22 +889,29 @@ def run_daily_update_with_5day_forecast():
             xgb_prob = float(model.predict_proba(X_new)[:, 1][0])
             probability = xgb_prob
             final_probability_source = "xgboost"
+            deep_prob = None
+            xgb_damped = False
 
             use_weighted = "ensemble" in str(manifest_forecasting).lower() or "weighted" in str(manifest_forecasting).lower()
             if use_weighted:
                 print(f"  [MODEL] Ensemble mode enabled by manifest: {manifest_forecasting}")
-                weighted_prob = _predict_weighted_avg_probability(
+                weighted = _predict_weighted_avg_probability(
                     manifest=manifest,
                     historical_df=history_df,
                     location=location,
                     feature_row=feature_row,
                     xgb_probability=xgb_prob,
+                    previous_xgb_probability=previous_xgb_probabilities.get(location),
                     reference_date=today,
                 )
-                if weighted_prob is not None:
-                    probability = weighted_prob
+                if weighted is not None:
+                    probability = weighted["probability"]
+                    deep_prob = weighted["deep_probability"]
+                    xgb_damped = weighted["xgb_damped"]
                     final_probability_source = "weighted_avg_ensemble"
                     print(f"  [MODEL] Using weighted average ensemble probability: {probability:.6f}")
+                    if xgb_damped:
+                        print(f"  [MODEL] XGBoost jumped to {xgb_prob:.3f} from {previous_xgb_probabilities[location]:.3f}; weight halved")
                 else:
                     print("  [MODEL] Weighted average ensemble unavailable; falling back to XGBoost probability.")
 
@@ -977,6 +1066,9 @@ def run_daily_update_with_5day_forecast():
                     "environment_imputation_strategy": manifest_imputation,
                     "forecasting_model": manifest_forecasting,
                     "base_xgboost_probability": round(xgb_prob, 6),
+                    "sequence_models_probability": round(deep_prob, 6) if deep_prob is not None else None,
+                    "xgboost_weight_damped": xgb_damped,
+                    "final_probability": round(probability, 6),
                     "final_probability_source": final_probability_source,
                     "environment_imputation_sources": {
                         "CHL": imputation_sources.get("CHL"),
