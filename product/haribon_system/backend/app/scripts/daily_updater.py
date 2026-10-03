@@ -187,19 +187,20 @@ def load_recent_model_inputs(since: datetime) -> pd.DataFrame:
 def _load_previous_payload(processed_dir: Path, today: datetime) -> Optional[dict]:
     """Most recent saved forecast payload from before today, within the allowed gap."""
     earliest = (today - timedelta(days=PREVIOUS_FORECAST_MAX_GAP_DAYS)).date()
+    found = []
 
     if SessionLocal is not None and DailyForecast is not None:
         try:
             with SessionLocal() as session:
                 row = (
-                    session.query(DailyForecast.payload)
+                    session.query(DailyForecast.forecast_date, DailyForecast.payload)
                     .filter(DailyForecast.forecast_date < today.date())
                     .filter(DailyForecast.forecast_date >= earliest)
                     .order_by(DailyForecast.forecast_date.desc())
                     .first()
                 )
             if row is not None and row.payload:
-                return row.payload
+                found.append((row.forecast_date, row.payload))
         except Exception as exc:
             print(f"[WARN] Could not load previous forecast from PostgreSQL: {exc}")
 
@@ -218,8 +219,11 @@ def _load_previous_payload(processed_dir: Path, today: datetime) -> Optional[dic
             print(f"[WARN] Could not read previous forecast {path.name}: {exc}")
             continue
         if earliest <= run_date < today.date():
-            return payload
-    return None
+            found.append((run_date, payload))
+
+    if not found:
+        return None
+    return max(found, key=lambda item: item[0])[1]
 
 
 def load_previous_xgb_probabilities(processed_dir: Path, today: datetime) -> dict:
