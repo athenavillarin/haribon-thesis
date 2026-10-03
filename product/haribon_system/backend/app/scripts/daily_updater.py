@@ -53,6 +53,9 @@ except Exception as cmems_import_error:
     print(f"[WARN] CMEMS service unavailable: {cmems_import_error}")
 
 
+XGB_DISAGREEMENT_THRESHOLD = 0.4
+XGB_DAMPING_FACTOR = 0.5
+
 
 def _get_manifest_model_path(manifest: Optional[dict]) -> Optional[Path]:
     """Return XGBoost model artifact path declared in thesis manifest, if present."""
@@ -277,8 +280,8 @@ def _predict_weighted_avg_probability(
     feature_row: dict,
     xgb_probability: float,
     reference_date: datetime,
-) -> Optional[float]:
-    """Return weighted average ensemble probability for one location/date, or None on failure."""
+) -> Optional[dict]:
+    """Return weighted average ensemble probability and its parts for one location/date, or None on failure."""
     try:
         _ensure_ensemble_code_on_path()
         from ensemble_inference import predict_gru, predict_lstm, predict_transformer  # type: ignore
@@ -320,13 +323,28 @@ def _predict_weighted_avg_probability(
             "xgboost": 0.7077 / total_auc,
         }
 
-        weighted_prob = (
+        deep_weight = weights["lstm"] + weights["gru"] + weights["transformer"]
+        deep_prob = (
             lstm_prob * weights["lstm"] +
             gru_prob * weights["gru"] +
-            transformer_prob * weights["transformer"] +
-            float(xgb_probability) * weights["xgboost"]
-        )
-        return float(weighted_prob)
+            transformer_prob * weights["transformer"]
+        ) / deep_weight
+
+        # XGBoost reacts sharply to small threshold crossings (e.g. MLD, NDVI);
+        # when it strongly disagrees with the sequence models, halve its say.
+        xgb_weight = weights["xgboost"]
+        xgb_damped = abs(float(xgb_probability) - deep_prob) > XGB_DISAGREEMENT_THRESHOLD
+        if xgb_damped:
+            xgb_weight *= XGB_DAMPING_FACTOR
+
+        weighted_prob = (
+            deep_prob * deep_weight + float(xgb_probability) * xgb_weight
+        ) / (deep_weight + xgb_weight)
+        return {
+            "probability": float(weighted_prob),
+            "deep_probability": float(deep_prob),
+            "xgb_damped": xgb_damped,
+        }
     except Exception as exc:
         print(f"[WARN] Weighted average ensemble inference failed, fallback to XGBoost: {exc}")
         return None
@@ -807,11 +825,13 @@ def run_daily_update_with_5day_forecast():
             xgb_prob = float(model.predict_proba(X_new)[:, 1][0])
             probability = xgb_prob
             final_probability_source = "xgboost"
+            deep_prob = None
+            xgb_damped = False
 
             use_weighted = "ensemble" in str(manifest_forecasting).lower() or "weighted" in str(manifest_forecasting).lower()
             if use_weighted:
                 print(f"  [MODEL] Ensemble mode enabled by manifest: {manifest_forecasting}")
-                weighted_prob = _predict_weighted_avg_probability(
+                weighted = _predict_weighted_avg_probability(
                     manifest=manifest,
                     historical_df=history_df,
                     location=location,
@@ -819,10 +839,14 @@ def run_daily_update_with_5day_forecast():
                     xgb_probability=xgb_prob,
                     reference_date=today,
                 )
-                if weighted_prob is not None:
-                    probability = weighted_prob
+                if weighted is not None:
+                    probability = weighted["probability"]
+                    deep_prob = weighted["deep_probability"]
+                    xgb_damped = weighted["xgb_damped"]
                     final_probability_source = "weighted_avg_ensemble"
                     print(f"  [MODEL] Using weighted average ensemble probability: {probability:.6f}")
+                    if xgb_damped:
+                        print(f"  [MODEL] XGBoost ({xgb_prob:.3f}) disagrees with sequence models ({deep_prob:.3f}); weight halved")
                 else:
                     print("  [MODEL] Weighted average ensemble unavailable; falling back to XGBoost probability.")
 
@@ -977,6 +1001,8 @@ def run_daily_update_with_5day_forecast():
                     "environment_imputation_strategy": manifest_imputation,
                     "forecasting_model": manifest_forecasting,
                     "base_xgboost_probability": round(xgb_prob, 6),
+                    "sequence_models_probability": round(deep_prob, 6) if deep_prob is not None else None,
+                    "xgboost_weight_damped": xgb_damped,
                     "final_probability_source": final_probability_source,
                     "environment_imputation_sources": {
                         "CHL": imputation_sources.get("CHL"),
