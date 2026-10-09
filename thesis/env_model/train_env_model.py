@@ -58,7 +58,7 @@ def fit_model(train: pd.DataFrame, feature_cols: list[str]) -> Pipeline:
     train = train.dropna(subset=feature_cols)
     model = Pipeline([
         ("scale", StandardScaler()),
-        ("lr", LogisticRegression(C=REG_C, class_weight="balanced", max_iter=2000)),
+        ("lr", LogisticRegression(C=REG_C, max_iter=2000)),
     ])
     model.fit(train[feature_cols], train["target"], lr__sample_weight=train["target_weight"])
     return model

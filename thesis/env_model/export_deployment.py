@@ -54,7 +54,6 @@ def main() -> None:
         "coef": lr.coef_[0].tolist(),
         "intercept": float(lr.intercept_[0]),
         "regularization_C": REG_C,
-        "class_weight": "balanced",
     }
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(json.dumps(bundle, indent=2), encoding="utf-8")

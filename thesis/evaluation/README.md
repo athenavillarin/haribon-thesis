@@ -48,14 +48,14 @@ Data: `final_compiled_dataset/Combined_Labeled_2_0.csv` (9 sites, month/day swap
 | GRU | 0.664 | 0.480 | **0.689** | **0.690** |
 | Transformer | 0.661 | 0.414 | 0.654 | 0.658 |
 | XGBoost | 0.703 | 0.534 | 0.621 | 0.633 |
-| Env model (`env_model/`) | **0.799** | 0.665 | 0.647 | 0.645 |
+| Env model (`env_model/`) | **0.803** | 0.667 | 0.648 | 0.646 |
 
 **All-sites AUC by split:**
 
 | Split (test year) | LSTM | GRU | Transformer | XGBoost | Env model |
 |---|---|---|---|---|---|
-| 1 (2020) | 0.59 | 0.60 | 0.53 | 0.77 | 0.92 |
-| 2 (2021) | 0.42 | 0.39 | 0.78 | 0.56 | 0.69 |
+| 1 (2020) | 0.59 | 0.60 | 0.53 | 0.77 | 0.93 |
+| 2 (2021) | 0.42 | 0.39 | 0.78 | 0.56 | 0.70 |
 | 3 (2022) | 0.72 | 0.73 | 0.70 | 0.62 | 0.82 |
 | 4 (2023) | 0.54 | 0.53 | 0.52 | 0.57 | 0.84 |
 | 5 (2024) | 0.81 | 0.84 | 0.74 | 0.80 | 0.57 |
@@ -65,7 +65,7 @@ Data: `final_compiled_dataset/Combined_Labeled_2_0.csv` (9 sites, month/day swap
 
 1. **The original models' published scores came from corrupted data.** In `Combined_Labeled.csv`, about 36% of rows have month and day swapped (see `final_compiled_dataset/fix_date_swap.py`), and their scores also benefited from look-ahead imputation. None of the earlier numbers should be reported.
 2. **The sequence models do not learn within-site patterns.** Their within-site AUC is 0.41–0.48, below chance and well below the monthly baseline (0.69).
-3. **The env model is best across sites** (0.799) and better within sites than the sequence models and XGBoost. It does not beat the monthly baseline within sites (0.665 vs 0.689). Its worst split is 0.57, about the same as XGBoost (0.56) and better than the others (0.39–0.52).
+3. **The env model is best across sites** (0.803) and better within sites than the sequence models and XGBoost. It does not beat the monthly baseline within sites (0.667 vs 0.689). Its worst split is 0.57, about the same as XGBoost (0.56) and better than the others (0.39–0.52).
 4. **The deep models are unstable.** Adding three weeks of data (labels through 2026-10-01 instead of 2026-09-07) moved the Transformer's 2021 AUC from 0.24 to 0.78 and its mean from 0.575 to 0.661. The env model's results did not change.
 5. **No model clearly beats the monthly baseline at predicting when a ban starts.** GRU is highest at 0.690 against 0.652 for the baseline, but with 51 ban starts the onset results are too noisy to separate the models.
 
