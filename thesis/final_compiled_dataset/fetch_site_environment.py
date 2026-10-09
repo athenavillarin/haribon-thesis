@@ -131,7 +131,7 @@ def _reduce_daily(collection, bands: list[str], geometry, scale: float) -> pd.Da
     rows = [f["properties"] for f in collection.map(to_feature).getInfo()["features"]]
     df = pd.DataFrame(rows)
     if df.empty:
-        return pd.DataFrame(columns=bands)
+        return pd.DataFrame(columns=bands, dtype=float)
     df.index = pd.to_datetime(df.pop("date"))
     return df.reindex(columns=bands).astype(float).groupby(level=0).mean()
 
@@ -175,6 +175,7 @@ def fetch_site(name: str, lat: float, lon: float, start: str = START, end: str =
     dates = pd.date_range(start, end, freq="D")
     df = pd.concat([fetch_glorys(lat, lon, start, end), fetch_chl(lat, lon, start, end),
                     fetch_gee(lat, lon, start, end)], axis=1).reindex(dates)
+    df = df.apply(pd.to_numeric)
     df["NDVI_daily"] = df["NDVI_raw"].interpolate(limit_area="inside")
     df.index.name = "Date"
     df.insert(0, "Location_Name", name)
