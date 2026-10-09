@@ -83,6 +83,10 @@ The environmental features beat the monthly baseline in 2021–23, when the most
 - **The signal is seasonal-scale.** It does not give a sharp warning just before a ban: onset AUC is 0.65, about the same as the monthly baseline.
 - **Some splits rest on very few sites.** Within-site AUC in 2025–26 uses 2 sites, and 2020 and 2024 use 3.
 
+## Deployment
+
+The daily forecast does not use this model alone. It uses the ensemble of this model with LSTM, GRU and Transformer models trained on the same features (see `evaluation/README.md`). `export_deployment.py` writes both to `artifacts/best_model/env_model/`; this model is also the fallback if the deep models cannot run.
+
 ## Usage
 
 ```bash

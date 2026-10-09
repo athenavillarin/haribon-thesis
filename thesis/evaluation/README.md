@@ -84,6 +84,8 @@ Data: `final_compiled_dataset/Combined_Labeled_2_0.csv` (9 sites, month/day swap
 | GRU | 0.664 → 0.790 | 0.480 → 0.654 |
 | Transformer | 0.661 → 0.776 | 0.414 → 0.682 |
 
+**Deployed model.** The daily forecast uses the ensemble in the "Deep mean + logistic regression" row: each deep model's 3 seeds are averaged, the three deep models are averaged, and that is averaged with the logistic regression. `env_model/export_deployment.py` trains the final versions on all data; if the deep models cannot run, the forecast falls back to the logistic regression alone.
+
 The change of inputs, not of architecture, accounts for the improvement: within-site AUC rises from near chance to about the level of the monthly baseline. With the same inputs, the deep models and the logistic regression perform about the same; the Transformer has the best within-site AUC of the trained models (0.682) but the weakest single split (0.47 in 2024).
 
 ## Findings
