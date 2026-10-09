@@ -40,8 +40,8 @@ def _discover_ml_dir(repo_root: Path) -> Path:
 
 def _discover_training_data(repo_root: Path) -> Path:
     candidates = [
-        repo_root / "thesis" / "final_compiled_dataset" / "Combined_Labeled.csv",
-        repo_root / "final_compiled_dataset" / "Combined_Labeled.csv",
+        repo_root / "thesis" / "final_compiled_dataset" / "Combined_Labeled_2_0.csv",
+        repo_root / "final_compiled_dataset" / "Combined_Labeled_2_0.csv",
     ]
     for path in candidates:
         if path.exists():

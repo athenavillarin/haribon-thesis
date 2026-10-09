@@ -52,6 +52,12 @@ except Exception as cmems_import_error:
     fetch_cmems_for_sites = None
     print(f"[WARN] CMEMS service unavailable: {cmems_import_error}")
 
+try:
+    from app.services.env_model_service import predict_site as predict_env_model
+except Exception as env_model_import_error:
+    predict_env_model = None
+    print(f"[WARN] Environment-driven model unavailable; using the ensemble: {env_model_import_error}")
+
 
 XGB_JUMP_THRESHOLD = 0.4
 XGB_DAMPING_FACTOR = 0.5
@@ -135,13 +141,13 @@ def load_ml_components(historical_df: pd.DataFrame, manifest: Optional[dict] = N
 
 def load_historical_data():
     """Load the historical dataset to direct feature engineering."""
-    data_path = repo_root / "final_compiled_dataset" / "Combined_Labeled.csv"
+    data_path = repo_root / "final_compiled_dataset" / "Combined_Labeled_2_0.csv"
     if not data_path.exists():
         possible_paths = [
-            repo_root / "thesis" / "final_compiled_dataset" / "Combined_Labeled.csv",
-            Path("final_compiled_dataset/Combined_Labeled.csv"),
-            Path("../final_compiled_dataset/Combined_Labeled.csv"),
-            Path("../../final_compiled_dataset/Combined_Labeled.csv"),
+            repo_root / "thesis" / "final_compiled_dataset" / "Combined_Labeled_2_0.csv",
+            Path("final_compiled_dataset/Combined_Labeled_2_0.csv"),
+            Path("../final_compiled_dataset/Combined_Labeled_2_0.csv"),
+            Path("../../final_compiled_dataset/Combined_Labeled_2_0.csv"),
         ]
         for p in possible_paths:
             if p.exists():
@@ -641,6 +647,17 @@ def _compute_recent_red_tide_signal(
         "recent_positive_rate_365d": round(rate_365, 3) if rate_365 is not None else None,
     }
 
+def _run_env_model(location: str, reference_date: datetime) -> Optional[dict]:
+    """Environment-driven model probability for a location, or None if it cannot run."""
+    if predict_env_model is None:
+        return None
+    try:
+        return predict_env_model(location, pd.Timestamp(reference_date))
+    except Exception as exc:
+        print(f"[WARN] Environment-driven model failed for {location}: {exc}")
+        return None
+
+
 def safe_float(val, decimals=2):
     """Safely convert value to float, handling NaN/None."""
     try:
@@ -744,8 +761,6 @@ def run_daily_update_with_5day_forecast():
         traceback.print_exc()
         sys.exit(1)
 
-    locations = historical_df['Location_Name'].unique()
-    print(f"Generating forecasts for {len(locations)} locations: {locations}")
 
     location_features = {}
     try:
@@ -758,6 +773,11 @@ def run_daily_update_with_5day_forecast():
         print(f"Loaded {len(location_features)} location features for GEE fetch.")
     except Exception as exc:
         print(f"[WARN] Could not load location features from {settings.LOCATIONS_FILE_PATH}: {exc}")
+
+    locations = historical_df['Location_Name'].unique()
+    if location_features:
+        locations = [loc for loc in locations if loc in location_features]
+    print(f"Generating forecasts for {len(locations)} locations: {locations}")
 
         
     pht = pytz.timezone('Asia/Manila')
@@ -892,7 +912,15 @@ def run_daily_update_with_5day_forecast():
             deep_prob = None
             xgb_damped = False
 
-            use_weighted = "ensemble" in str(manifest_forecasting).lower() or "weighted" in str(manifest_forecasting).lower()
+            env_result = _run_env_model(location, today)
+            if env_result is not None:
+                probability = env_result["probability"]
+                final_probability_source = "env_model"
+                print(f"  [MODEL] Environment-driven model probability: {probability:.6f}")
+
+            use_weighted = env_result is None and (
+                "ensemble" in str(manifest_forecasting).lower() or "weighted" in str(manifest_forecasting).lower()
+            )
             if use_weighted:
                 print(f"  [MODEL] Ensemble mode enabled by manifest: {manifest_forecasting}")
                 weighted = _predict_weighted_avg_probability(
@@ -1012,6 +1040,8 @@ def run_daily_update_with_5day_forecast():
                 "Matarinao Bay": {"lat": 11.23, "lng": 125.55},
                 "Pilar": {"lat": 11.504, "lng": 122.941},
                 "President Roxas": {"lat": 11.496, "lng": 122.914},
+                "Milagros (Masbate)": {"lat": 12.2182, "lng": 123.5094},
+                "Cancabato Bay": {"lat": 11.2249, "lng": 125.0131},
             }
             
             curr_coords = coords_map.get(location, {"lat": 11.5, "lng": 122.5})
@@ -1070,6 +1100,9 @@ def run_daily_update_with_5day_forecast():
                     "xgboost_weight_damped": xgb_damped,
                     "final_probability": round(probability, 6),
                     "final_probability_source": final_probability_source,
+                    "env_model_inputs": env_result["features"] if env_result else None,
+                    "env_model_precip_sources": env_result["precip_sources"] if env_result else None,
+                    "env_model_trained_through": env_result["trained_through"] if env_result else None,
                     "environment_imputation_sources": {
                         "CHL": imputation_sources.get("CHL"),
                         "thetao": imputation_sources.get("thetao"),
@@ -1137,6 +1170,10 @@ def run_daily_update_with_5day_forecast():
                     session = SessionLocal()
                     # Get location_id
                     location_obj = session.query(Location).filter_by(location_name=location).first()
+                    if location_obj is None:
+                        location_obj = Location(location_name=location)
+                        session.add(location_obj)
+                        session.flush()
                     if location_obj:
                         # Check if prediction for this location and date already exists
                         today_date = today.date()
@@ -1192,19 +1229,19 @@ def run_daily_update_with_5day_forecast():
 
     ensemble_fallbacks = [
         f["location"] for f in forecasts
-        if f["data_quality"]["final_probability_source"] != "weighted_avg_ensemble"
+        if f["data_quality"]["final_probability_source"] != "env_model"
     ]
     status = "partial" if failed_locations else "ok"
     print(f"Run status: {status} ({len(forecasts)} generated, failed: {failed_locations or 'none'})")
     if ensemble_fallbacks:
-        print(f"[WARN] XGBoost-only fallback used for: {ensemble_fallbacks}")
+        print(f"[WARN] Environment-driven model unavailable; older models used for: {ensemble_fallbacks}")
 
     output_data = {
         "last_updated": today.isoformat(),
         "status": status,
         "failed_locations": failed_locations,
         "ensemble_fallback_locations": ensemble_fallbacks,
-        "system_version": f"v2.0 ({manifest_forecasting})",
+        "system_version": "v2.1 (environment-driven model)" if not ensemble_fallbacks else f"v2.1 ({manifest_forecasting} fallback)",
         "manifest": {
             "path": str(settings.THESIS_WINNERS_PATH),
             "imputation_primary": manifest_imputation,
