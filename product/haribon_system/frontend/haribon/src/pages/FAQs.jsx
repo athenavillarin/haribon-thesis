@@ -137,7 +137,7 @@ const faqs = [
   },
   {
     question: "Which areas are covered?",
-    answer: "Current priority AOIs include Gigantes Islands, Dumanquillas Bay, Matarinao Bay, Pilar, Sapian Bay, President Roxas, and Roxas City. Coverage can continue to expand as additional boundaries and historical records are integrated."
+    answer: "Current priority AOIs include Gigantes Islands, Dumanquillas Bay, Matarinao Bay, Pilar, Sapian Bay, President Roxas, Roxas City, Milagros (Masbate), and Cancabato Bay. Coverage can continue to expand as additional boundaries and historical records are integrated."
   },
   {
     question: "How accurate is the forecast?",
