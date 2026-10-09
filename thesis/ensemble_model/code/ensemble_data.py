@@ -78,6 +78,7 @@ class SplitData:
     y_train: np.ndarray       # binary labels, shape: (N_train,)
     y_test:  np.ndarray       # binary labels, shape: (N_test,)
     dates_test: np.ndarray    # test dates aligned to y_test
+    locs_test: np.ndarray     # location names aligned to y_test
 
 
 # ---------------------------------------------------------------------------
@@ -236,8 +237,9 @@ def build_splits(df: pd.DataFrame) -> List[SplitData]:
 
         all_seq_train, all_y_train, all_tab_train = [], [], []
         all_seq_test,  all_y_test,  all_tab_test, all_dates_test = [], [], [], []
+        all_locs_test = []
 
-        for _, loc_df in sub.groupby("Location_Name", sort=False):
+        for loc_name, loc_df in sub.groupby("Location_Name", sort=False):
             loc_df = loc_df.sort_values("Date").reset_index(drop=True)
 
             # Train sequences — can use any lookback window in train region
@@ -262,6 +264,7 @@ def build_splits(df: pd.DataFrame) -> List[SplitData]:
                 all_y_test.append(y_se)
                 all_tab_test.append(X_te)
                 all_dates_test.append(d_se)
+                all_locs_test.append(np.full(len(y_se), loc_name, dtype=object))
 
         def _concat_or_empty(lst, ndim, shape_tail):
             if lst:
@@ -281,6 +284,7 @@ def build_splits(df: pd.DataFrame) -> List[SplitData]:
             y_train     = np.concatenate(all_y_train) if all_y_train else np.empty((0,), dtype=np.int64),
             y_test      = np.concatenate(all_y_test)  if all_y_test  else np.empty((0,), dtype=np.int64),
             dates_test  = np.concatenate(all_dates_test) if all_dates_test else np.empty((0,)),
+            locs_test   = np.concatenate(all_locs_test) if all_locs_test else np.empty((0,), dtype=object),
         ))
 
     return results
