@@ -36,8 +36,11 @@ Changes made here:
 | GRU (retrained leak-free) | 0.664 | 0.480 | 0.689 | **0.690** |
 | Transformer (retrained leak-free) | 0.661 | 0.414 | 0.654 | 0.658 |
 | XGBoost (retrained leak-free) | 0.703 | 0.534 | 0.621 | 0.633 |
+| LSTM on these features | 0.767 | 0.662 | 0.651 | 0.652 |
+| GRU on these features | 0.790 | 0.654 | 0.619 | 0.613 |
+| Transformer on these features | 0.776 | 0.682 | 0.644 | 0.642 |
 
-The onset columns score whether a ban starts within 7 or 14 days, counting only days that are not already under a ban. The other model types were retrained on the same data by `evaluation/retrain_leakfree.py`; see `evaluation/README.md`.
+The "retrained leak-free" rows use the original raw daily inputs. The "on these features" rows are the same model types trained on this model's features by `evaluation/train_dl_anomaly.py`; with the same inputs they perform about as well as this model. The onset columns score whether a ban starts within 7 or 14 days, counting only days that are not already under a ban. The other model types were retrained on the same data by `evaluation/retrain_leakfree.py`; see `evaluation/README.md`.
 
 **Within-site AUC by split:**
 

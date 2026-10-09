@@ -24,6 +24,7 @@ Scores every model against simple predictors that use no environmental data, on 
 |---|---|
 | `baselines.py` | Scores the saved models as they are (`--no-models` for baselines only) |
 | `retrain_leakfree.py` | Retrains LSTM, GRU, Transformer and XGBoost without look-ahead, and scores them alongside `env_model` |
+| `train_dl_anomaly.py` | Trains LSTM, GRU and Transformer on the `env_model` features instead of raw daily values |
 
 `retrain_leakfree.py` keeps the original architectures, lookback, loss and features, and changes only what leaked or was mis-validated:
 
@@ -61,13 +62,38 @@ Data: `final_compiled_dataset/Combined_Labeled_2_0.csv` (9 sites, month/day swap
 | 5 (2024) | 0.81 | 0.84 | 0.74 | 0.80 | 0.57 |
 | 6 (2025–26) | 0.86 | 0.90 | 0.70 | 0.91 | 0.96 |
 
+## Results: deep models on the environment-driven features (`results/dl_anomaly_summary.csv`)
+
+`train_dl_anomaly.py` gives LSTM, GRU and Transformer 30-day sequences of the 11 `env_model` features (site-relative sea temperature and rainfall anomalies, season, ONI, earlier-year ban history) instead of raw daily values. Training uses the same testing-delay sample weights and no class reweighting. The networks are small (16 recurrent units; one 2-head attention layer), and each model is the average of 3 random starts.
+
+| Model | All sites | Within site | Onset 7d | Onset 14d | Worst split (all sites) |
+|---|---|---|---|---|---|
+| Site rate by month | 0.729 | **0.689** | 0.653 | 0.652 | 0.53 |
+| LSTM | 0.767 | 0.662 | 0.651 | **0.652** | 0.56 |
+| GRU | 0.790 | 0.654 | 0.619 | 0.613 | **0.59** |
+| Transformer | 0.776 | 0.682 | 0.644 | 0.642 | 0.47 |
+| Mean of the three deep models | 0.781 | 0.666 | 0.637 | 0.637 | 0.54 |
+| Deep mean + logistic regression | 0.797 | 0.669 | 0.646 | 0.644 | 0.56 |
+| Logistic regression (`env_model`) | **0.803** | 0.667 | 0.648 | 0.646 | 0.57 |
+
+**Change from the raw-value deep models (previous table):**
+
+| Model | All sites | Within site |
+|---|---|---|
+| LSTM | 0.656 → 0.767 | 0.480 → 0.662 |
+| GRU | 0.664 → 0.790 | 0.480 → 0.654 |
+| Transformer | 0.661 → 0.776 | 0.414 → 0.682 |
+
+The change of inputs, not of architecture, accounts for the improvement: within-site AUC rises from near chance to about the level of the monthly baseline. With the same inputs, the deep models and the logistic regression perform about the same; the Transformer has the best within-site AUC of the trained models (0.682) but the weakest single split (0.47 in 2024).
+
 ## Findings
 
 1. **The original models' published scores came from corrupted data.** In `Combined_Labeled.csv`, about 36% of rows have month and day swapped (see `final_compiled_dataset/fix_date_swap.py`), and their scores also benefited from look-ahead imputation. None of the earlier numbers should be reported.
 2. **The sequence models do not learn within-site patterns.** Their within-site AUC is 0.41–0.48, below chance and well below the monthly baseline (0.69).
 3. **The env model is best across sites** (0.803) and better within sites than the sequence models and XGBoost. It does not beat the monthly baseline within sites (0.667 vs 0.689). Its worst split is 0.57, about the same as XGBoost (0.56) and better than the others (0.39–0.52).
 4. **The deep models are unstable.** Adding three weeks of data (labels through 2026-10-01 instead of 2026-09-07) moved the Transformer's 2021 AUC from 0.24 to 0.78 and its mean from 0.575 to 0.661. The env model's results did not change.
-5. **No model clearly beats the monthly baseline at predicting when a ban starts.** GRU is highest at 0.690 against 0.652 for the baseline, but with 51 ban starts the onset results are too noisy to separate the models.
+5. **The deep models were held back by their inputs, not their architecture.** Trained on site-relative anomalies instead of raw values, LSTM, GRU and Transformer reach 0.77–0.79 all-site and 0.65–0.68 within-site AUC, close to the logistic regression on the same features (0.803 / 0.667).
+6. **No model clearly beats the monthly baseline at predicting when a ban starts.** GRU is highest at 0.690 against 0.652 for the baseline, but with 51 ban starts the onset results are too noisy to separate the models.
 
 ## Usage
 
@@ -75,4 +101,5 @@ Data: `final_compiled_dataset/Combined_Labeled_2_0.csv` (9 sites, month/day swap
 cd evaluation
 python baselines.py
 python retrain_leakfree.py          # ~2 h on CPU
+python train_dl_anomaly.py          # ~1.5 h on CPU
 ```
