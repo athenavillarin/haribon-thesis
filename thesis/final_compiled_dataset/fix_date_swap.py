@@ -13,8 +13,9 @@ column `red_tide`. Verified against the sources for Matarinao Bay, 2020:
 
 `red_tide_label` was densified from the swapped bulletins, so it is rebuilt
 from the unswapped bulletins: each bulletin state is carried forward until the
-next bulletin, for at most 45 days, and days beyond that are left unknown.
-This is the same convention as the candidate-site labels from the BFAR OCR.
+next bulletin, covering the bulletin day and the following 44 days; days beyond
+that are left unknown.
+This is intended to match the candidate-site labels from the BFAR OCR (45-day carry-forward).
 
 Rows whose swap partner falls outside the record are set to NaN.
 
@@ -60,7 +61,7 @@ def unswap(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def densify_labels(df: pd.DataFrame) -> pd.Series:
-    """Carry each bulletin state forward to the next bulletin, for at most CARRY_FORWARD_DAYS."""
+    """Carry each bulletin state forward to the next bulletin, over the bulletin day plus CARRY_FORWARD_DAYS - 1 days."""
     labels = pd.Series(np.nan, index=df.index)
     for _, g in df.groupby("Location_Name", sort=False):
         bulletin_date = g["Date"].where(g["red_tide"].notna()).ffill()

@@ -11,7 +11,7 @@ Combined_Labeled_fixed.csv for Matarinao Bay, 2020):
   precip_mm_day               CHIRPS daily, mean within 5 km of the point (corr 0.99)
   wind_u_ms, wind_v_ms        ERA5-Land daily, mean within 35 km of the point (corr 1.00)
   wind_speed_ms               sqrt(u^2 + v^2) of the daily means
-  NDVI_raw                    Sentinel-2 SR, QA60 cloud mask, scenes < 60% cloud,
+  NDVI_raw                    Sentinel-2 SR, SCL cloud/shadow mask, scenes < 60% cloud,
                               mean within 10 km (corr 0.93; the original box shape is unknown)
   NDVI_daily                  NDVI_raw linearly interpolated between scenes, edges left NaN
 
@@ -26,6 +26,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 from pathlib import Path
 
@@ -54,6 +55,7 @@ SURFACE_DEPTH = (0.49, 1.0)
 PRECIP_BUFFER_M, WIND_BUFFER_M, NDVI_BUFFER_M = 5_000, 35_000, 10_000
 
 
+@functools.lru_cache(maxsize=1)
 def _credentials() -> dict:
     from dotenv import dotenv_values
     return dotenv_values(ENV_FILE)
@@ -97,9 +99,14 @@ def fetch_glorys(lat: float, lon: float, start: str, end: str) -> pd.DataFrame:
     tail_start = (pd.to_datetime(my.index).max() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
     if tail_start <= end:
         tail = {}
+        by_dataset: dict[str, list[str]] = {}
         for var, dataset_id in GLORYS_ANFC.items():
-            t = _open(dataset_id, [var], cell_lat, cell_lon, 0.05, tail_start, end, depth=var != "mlotst")
-            tail[var] = t.sel(latitude=cell_lat, longitude=cell_lon, method="nearest")[var].load().to_series()
+            by_dataset.setdefault(dataset_id, []).append(var)
+        for dataset_id, variables in by_dataset.items():
+            t = _open(dataset_id, variables, cell_lat, cell_lon, 0.05, tail_start, end, depth="mlotst" not in variables)
+            cell = t.sel(latitude=cell_lat, longitude=cell_lon, method="nearest")
+            for var in variables:
+                tail[var] = cell[var].load().to_series()
         frames.append(pd.DataFrame(tail))
     out = pd.concat(frames)
     out.index = pd.to_datetime(out.index).normalize()
@@ -154,8 +161,9 @@ def fetch_gee(lat: float, lon: float, start: str, end: str) -> pd.DataFrame:
             ["u_component_of_wind_10m", "v_component_of_wind_10m"], point.buffer(WIND_BUFFER_M), 11132))
 
         def add_ndvi(img):
-            qa = img.select("QA60")
-            clear = qa.bitwiseAnd(1 << 10).eq(0).And(qa.bitwiseAnd(1 << 11).eq(0))
+            # QA60 is empty in S2_SR_HARMONIZED from 2022-01 to 2024-02, so use the scene classification
+            scl = img.select("SCL")
+            clear = scl.neq(3).And(scl.neq(8)).And(scl.neq(9)).And(scl.neq(10))
             return img.normalizedDifference(["B8", "B4"]).rename("ndvi").updateMask(clear) \
                 .copyProperties(img, ["system:time_start"])
 
@@ -168,6 +176,11 @@ def fetch_gee(lat: float, lon: float, start: str, end: str) -> pd.DataFrame:
     out.columns = ["precip_mm_day", "wind_u_ms", "wind_v_ms", "NDVI_raw"]
     out["wind_speed_ms"] = np.hypot(out["wind_u_ms"], out["wind_v_ms"])
     return out
+
+
+def environment_path(site: str) -> Path:
+    """Output file for a site, e.g. 'Milagros (Masbate)' -> new_sites/milagros_environment.csv."""
+    return OUTPUT_DIR / f"{site.split(' (')[0].replace(' ', '_').lower()}_environment.csv"
 
 
 def fetch_site(name: str, lat: float, lon: float, start: str = START, end: str = END) -> pd.DataFrame:
@@ -195,8 +208,9 @@ def validate() -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Fetch environmental variables for a site point.")
-    parser.add_argument("--site", nargs=3, metavar=("NAME", "LAT", "LON"))
-    parser.add_argument("--validate", action="store_true")
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--site", nargs=3, metavar=("NAME", "LAT", "LON"))
+    mode.add_argument("--validate", action="store_true")
     return parser.parse_args()
 
 
@@ -208,7 +222,7 @@ def main() -> None:
     name, lat, lon = args.site[0], float(args.site[1]), float(args.site[2])
     OUTPUT_DIR.mkdir(exist_ok=True)
     df = fetch_site(name, lat, lon)
-    path = OUTPUT_DIR / f"{name.split(' (')[0].replace(' ', '_').lower()}_environment.csv"
+    path = environment_path(name)
     df.to_csv(path, index=False)
     print(f"Wrote {path.name}: {len(df):,} rows; missing share per column:")
     print(df.drop(columns=["Location_Name", "Date"]).isna().mean().round(3).to_string())
