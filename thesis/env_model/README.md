@@ -31,10 +31,10 @@ Changes made here:
 | History features only | 0.774 | 0.689 | 0.629 | 0.629 |
 | Environment only | 0.654 | 0.664 | 0.611 | 0.603 |
 | **History + environment** | **0.799** | 0.665 | 0.647 | 0.645 |
-| LSTM (retrained leak-free) | 0.639 | 0.534 | 0.669 | 0.661 |
-| GRU (retrained leak-free) | 0.688 | 0.425 | 0.681 | **0.691** |
-| Transformer (retrained leak-free) | 0.575 | 0.544 | 0.570 | 0.552 |
-| XGBoost (retrained leak-free) | 0.693 | 0.528 | 0.625 | 0.632 |
+| LSTM (retrained leak-free) | 0.656 | 0.480 | 0.663 | 0.658 |
+| GRU (retrained leak-free) | 0.664 | 0.480 | 0.689 | **0.690** |
+| Transformer (retrained leak-free) | 0.661 | 0.414 | 0.654 | 0.658 |
+| XGBoost (retrained leak-free) | 0.703 | 0.534 | 0.621 | 0.633 |
 
 The onset columns score whether a ban starts within 7 or 14 days, counting only days that are not already under a ban. The other model types were retrained on the same data by `evaluation/retrain_leakfree.py`; see `evaluation/README.md`.
 
