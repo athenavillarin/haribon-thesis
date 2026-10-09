@@ -2,7 +2,7 @@
 
 Logistic regression on slow-moving environmental drivers plus each site's ban history.
 
-Data: `final_compiled_dataset/Combined_Labeled_2_0.csv`. This is the 7 original sites with the month/day swap corrected (see `fix_date_swap.py`), plus Milagros (Masbate) and Cancabato Bay. It holds 51 ban starts in total.
+Data: `final_compiled_dataset/Combined_Labeled_2_0.csv`. This is the 7 original sites with the month/day swap corrected (see `fix_date_swap.py`), plus Milagros (Masbate) and Cancabato Bay, labelled through 2026-10-01. It holds 51 ban starts in total.
 
 ## Why this model
 
@@ -26,11 +26,11 @@ Changes made here:
 | Model | All sites | Within site | Onset 7d | Onset 14d |
 |---|---|---|---|---|
 | Yesterday's label (persistence) | 0.996 | 0.991 | 0.500 | 0.500 |
-| Site rate, last 365 days | 0.754 | 0.500 | 0.608 | 0.609 |
-| Site rate by month (climatology) | 0.728 | **0.688** | 0.653 | 0.651 |
+| Site rate, last 365 days | 0.755 | 0.500 | 0.608 | 0.609 |
+| Site rate by month (climatology) | 0.729 | **0.689** | 0.653 | 0.652 |
 | History features only | 0.774 | 0.689 | 0.629 | 0.629 |
-| Environment only | 0.657 | 0.665 | 0.612 | 0.604 |
-| **History + environment** | **0.799** | 0.664 | 0.647 | 0.645 |
+| Environment only | 0.654 | 0.664 | 0.611 | 0.603 |
+| **History + environment** | **0.799** | 0.665 | 0.647 | 0.645 |
 | LSTM (retrained leak-free) | 0.639 | 0.534 | 0.669 | 0.661 |
 | GRU (retrained leak-free) | 0.688 | 0.425 | 0.681 | **0.691** |
 | Transformer (retrained leak-free) | 0.575 | 0.544 | 0.570 | 0.552 |
@@ -47,7 +47,7 @@ The onset columns score whether a ban starts within 7 or 14 days, counting only 
 | 3 (2022) | 7 | 0.660 | 0.801 | 0.776 |
 | 4 (2023) | 7 | 0.771 | 0.801 | 0.806 |
 | 5 (2024) | 3 | 0.518 | 0.363 | 0.349 |
-| 6 (2025–26) | 2 | 0.758 | 0.489 | 0.545 |
+| 6 (2025–26) | 2 | 0.758 | 0.489 | 0.546 |
 
 The environmental features beat the monthly baseline in 2021–23, when the most sites have both banned and clear days. They fall below it in 2024–26.
 
@@ -55,14 +55,14 @@ The environmental features beat the monthly baseline in 2021–23, when the most
 
 | Site | Region | AUC |
 |---|---|---|
-| Roxas City | Capiz | 0.875 |
+| Roxas City | Capiz | 0.872 |
 | Sapian Bay | Capiz | 0.857 |
-| Pilar | Capiz | 0.839 |
-| Gigantes Islands | Capiz | 0.820 |
-| President Roxas | Capiz | 0.818 |
-| Cancabato Bay | Leyte | 0.571 |
-| Matarinao Bay | Samar | 0.537 |
-| Milagros (Masbate) | Masbate | 0.445 |
+| Pilar | Capiz | 0.838 |
+| Gigantes Islands | Capiz | 0.818 |
+| President Roxas | Capiz | 0.814 |
+| Cancabato Bay | Leyte | 0.563 |
+| Matarinao Bay | Samar | 0.557 |
+| Milagros (Masbate) | Masbate | 0.441 |
 | Dumanquillas Bay | Zamboanga | n/a (banned every day after 2021) |
 
 **Strongest drivers (standardized coefficients, final split):**
@@ -74,8 +74,8 @@ The environmental features beat the monthly baseline in 2021–23, when the most
 
 ## Limitations
 
-- **The environmental signal does not transfer between regions.** Held-out Capiz sites score 0.82–0.88, but Leyte, Samar and Masbate score 0.45–0.57. The Capiz scores may also be helped by those sites going into bans at the same time. More sites per region, or a model per region, are needed.
-- **Within sites, the model does not beat the monthly baseline overall** (0.664 vs 0.688). It does beat it in 2021–23.
+- **The environmental signal does not transfer between regions.** Held-out Capiz sites score 0.81–0.87, but Leyte, Samar and Masbate score 0.44–0.56. The Capiz scores may also be helped by those sites going into bans at the same time. More sites per region, or a model per region, are needed.
+- **Within sites, the model does not beat the monthly baseline overall** (0.665 vs 0.689). It does beat it in 2021–23.
 - **The signal is seasonal-scale.** It does not give a sharp warning just before a ban: onset AUC is 0.65, about the same as the monthly baseline.
 - **Some splits rest on very few sites.** Within-site AUC in 2025–26 uses 2 sites, and 2020 and 2024 use 3.
 
