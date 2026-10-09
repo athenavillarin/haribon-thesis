@@ -13,7 +13,7 @@ Usage:
     python run_ensemble.py --splits 1 2
 
     # Custom dataset path
-    python run_ensemble.py --dataset-path ../final_compiled_dataset/Combined_Labeled.csv
+    python run_ensemble.py --dataset-path ../final_compiled_dataset/Combined_Labeled_2_0.csv
 
 Purpose:
     Combines XGBoost, LSTM, GRU, and Transformer predictions using three
@@ -104,7 +104,7 @@ def parse_args() -> argparse.Namespace:
         "--dataset-path",
         type=str,
         default=str(DEFAULT_DATASET_PATH),
-        help="Path to Combined_Labeled.csv",
+        help="Path to Combined_Labeled_2_0.csv",
     )
     parser.add_argument(
         "--imputation-method",

@@ -56,6 +56,22 @@
         "type": "Point",
         "coordinates": [122.75911156119292, 11.487090985879973]
       }
+    },
+    {
+      "type": "Feature",
+      "properties": { "Name": "Milagros (Masbate)" },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [123.5094, 12.2182]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "Name": "Cancabato Bay" },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [125.0131, 11.2249]
+      }
     }
   ]
 }

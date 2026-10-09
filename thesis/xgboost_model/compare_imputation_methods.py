@@ -21,7 +21,7 @@ from xgboost import XGBClassifier
 
 
 RESULTS_DIR = Path(__file__).parent / "results"
-DATA_PATH = Path(__file__).parent.parent / "final_compiled_dataset" / "Combined_Labeled.csv"
+DATA_PATH = Path(__file__).parent.parent / "final_compiled_dataset" / "Combined_Labeled_2_0.csv"
 BEST_PARAMS_PATH = RESULTS_DIR / "best_parameters.txt"
 
 DEFAULT_BEST_PARAMS = {

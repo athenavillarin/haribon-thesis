@@ -38,8 +38,8 @@ def _normalize_location_key(value: str) -> str:
 def _resolve_historical_dataset_path() -> Path:
     candidates = [
         settings.TRAINING_DATA_PATH,
-        settings.BASE_DIR.parent / "final_compiled_dataset" / "Combined_Labeled.csv",
-        settings.BASE_DIR.parent.parent / "final_compiled_dataset" / "Combined_Labeled.csv",
+        settings.BASE_DIR.parent / "final_compiled_dataset" / "Combined_Labeled_2_0.csv",
+        settings.BASE_DIR.parent.parent / "final_compiled_dataset" / "Combined_Labeled_2_0.csv",
     ]
 
     for candidate in candidates:
@@ -47,7 +47,7 @@ def _resolve_historical_dataset_path() -> Path:
             return candidate
 
     raise FileNotFoundError(
-        "Unable to locate Combined_Labeled.csv. Tried: "
+        "Unable to locate Combined_Labeled_2_0.csv. Tried: "
         + ", ".join(str(path) for path in candidates)
     )
 

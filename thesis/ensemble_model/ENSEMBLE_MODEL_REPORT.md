@@ -1,4 +1,10 @@
 # Objective 2, Task 5 — Ensemble Model for HAB Detection (Updated / Fixed Run)
+
+> **Note (October 2026):** The results in Section 6 are out of date.
+> - The current `results/ensemble_summary.csv` gives LSTM 0.683, GRU 0.674, Transformer 0.845 and stacked 0.651 AUC.
+> - These scores also benefit from imputation that uses future values.
+>
+> For leak-free retrained results compared with baselines, see `../evaluation/README.md`.
 ## 1. Overview
 Objective 2, Task 5 finalizes the HARIBON HAB detection benchmark by combining the four independently trained base models into a single **ensemble evaluation pipeline**:
 - **LSTM** (Keras)

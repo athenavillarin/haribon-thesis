@@ -206,3 +206,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 *.db
+
+# Leak-free retrained models (reproducible via thesis/evaluation/retrain_leakfree.py)
+thesis/evaluation/saved_model/
