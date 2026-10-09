@@ -29,12 +29,12 @@ Changes made here:
 | History features only | 0.770 | 0.664 | 0.606 | 0.596 |
 | Environment only | 0.692 | 0.618 | 0.591 | 0.555 |
 | **History + environment** | **0.831** | 0.642 | 0.621 | 0.605 |
-| LSTM (existing) | 0.683 | 0.474 | 0.575 | 0.577 |
-| GRU (existing) | 0.674 | 0.607 | 0.640 | 0.649 |
-| Transformer (existing) | 0.846 | 0.453 | 0.781 | 0.774 |
-| XGBoost (existing) | 0.729 | 0.480 | 0.677 | 0.670 |
+| LSTM (retrained leak-free) | 0.658 | 0.493 | 0.671 | 0.670 |
+| GRU (retrained leak-free) | 0.663 | 0.527 | 0.695 | 0.682 |
+| Transformer (retrained leak-free) | 0.728 | 0.539 | 0.681 | 0.687 |
+| XGBoost (retrained leak-free) | 0.744 | 0.495 | 0.669 | 0.661 |
 
-The onset columns score whether a ban starts within 7 or 14 days, counting only days that are not already under a ban.
+The onset columns score whether a ban starts within 7 or 14 days, counting only days that are not already under a ban. The existing model types were retrained without look-ahead by `evaluation/retrain_leakfree.py`; see `evaluation/README.md`.
 
 **Within-site AUC by split:**
 
@@ -70,9 +70,9 @@ In splits 3–4, five sites have both banned and clear days in the test year. In
 
 ## Limitations
 
-- The environmental signal is seasonal-scale. It does not give a sharp warning just before a ban: onset AUC is 0.61, below the seasonal baseline (0.67) and the existing Transformer (0.77).
+- The environmental signal is seasonal-scale. It does not give a sharp warning just before a ban: onset AUC is 0.61. No model clearly beats the monthly baseline (0.67) on onset; the retrained models land between 0.66 and 0.69.
 - Within-site AUC in splits 1, 5 and 6 rests on a single site.
-- The existing LSTM/GRU/XGBoost pipeline (`ensemble_data.py`) still imputes with future values (`limit_direction="both"` and all-years climatology). Its scores are optimistic by the same mechanism that was fixed here.
+- The original training scripts and `ensemble_data.py` still impute with future values. The saved models' scores are therefore optimistic; for example, the Transformer drops from 0.846 to 0.728 when retrained without look-ahead.
 - More sites with recurring seasonal blooms would add onset events, which are the limiting factor.
 
 ## Usage
