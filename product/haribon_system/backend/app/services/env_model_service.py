@@ -70,6 +70,10 @@ def predict_site(location: str, today: pd.Timestamp) -> dict:
         recent = fetched[DRIVERS].reset_index()
         recent["Location_Name"] = location
         recent["Month"] = recent["Date"].dt.month
+        # Days no source has published yet get the site's monthly mean rather than a copy of the previous day
+        monthly_mean = history.groupby("Month")[DRIVERS].mean()
+        recent[DRIVERS] = recent[DRIVERS].fillna(
+            pd.DataFrame(monthly_mean.reindex(recent["Month"]).to_numpy(), columns=DRIVERS, index=recent.index))
 
     grid = pd.concat([history, recent], ignore_index=True)
     daily = load_daily(grid=grid)

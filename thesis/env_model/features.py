@@ -39,6 +39,7 @@ ROLL_WINDOWS = (30, 60, 90)
 FFILL_LIMIT_DAYS = 14
 # ONI for month m is a 3-month mean centred on m, released in early-to-mid m+2
 ONI_LAG_MONTHS = 3
+ONI_MAX_CARRY_MONTHS = 2
 
 LABEL_DELAY_DAYS = 14
 UNCERTAIN_WEIGHT = 0.3
@@ -101,13 +102,13 @@ def _sample_weights(df: pd.DataFrame, is_train: pd.Series) -> np.ndarray:
 
 
 def _oni_column(dates: pd.Series) -> np.ndarray:
-    """ONI lagged by ONI_LAG_MONTHS; months past the end of the file use the latest value."""
+    """ONI lagged by ONI_LAG_MONTHS; the latest value is carried at most ONI_MAX_CARRY_MONTHS past the end of the file."""
     oni = pd.read_csv(ONI_PATH)
     oni["period"] = pd.PeriodIndex.from_fields(year=oni["year"], month=oni["month"], freq="M")
     lookup = oni.set_index("period")["oni"].sort_index()
     needed = dates.dt.to_period("M") - ONI_LAG_MONTHS
     full = pd.period_range(lookup.index.min(), max(lookup.index.max(), needed.max()), freq="M")
-    return lookup.reindex(full).ffill().reindex(needed).to_numpy()
+    return lookup.reindex(full).ffill(limit=ONI_MAX_CARRY_MONTHS).reindex(needed).to_numpy()
 
 
 def _history_priors(df: pd.DataFrame, train_end: pd.Timestamp) -> pd.DataFrame:

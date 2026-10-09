@@ -55,9 +55,10 @@ SITES = {
     "Cancabato Bay": (11.2249, 125.0131),
 }
 
-# GLORYS cells that best reproduce the original sites' thetao/so in Combined_Labeled_fixed.csv
-# (April-June 2026). Roxas City, Sapian Bay and Matarinao Bay match exactly; the rest are the
-# closest cell within 0.25 deg, 0.04-0.13 degC mean absolute difference.
+# GLORYS cells per site. For the original sites these best reproduce thetao/so in
+# Combined_Labeled_fixed.csv (April-June 2026): Roxas City, Sapian Bay and Matarinao Bay match
+# exactly, the rest are the closest cell within 0.25 deg (0.04-0.13 degC mean absolute difference).
+# Milagros and Cancabato Bay use the nearest water cell their environment files were built from.
 MATCHED_CELLS = {
     SITES["Gigantes Islands"]: (11.5833, 123.25),
     SITES["Dumanquillas Bay"]: (7.6667, 123.1667),
@@ -66,6 +67,8 @@ MATCHED_CELLS = {
     SITES["Roxas City"]: (11.5833, 122.6667),
     SITES["Sapian Bay"]: (11.5833, 122.5833),
     SITES["Matarinao Bay"]: (11.25, 125.5833),
+    SITES["Milagros (Masbate)"]: (12.1667, 123.5),
+    SITES["Cancabato Bay"]: (11.25, 125.0833),
 }
 GLORYS_MY = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 GLORYS_ANFC = {
