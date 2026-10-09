@@ -38,7 +38,35 @@ _THIS_DIR = Path(__file__).resolve().parent
 ENV_FILE = _THIS_DIR.parents[1] / "product" / "haribon_system" / "backend" / ".env"
 OUTPUT_DIR = _THIS_DIR / "new_sites"
 
-START, END = "2015-01-01", "2026-09-07"
+START, END = "2015-01-01", "2026-10-01"
+TAIL_START = "2026-07-01"
+TAIL_PATH = OUTPUT_DIR / "environment_tail.csv"
+
+# Sampling points of the 9 sites in Combined_Labeled_2_0.csv
+SITES = {
+    "Gigantes Islands": (11.69916, 123.34367),
+    "Dumanquillas Bay": (7.697, 123.018),
+    "Matarinao Bay": (11.23, 125.55),
+    "Pilar": (11.50451, 122.94062),
+    "Sapian Bay": (11.52038, 122.55937),
+    "President Roxas": (11.49602, 122.91403),
+    "Roxas City": (11.48709, 122.75911),
+    "Milagros (Masbate)": (12.2182, 123.5094),
+    "Cancabato Bay": (11.2249, 125.0131),
+}
+
+# GLORYS cells that best reproduce the original sites' thetao/so in Combined_Labeled_fixed.csv
+# (April-June 2026). Roxas City, Sapian Bay and Matarinao Bay match exactly; the rest are the
+# closest cell within 0.25 deg, 0.04-0.13 degC mean absolute difference.
+MATCHED_CELLS = {
+    SITES["Gigantes Islands"]: (11.5833, 123.25),
+    SITES["Dumanquillas Bay"]: (7.6667, 123.1667),
+    SITES["Pilar"]: (11.5833, 122.9167),
+    SITES["President Roxas"]: (11.5, 122.9167),
+    SITES["Roxas City"]: (11.5833, 122.6667),
+    SITES["Sapian Bay"]: (11.5833, 122.5833),
+    SITES["Matarinao Bay"]: (11.25, 125.5833),
+}
 GLORYS_MY = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 GLORYS_ANFC = {
     "thetao": "cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m",
@@ -88,7 +116,11 @@ def _open(dataset_id: str, variables: list[str], lat: float, lon: float, half: f
 
 
 def nearest_water_cell(lat: float, lon: float) -> tuple[float, float, float]:
-    """GLORYS cell closest to the point that is water; returns (lat, lon, distance_km)."""
+    """GLORYS cell for the point (MATCHED_CELLS, else the closest water cell); returns (lat, lon, distance_km)."""
+    if (lat, lon) in MATCHED_CELLS:
+        cell_lat, cell_lon = MATCHED_CELLS[(lat, lon)]
+        return cell_lat, cell_lon, float(np.hypot((cell_lat - lat) * 111.0,
+                                                  (cell_lon - lon) * 111.0 * np.cos(np.radians(lat))))
     ds = _open(GLORYS_MY, ["thetao"], lat, lon, CELL_SEARCH_DEG, "2020-01-01", "2020-01-01", depth=True)
     grid = ds["thetao"].isel(time=0).load()
     la, lo = np.meshgrid(grid.latitude.values, grid.longitude.values, indexing="ij")
@@ -245,6 +277,19 @@ def fetch_recent_drivers(lat: float, lon: float, start: str, end: str) -> pd.Dat
     return out
 
 
+def fill_precip_gaps(df: pd.DataFrame, lat: float, lon: float) -> pd.DataFrame:
+    """Fill days CHIRPS has not covered with GPM IMERG over the same area."""
+    import ee
+    missing = df["precip_mm_day"].isna()
+    if missing.any():
+        _init_ee()
+        area = ee.Geometry.Point([lon, lat]).buffer(PRECIP_BUFFER_M)
+        dates = df.loc[missing, "Date"]
+        imerg = imerg_daily(area, dates.min().strftime("%Y-%m-%d"), dates.max().strftime("%Y-%m-%d"))
+        df.loc[missing, "precip_mm_day"] = imerg.reindex(dates).to_numpy()
+    return df
+
+
 def fetch_site(name: str, lat: float, lon: float, start: str = START, end: str = END) -> pd.DataFrame:
     print(f"{name} ({lat}, {lon})")
     dates = pd.date_range(start, end, freq="D")
@@ -273,6 +318,7 @@ def parse_args() -> argparse.Namespace:
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--site", nargs=3, metavar=("NAME", "LAT", "LON"))
     mode.add_argument("--validate", action="store_true")
+    mode.add_argument("--tail", action="store_true", help=f"fetch {TAIL_START} to {END} for every site in SITES")
     return parser.parse_args()
 
 
@@ -280,6 +326,13 @@ def main() -> None:
     args = parse_args()
     if args.validate:
         validate()
+        return
+    if args.tail:
+        OUTPUT_DIR.mkdir(exist_ok=True)
+        tail = pd.concat([fill_precip_gaps(fetch_site(name, lat, lon, TAIL_START, END), lat, lon)
+                          for name, (lat, lon) in SITES.items()])
+        tail.to_csv(TAIL_PATH, index=False)
+        print(f"Wrote {TAIL_PATH.name}: {len(tail):,} rows")
         return
     name, lat, lon = args.site[0], float(args.site[1]), float(args.site[2])
     OUTPUT_DIR.mkdir(exist_ok=True)
