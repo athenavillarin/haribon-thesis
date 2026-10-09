@@ -49,6 +49,7 @@ from ensemble_data import DEFAULT_DATASET_PATH, build_splits, load_and_prepare  
 
 RESULTS_DIR = _THIS_DIR / "results"
 ONSET_HORIZONS = (7, 14)
+METRIC_COLS = ["pooled_auc", "per_site_auc", "onset_auc_7d", "onset_auc_14d"]
 
 
 def _safe_auc(y: np.ndarray, p: np.ndarray) -> float:
@@ -98,12 +99,18 @@ def baseline_scores(df: pd.DataFrame, split, test: pd.DataFrame) -> Dict[str, np
 
 
 def score_split(test: pd.DataFrame, scores: Dict[str, np.ndarray]) -> List[dict]:
+    """Score every model on the same rows: those where no model's score is missing."""
+    scores = {k: np.asarray(v, dtype=float) for k, v in scores.items()}
+    usable = [p for p in scores.values() if not np.all(np.isnan(p))]
+    common = ~np.any(np.isnan(np.vstack(usable)), axis=0) & test["y_prev"].notna().to_numpy()
+    test = test[common]
+    scores = {k: v[common] for k, v in scores.items()}
+
     rows = []
     y = test["y"].to_numpy()
     not_in_ban = (test["y_prev"] == 0).to_numpy()
 
     for name, p in scores.items():
-        p = np.asarray(p, dtype=float)
         site_aucs = []
         for loc in test["Location_Name"].unique():
             m = (test["Location_Name"] == loc).to_numpy()
@@ -114,6 +121,7 @@ def score_split(test: pd.DataFrame, scores: Dict[str, np.ndarray]) -> List[dict]
             "pooled_auc": _safe_auc(y, p),
             "per_site_auc": float(np.nanmean(site_aucs)) if not np.all(np.isnan(site_aucs)) else float("nan"),
             "n_sites_scored": int(np.sum(~np.isnan(site_aucs))),
+            "n_rows": int(len(y)),
         }
         for h in ONSET_HORIZONS:
             target = test[f"onset_{h}d"].to_numpy()
@@ -121,6 +129,22 @@ def score_split(test: pd.DataFrame, scores: Dict[str, np.ndarray]) -> List[dict]
             row[f"n_onset_pos_{h}d"] = int(target[not_in_ban].sum())
         rows.append(row)
     return rows
+
+
+def summarize(per_split: pd.DataFrame, out_dir: Path, prefix: str) -> pd.DataFrame:
+    """Write per-split and mean/std CSVs, print the means, and return the summary."""
+    per_split = per_split[["split", "model"] + METRIC_COLS
+                          + [c for c in per_split.columns if c not in METRIC_COLS + ["split", "model"]]]
+    summary = per_split.groupby("model", sort=False)[METRIC_COLS].agg(["mean", "std"]).round(4)
+    summary.columns = [f"{m}_{s}" for m, s in summary.columns]
+
+    per_split.to_csv(out_dir / f"{prefix}_per_split.csv", index=False)
+    summary.to_csv(out_dir / f"{prefix}_summary.csv")
+
+    pd.set_option("display.width", 200)
+    print("\nMean across splits:")
+    print(per_split.groupby("model", sort=False)[METRIC_COLS].mean().round(3).to_string())
+    return summary
 
 
 def parse_args() -> argparse.Namespace:
@@ -151,19 +175,7 @@ def main() -> None:
             row["split"] = split.split_num
             records.append(row)
 
-    per_split = pd.DataFrame(records)
-    metric_cols = ["pooled_auc", "per_site_auc", "onset_auc_7d", "onset_auc_14d"]
-    per_split = per_split[["split", "model"] + metric_cols
-                          + [c for c in per_split.columns if c not in metric_cols + ["split", "model"]]]
-    summary = per_split.groupby("model", sort=False)[metric_cols].agg(["mean", "std"]).round(4)
-    summary.columns = [f"{m}_{s}" for m, s in summary.columns]
-
-    per_split.to_csv(RESULTS_DIR / "baseline_comparison_per_split.csv", index=False)
-    summary.to_csv(RESULTS_DIR / "baseline_comparison_summary.csv")
-
-    pd.set_option("display.width", 200)
-    print("\nMean across splits:")
-    print(per_split.groupby("model", sort=False)[metric_cols].mean().round(3).to_string())
+    summarize(pd.DataFrame(records), RESULTS_DIR, "baseline_comparison")
 
 
 if __name__ == "__main__":
