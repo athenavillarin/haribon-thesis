@@ -960,7 +960,8 @@ def run_daily_update_with_5day_forecast():
 
             base_confidence = 0.5 + abs(probability - 0.5)
 
-            data_limited = critical_ratio < 0.5 or observed_ratio < 0.7
+            # The env model fetches its own drivers; CMEMS/GEE coverage only matters for the older models
+            data_limited = env_result is None and (critical_ratio < 0.5 or observed_ratio < 0.7)
             if data_limited:
                 base_confidence = min(base_confidence, 0.65)
                 if risk_level == "Very Low Risk":
@@ -972,7 +973,12 @@ def run_daily_update_with_5day_forecast():
 
             confidence = f"{base_confidence * 100:.1f}%"
 
-            if "High" in risk_level:
+            if "High" in risk_level and env_result is not None:
+                explanation = (
+                    "Elevated bloom risk based on this site's recent shellfish ban history, "
+                    "the season, and recent sea temperature and rainfall."
+                )
+            elif "High" in risk_level:
                 explanation = (
                     "Elevated bloom risk driven by current chlorophyll, "
                     "temperature, salinity, and wind conditions."
@@ -1094,7 +1100,7 @@ def run_daily_update_with_5day_forecast():
                     "coverage_note": "limited" if data_limited else "sufficient",
                     "environment_data_source": env_source,
                     "environment_imputation_strategy": manifest_imputation,
-                    "forecasting_model": manifest_forecasting,
+                    "forecasting_model": "Environment-driven model" if final_probability_source == "env_model" else manifest_forecasting,
                     "base_xgboost_probability": round(xgb_prob, 6),
                     "sequence_models_probability": round(deep_prob, 6) if deep_prob is not None else None,
                     "xgboost_weight_damped": xgb_damped,
@@ -1166,6 +1172,7 @@ def run_daily_update_with_5day_forecast():
 
             # Log prediction to database (only if not already logged for this location today)
             if SessionLocal is not None and Location is not None and PredictionLog is not None:
+                session = None
                 try:
                     session = SessionLocal()
                     # Get location_id
@@ -1211,9 +1218,13 @@ def run_daily_update_with_5day_forecast():
                             session.add(prediction_log)
                             session.commit()
                             print(f"Logged prediction for {location} to database")
-                    session.close()
                 except Exception as exc:
+                    if session is not None:
+                        session.rollback()
                     print(f"[WARN] Failed to log prediction for {location}: {exc}")
+                finally:
+                    if session is not None:
+                        session.close()
 
             print(f"Generated forecast for {location}: {risk_level}")
 
