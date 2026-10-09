@@ -28,6 +28,7 @@ from __future__ import annotations
 import argparse
 import functools
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -55,10 +56,18 @@ SURFACE_DEPTH = (0.49, 1.0)
 PRECIP_BUFFER_M, WIND_BUFFER_M, NDVI_BUFFER_M = 5_000, 35_000, 10_000
 
 
+CREDENTIAL_KEYS = ["COPERNICUSMARINE_SERVICE_USERNAME", "COPERNICUSMARINE_SERVICE_PASSWORD", "GCP_CREDENTIALS_JSON"]
+
+
 @functools.lru_cache(maxsize=1)
 def _credentials() -> dict:
-    from dotenv import dotenv_values
-    return dotenv_values(ENV_FILE)
+    """Environment variables (as in GitHub Actions), falling back to the backend .env file."""
+    values = {}
+    if ENV_FILE.exists():
+        from dotenv import dotenv_values
+        values.update(dotenv_values(ENV_FILE))
+    values.update({k: os.environ[k] for k in CREDENTIAL_KEYS if os.environ.get(k)})
+    return values
 
 
 def _open(dataset_id: str, variables: list[str], lat: float, lon: float, half: float,
@@ -181,6 +190,59 @@ def fetch_gee(lat: float, lon: float, start: str, end: str) -> pd.DataFrame:
 def environment_path(site: str) -> Path:
     """Output file for a site, e.g. 'Milagros (Masbate)' -> new_sites/milagros_environment.csv."""
     return OUTPUT_DIR / f"{site.split(' (')[0].replace(' ', '_').lower()}_environment.csv"
+
+
+def imerg_daily(area, start: str, end: str) -> pd.Series:
+    """Daily rainfall (mm/day) from half-hourly GPM IMERG, averaged per day on the Earth Engine side."""
+    import ee
+    first = ee.Date(start)
+    n_days = (pd.Timestamp(end) - pd.Timestamp(start)).days + 1
+    half_hourly = ee.ImageCollection("NASA/GPM_L3/IMERG_V07").select("precipitation")
+
+    def day_mean(offset):
+        day = first.advance(offset, "day")
+        images = half_hourly.filterDate(day, day.advance(1, "day"))
+        # Days with no IMERG images yet become a fully masked image, which reduces to NaN
+        empty = ee.Image.constant(0).rename("precipitation").updateMask(0)
+        mean = ee.Image(ee.Algorithms.If(images.size().gt(0), images.mean().multiply(24), empty))
+        return mean.set("system:time_start", day.millis())
+
+    daily = ee.ImageCollection(ee.List.sequence(0, n_days - 1).map(day_mean))
+    return _reduce_daily(daily, ["precipitation"], area, 11132)["precipitation"]
+
+
+def fetch_recent_drivers(lat: float, lon: float, start: str, end: str) -> pd.DataFrame:
+    """
+    Daily thetao and precip_mm_day for the live forecast, sampled as in training.
+
+    thetao comes from the GLORYS forecast product at the nearest water cell.
+    precip_mm_day comes from CHIRPS within 5 km; days CHIRPS has not published
+    yet are filled from GPM IMERG over the same area and marked in precip_source.
+    """
+    import ee
+    cell_lat, cell_lon, _ = nearest_water_cell(lat, lon)
+    ds = _open(GLORYS_ANFC["thetao"], ["thetao"], cell_lat, cell_lon, 0.05, start, end, depth=True)
+    thetao = ds.sel(latitude=cell_lat, longitude=cell_lon, method="nearest")["thetao"].load().to_series()
+    thetao.index = pd.to_datetime(thetao.index).normalize()
+
+    _init_ee()
+    area = ee.Geometry.Point([lon, lat]).buffer(PRECIP_BUFFER_M)
+    stop = (pd.Timestamp(end) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    chirps = _reduce_daily(ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY").filterDate(start, stop),
+                           ["precipitation"], area, 5566)["precipitation"]
+
+    dates = pd.date_range(start, end, freq="D")
+    out = pd.DataFrame(index=dates)
+    out["thetao"] = thetao.groupby(level=0).mean().reindex(dates)
+    out["precip_mm_day"] = chirps.reindex(dates)
+    out["precip_source"] = np.where(out["precip_mm_day"].notna(), "chirps", None)
+    fill = out["precip_mm_day"].isna()
+    if fill.any():
+        imerg = imerg_daily(area, out.index[fill].min().strftime("%Y-%m-%d"), end)
+        out.loc[fill, "precip_mm_day"] = imerg.reindex(dates)[fill]
+        out.loc[fill & out["precip_mm_day"].notna(), "precip_source"] = "imerg"
+    out.index.name = "Date"
+    return out
 
 
 def fetch_site(name: str, lat: float, lon: float, start: str = START, end: str = END) -> pd.DataFrame:

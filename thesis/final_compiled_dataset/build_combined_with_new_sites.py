@@ -2,7 +2,7 @@
 build_combined_with_new_sites.py
 ================================
 Writes Combined_Labeled_2_0.csv: the 7 sites of Combined_Labeled_fixed.csv
-plus Milagros (Masbate) and Cancabato Bay.
+plus Milagros (Masbate), Cancabato Bay, San Pedro Bay and Maqueda Bay.
 
 New-site labels come from new_sites/candidate_site_daily_labels.csv (BFAR
 bulletin OCR, state carried forward at most 45 days). Dates without a label
@@ -32,7 +32,7 @@ LABELS = NEW_DIR / "candidate_site_daily_labels.csv"
 TRANSITIONS = NEW_DIR / "candidate_site_transitions_for_spotcheck.csv"
 OUTPUT = _THIS_DIR / "Combined_Labeled_2_0.csv"
 
-NEW_SITES = ["Milagros (Masbate)", "Cancabato Bay"]
+NEW_SITES = ["Milagros (Masbate)", "Cancabato Bay", "San Pedro Bay", "Maqueda Bay"]
 
 
 def main() -> None:
