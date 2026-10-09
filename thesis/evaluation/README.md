@@ -61,7 +61,7 @@ Models are written to `saved_model/leakfree/`, which is not tracked in git. The 
 
 ## Findings
 
-1. **The sequence models learn which sites are usually banned.** They score 0.79–0.99 in years whose ban pattern repeats the past (2020, 2024, 2025–26). They fall to 0.30–0.64 in 2021–23, when the Capiz sites had their first bans. Their within-site AUC is close to chance (0.45–0.59).
+1. **The sequence models learn which sites are usually banned.** They score 0.79–0.99 in years whose ban pattern repeats the past (2020, 2024, 2025–26). In 2021–23, when the Capiz sites had their first bans, they mostly fall to 0.30–0.64 (the one exception is the Transformer's 0.79 in 2021). Their within-site AUC is close to chance (0.45–0.59).
 2. **The saved models' scores do not hold up when retrained without look-ahead.** The Transformer drops from 0.846 to 0.722 (all sites) and from 0.774 to 0.698 (onset 14d). The retraining also changes validation and window construction, so not all of the drop can be attributed to imputation alone.
 3. **The deep models are unstable.** Between two retraining runs that differed only in validation and refit details, the Transformer's 2021 AUC went from 0.46 to 0.79 and its 2022 AUC from 0.62 to 0.30.
 4. **The env model is the most reliable.** It has the best all-sites and within-site AUC, its worst split is 0.65 (others: 0.30–0.56), and as a linear model it gives the same result on every run.
