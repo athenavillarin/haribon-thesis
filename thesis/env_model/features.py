@@ -3,15 +3,16 @@ features.py
 ===========
 Environmental feature builder that removes site fingerprints.
 
-Every variable is turned into a site-relative anomaly: the value minus the
-site's monthly climatology, divided by the site's standard deviation. Both
-statistics come from training dates only. On top of the anomalies we add
-causal rolling means, lagged rolling means and 7-day changes, so the model
-can learn the delay between conditions and announced shellfish bans
-(lab testing takes ~2 weeks).
+Each driver is turned into a site-relative anomaly: the value minus the site's
+monthly climatology, divided by the site's standard deviation, both taken from
+training dates only. Causal 30/60/90-day rolling means of these anomalies,
+season and the ENSO index make up the environmental features.
 
-Label weighting reflects that delay: the 14 days before a ban starts and the
-last 14 days of a ban are uncertain and get low weight; days with a real
+The site's ban history is added as two features computed only from years before
+each row, so training rows never see their own labels.
+
+Label weighting reflects the ~2-week shellfish testing delay: the 14 days before
+a ban starts and the last 14 days of a ban get low weight; days with a real
 bulletin get extra weight.
 """
 
@@ -19,7 +20,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -29,62 +29,67 @@ _ENSEMBLE_CODE_DIR = _THIS_DIR.parent / "ensemble_model" / "code"
 if str(_ENSEMBLE_CODE_DIR) not in sys.path:
     sys.path.insert(0, str(_ENSEMBLE_CODE_DIR))
 
-from ensemble_data import DEFAULT_DATASET_PATH, FEATURES, TARGET, _impute_df  # noqa: E402
+from ensemble_data import DEFAULT_DATASET_PATH, TARGET  # noqa: E402
 
 ONI_PATH = _THIS_DIR.parent / "final_compiled_dataset" / "oni_monthly.csv"
 
-LOG_FEATURES = ["CHL", "precip_mm_day"]
-DRIVERS = ["CHL", "thetao", "so", "mlotst", "NDVI_daily", "precip_mm_day", "wind_speed_ms"]
-ROLL_WINDOWS = (7, 14, 30, 60, 90)
-LAGS = (7, 14, 21)
-ONI_LAG_MONTHS = 2  # ONI for month m is published after month m+1 ends
+DRIVERS = ["thetao", "precip_mm_day"]
+LOG_DRIVERS = ["precip_mm_day"]
+ROLL_WINDOWS = (30, 60, 90)
+FFILL_LIMIT_DAYS = 14
+# ONI for month m is a 3-month mean centred on m, released in early-to-mid m+2
+ONI_LAG_MONTHS = 3
 
 LABEL_DELAY_DAYS = 14
 UNCERTAIN_WEIGHT = 0.3
 BULLETIN_WEIGHT = 3.0
 
-# Slow-moving drivers with a consistent within-site signal, plus season and ENSO
-CORE_FEATURES = [
-    "thetao_roll30", "thetao_roll60", "thetao_roll90",
-    "precip_mm_day_roll30", "precip_mm_day_roll60", "precip_mm_day_roll90",
-    "doy_sin", "doy_cos", "oni",
-]
-# Each site's ban history from training dates only
+CORE_FEATURES = [f"{d}_roll{w}" for d in DRIVERS for w in ROLL_WINDOWS] + ["doy_sin", "doy_cos", "oni"]
 PRIOR_FEATURES = ["clim_rate", "site_rate_365"]
 
 
 def load_daily(dataset_path: str | Path = DEFAULT_DATASET_PATH) -> pd.DataFrame:
-    """Load the full daily grid (including unlabeled days) and impute features."""
+    """Load every site on a gap-free daily grid, without imputation."""
     df = pd.read_csv(dataset_path, parse_dates=["Date"])
-    # Reindex to a gap-free daily grid so row shifts and rolling windows are in days
     full = pd.MultiIndex.from_product(
         [df["Location_Name"].unique(), pd.date_range(df["Date"].min(), df["Date"].max(), freq="D")],
         names=["Location_Name", "Date"],
     )
     df = df.set_index(["Location_Name", "Date"]).reindex(full).reset_index()
     df["Month"] = df["Date"].dt.month
-    df["Day"] = df["Date"].dt.day
-    df = _impute_df(df, FEATURES, method="hybrid_adaptive")
-    for col in LOG_FEATURES:
+    for col in LOG_DRIVERS:
         df[col] = np.log1p(df[col].clip(lower=0))
     df["red_tide_binary"] = np.where(df[TARGET].isna(), np.nan, (df[TARGET] >= 0.5).astype(float))
     return df
 
 
-def _sample_weights(df: pd.DataFrame) -> pd.Series:
-    """Weight each row by how much we trust its label, given the ~2-week testing delay."""
-    weights = pd.Series(1.0, index=df.index)
-    for _, g in df.groupby("Location_Name", sort=False):
-        y = g["red_tide_binary"].fillna(0).to_numpy()
-        n = len(y)
-        w = np.ones(n)
+def _impute_causal(df: pd.DataFrame, is_train: pd.Series) -> pd.DataFrame:
+    """Forward-fill short gaps, then fall back to training-period climatology."""
+    df[DRIVERS] = df.groupby("Location_Name", sort=False)[DRIVERS].ffill(limit=FFILL_LIMIT_DAYS)
+    train = df[is_train]
+    month_mean = train.groupby(["Location_Name", "Month"])[DRIVERS].mean()
+    site_mean = train.groupby("Location_Name")[DRIVERS].mean()
+    keys = pd.MultiIndex.from_arrays([df["Location_Name"], df["Month"]])
+    df[DRIVERS] = df[DRIVERS].fillna(pd.DataFrame(month_mean.reindex(keys).to_numpy(), columns=DRIVERS, index=df.index))
+    df[DRIVERS] = df[DRIVERS].fillna(pd.DataFrame(site_mean.reindex(df["Location_Name"]).to_numpy(), columns=DRIVERS, index=df.index))
+    return df
+
+
+def _sample_weights(df: pd.DataFrame, is_train: pd.Series) -> np.ndarray:
+    """Weight training rows by how much we trust their label, using training labels only."""
+    weights = np.ones(len(df))
+    delay = pd.Timedelta(days=LABEL_DELAY_DAYS)
+    for _, g in df[is_train].groupby("Location_Name", sort=False):
+        labeled = g.dropna(subset=["red_tide_binary"])
+        y = labeled["red_tide_binary"].to_numpy()
+        dates = g["Date"]
+        w = np.ones(len(g))
         # Before a ban starts the bloom may already be present; before a ban is
         # lifted the bloom may already be gone. Both windows are down-weighted.
-        for c in np.flatnonzero(np.diff(y) != 0) + 1:
-            w[max(0, c - LABEL_DELAY_DAYS):c] = UNCERTAIN_WEIGHT
-        bulletin = g["red_tide"].notna().to_numpy()
-        w[bulletin] = BULLETIN_WEIGHT
-        weights.loc[g.index] = w
+        for change in labeled["Date"].to_numpy()[np.flatnonzero(np.diff(y) != 0) + 1]:
+            w[((dates >= change - delay) & (dates < change)).to_numpy()] = UNCERTAIN_WEIGHT
+        w[g["red_tide"].notna().to_numpy()] = BULLETIN_WEIGHT
+        weights[df.index.get_indexer(g.index)] = w
     return weights
 
 
@@ -92,64 +97,73 @@ def _oni_column(dates: pd.Series) -> np.ndarray:
     oni = pd.read_csv(ONI_PATH)
     oni["period"] = pd.PeriodIndex.from_fields(year=oni["year"], month=oni["month"], freq="M")
     lookup = oni.set_index("period")["oni"]
-    periods = dates.dt.to_period("M") - ONI_LAG_MONTHS
-    return lookup.reindex(periods).to_numpy()
+    return lookup.reindex(dates.dt.to_period("M") - ONI_LAG_MONTHS).to_numpy()
 
 
-def build_features(df: pd.DataFrame, train_end: str) -> Tuple[pd.DataFrame, List[str]]:
+def _history_priors(df: pd.DataFrame, train_end: pd.Timestamp) -> pd.DataFrame:
     """
-    Return df with feature columns and the next-day target attached.
+    Ban-history features from strictly earlier years.
 
-    Climatology and scale use only rows dated on or before `train_end`.
-    Features on day t predict the label on day t+1.
+    A row whose target falls in year Y uses labels from years before
+    min(Y, train year + 1): the monthly ban rate over those years and the
+    ban rate of the single year before.
     """
-    df = df.copy()
-    train = df[df["Date"] <= pd.Timestamp(train_end)]
-    clim = train.groupby(["Location_Name", "Month"])[FEATURES].mean()
-    scale = train.groupby("Location_Name")[FEATURES].std().replace(0, 1)
+    train_year = train_end.year
+    labeled = df[(df["Date"] <= train_end) & df["red_tide_binary"].notna()].assign(year=lambda d: d["Date"].dt.year)
+    by_year_month = labeled.groupby(["Location_Name", "year", "Month"])["red_tide_binary"].agg(["sum", "count"])
+    by_year = labeled.groupby(["Location_Name", "year"])["red_tide_binary"].mean()
 
+    tables = []
+    for eff_year in range(labeled["year"].min() + 1, train_year + 2):
+        past = by_year_month[by_year_month.index.get_level_values("year") < eff_year]
+        rate = past.groupby(["Location_Name", "Month"]).sum()
+        rate = (rate["sum"] / rate["count"]).rename("clim_rate").reset_index()
+        rate["eff_year"] = eff_year
+        last = by_year.xs(eff_year - 1, level="year").rename("site_rate_365")
+        tables.append(rate.merge(last, left_on="Location_Name", right_index=True, how="left"))
+    priors = pd.concat(tables, ignore_index=True)
+
+    keys = pd.DataFrame({
+        "Location_Name": df["Location_Name"].to_numpy(),
+        "eff_year": np.minimum(df["target_date"].dt.year, train_year + 1).to_numpy(),
+        "Month": df["target_date"].dt.month.to_numpy(),
+    })
+    return keys.merge(priors, on=["Location_Name", "eff_year", "Month"], how="left")[PRIOR_FEATURES]
+
+
+def build_features(daily: pd.DataFrame, train_end: str) -> pd.DataFrame:
+    """
+    Return one row per site-day with CORE_FEATURES, PRIOR_FEATURES, the next-day
+    target and its training weight. Every statistic uses dates up to `train_end`.
+    """
+    train_end = pd.Timestamp(train_end)
+    df = daily.copy()
+    is_train = df["Date"] <= train_end
+    df = _impute_causal(df, is_train)
+
+    train = df[is_train]
+    clim = train.groupby(["Location_Name", "Month"])[DRIVERS].mean()
+    scale = train.groupby("Location_Name")[DRIVERS].std().replace(0, 1)
     keys = pd.MultiIndex.from_arrays([df["Location_Name"], df["Month"]])
-    anom = (df[FEATURES].to_numpy() - clim.reindex(keys).to_numpy()) \
-        / scale.reindex(df["Location_Name"]).to_numpy()
-    anom_cols = [f"{f}_anom" for f in FEATURES]
-    df[anom_cols] = anom
-
-    new_cols = {}
-    grouped = df.groupby("Location_Name", sort=False)
-    for f in DRIVERS:
-        col = grouped[f"{f}_anom"]
+    anom = pd.DataFrame(
+        (df[DRIVERS].to_numpy() - clim.reindex(keys).to_numpy()) / scale.reindex(df["Location_Name"]).to_numpy(),
+        columns=DRIVERS, index=df.index,
+    )
+    grouped = anom.groupby(df["Location_Name"], sort=False)
+    for d in DRIVERS:
         for w in ROLL_WINDOWS:
-            new_cols[f"{f}_roll{w}"] = col.transform(lambda s, w=w: s.rolling(w, min_periods=1).mean())
-        roll7 = new_cols[f"{f}_roll7"]
-        for lag in LAGS:
-            new_cols[f"{f}_roll7_lag{lag}"] = roll7.groupby(df["Location_Name"]).shift(lag)
-        new_cols[f"{f}_chg7"] = roll7 - new_cols[f"{f}_roll7_lag7"]
-
-    wind_stress = df["wind_speed_ms"] ** 2
-    new_cols["wind_stress_roll7"] = wind_stress.groupby(df["Location_Name"]).transform(
-        lambda s: s.rolling(7, min_periods=1).mean()
-    ) / scale.reindex(df["Location_Name"])["wind_speed_ms"].to_numpy() ** 2
+            df[f"{d}_roll{w}"] = grouped[d].transform(lambda s, w=w: s.rolling(w, min_periods=1).mean())
 
     doy = df["Date"].dt.dayofyear
-    new_cols["doy_sin"] = np.sin(2 * np.pi * doy / 365.25)
-    new_cols["doy_cos"] = np.cos(2 * np.pi * doy / 365.25)
-    new_cols["oni"] = _oni_column(df["Date"])
+    df["doy_sin"] = np.sin(2 * np.pi * doy / 365.25)
+    df["doy_cos"] = np.cos(2 * np.pi * doy / 365.25)
+    df["oni"] = _oni_column(df["Date"])
+    df["sample_weight"] = _sample_weights(df, is_train)
 
-    df = pd.concat([df, pd.DataFrame(new_cols, index=df.index)], axis=1)
-    feature_cols = anom_cols + list(new_cols)
-
-    df["sample_weight"] = _sample_weights(df)
     nxt = df.groupby("Location_Name", sort=False)
     df["target_date"] = nxt["Date"].shift(-1)
     df["target"] = nxt["red_tide_binary"].shift(-1)
     df["target_weight"] = nxt["sample_weight"].shift(-1)
     df = df.dropna(subset=["target"]).reset_index(drop=True)
-
-    labeled = train.dropna(subset=["red_tide_binary"])
-    month_rate = labeled.groupby(["Location_Name", "Month"])["red_tide_binary"].mean()
-    recent = labeled[labeled["Date"] > pd.Timestamp(train_end) - pd.Timedelta(days=365)]
-    site_rate = recent.groupby("Location_Name")["red_tide_binary"].mean()
-    month_keys = list(zip(df["Location_Name"], df["target_date"].dt.month))
-    df["clim_rate"] = month_rate.reindex(month_keys).fillna(0).to_numpy()
-    df["site_rate_365"] = df["Location_Name"].map(site_rate).fillna(0).to_numpy()
-    return df, feature_cols + PRIOR_FEATURES
+    df[PRIOR_FEATURES] = _history_priors(df, train_end).to_numpy()
+    return df
