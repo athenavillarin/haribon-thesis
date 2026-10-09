@@ -37,40 +37,42 @@ Models are written to `saved_model/leakfree/`, which is not tracked in git. The 
 
 ## Results: leak-free retraining (`results/leakfree_summary.csv`)
 
+Data: `final_compiled_dataset/Combined_Labeled_2_0.csv` (9 sites, month/day swap corrected).
+
 | Model | All sites | Within site | Onset 7d | Onset 14d |
 |---|---|---|---|---|
-| Persistence | 0.995 | 0.991 | 0.500 | 0.500 |
-| Site rate, last 365 days | 0.788 | 0.500 | 0.636 | 0.630 |
-| Site rate by month | 0.751 | 0.667 | 0.691 | 0.669 |
-| LSTM | 0.698 | 0.447 | 0.639 | 0.624 |
-| GRU | 0.733 | 0.508 | 0.693 | 0.673 |
-| Transformer | 0.722 | 0.588 | 0.707 | 0.698 |
-| XGBoost | 0.736 | 0.480 | 0.673 | 0.663 |
-| Env model (`env_model/`) | **0.831** | **0.642** | 0.621 | 0.605 |
+| Persistence | 0.996 | 0.991 | 0.500 | 0.500 |
+| Site rate, last 365 days | 0.754 | 0.500 | 0.608 | 0.609 |
+| Site rate by month | 0.728 | **0.688** | 0.653 | 0.651 |
+| LSTM | 0.639 | 0.534 | 0.669 | 0.661 |
+| GRU | 0.688 | 0.425 | 0.681 | **0.691** |
+| Transformer | 0.575 | 0.544 | 0.570 | 0.552 |
+| XGBoost | 0.693 | 0.528 | 0.625 | 0.632 |
+| Env model (`env_model/`) | **0.799** | 0.664 | 0.647 | 0.645 |
 
 **All-sites AUC by split:**
 
 | Split (test year) | LSTM | GRU | Transformer | XGBoost | Env model |
 |---|---|---|---|---|---|
-| 1 (2020) | 0.80 | 0.97 | 0.97 | 0.82 | 0.88 |
-| 2 (2021) | 0.34 | 0.35 | 0.79 | 0.61 | 0.77 |
-| 3 (2022) | 0.64 | 0.60 | 0.30 | 0.59 | 0.81 |
-| 4 (2023) | 0.50 | 0.54 | 0.53 | 0.56 | 0.89 |
-| 5 (2024) | 0.92 | 0.94 | 0.96 | 0.86 | 0.65 |
-| 6 (2025–26) | 0.99 | 0.99 | 0.79 | 0.97 | 1.00 |
+| 1 (2020) | 0.64 | 0.63 | 0.58 | 0.77 | 0.92 |
+| 2 (2021) | 0.42 | 0.55 | 0.24 | 0.56 | 0.69 |
+| 3 (2022) | 0.71 | 0.71 | 0.61 | 0.61 | 0.82 |
+| 4 (2023) | 0.54 | 0.50 | 0.49 | 0.57 | 0.84 |
+| 5 (2024) | 0.71 | 0.82 | 0.84 | 0.75 | 0.57 |
+| 6 (2025–26) | 0.82 | 0.90 | 0.69 | 0.91 | 0.96 |
 
 ## Findings
 
-1. **The sequence models learn which sites are usually banned.** They score 0.79–0.99 in years whose ban pattern repeats the past (2020, 2024, 2025–26). In 2021–23, when the Capiz sites had their first bans, they mostly fall to 0.30–0.64 (the one exception is the Transformer's 0.79 in 2021). Their within-site AUC is close to chance (0.45–0.59).
-2. **The saved models' scores do not hold up when retrained without look-ahead.** The Transformer drops from 0.846 to 0.722 (all sites) and from 0.774 to 0.698 (onset 14d). The retraining also changes validation and window construction, so not all of the drop can be attributed to imputation alone.
-3. **The deep models are unstable.** Between two retraining runs that differed only in validation and refit details, the Transformer's 2021 AUC went from 0.46 to 0.79 and its 2022 AUC from 0.62 to 0.30.
-4. **The env model is the most reliable.** It has the best all-sites and within-site AUC, its worst split is 0.65 (others: 0.30–0.56), and as a linear model it gives the same result on every run.
-5. **No model clearly beats the monthly baseline at predicting when a ban starts.** Every model lands between 0.60 and 0.70, against 0.669 for the baseline. With about 130 onsets in the data, the onset results are too noisy to separate the models.
+1. **The original models' published scores came from corrupted data.** In `Combined_Labeled.csv`, about 36% of rows have month and day swapped (see `final_compiled_dataset/fix_date_swap.py`), and their scores also benefited from look-ahead imputation. None of the earlier numbers should be reported.
+2. **The sequence models do not learn within-site patterns.** Their within-site AUC is 0.43–0.54, below the monthly baseline (0.69).
+3. **The env model is best across sites** (0.799) and better within sites than the sequence models and XGBoost. It does not beat the monthly baseline within sites (0.664 vs 0.688). Its worst split is 0.57, about the same as XGBoost (0.56) and better than the others (0.24–0.53).
+4. **The Transformer is unreliable.** It scores 0.24 in 2021 and is the weakest model on every metric.
+5. **No model clearly beats the monthly baseline at predicting when a ban starts.** GRU is highest at 0.691 against 0.651 for the baseline, but with 51 ban starts the onset results are too noisy to separate the models.
 
 ## Usage
 
 ```bash
 cd evaluation
 python baselines.py
-python retrain_leakfree.py          # ~1.5 h on CPU
+python retrain_leakfree.py          # ~2 h on CPU
 ```
