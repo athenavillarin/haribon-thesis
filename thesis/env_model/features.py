@@ -48,7 +48,7 @@ CORE_FEATURES = [f"{d}_roll{w}" for d in DRIVERS for w in ROLL_WINDOWS] + ["doy_
 PRIOR_FEATURES = ["clim_rate", "site_rate_365"]
 
 
-def load_daily(dataset_path: str | Path = DEFAULT_DATASET_PATH) -> pd.DataFrame:
+def load_grid(dataset_path: str | Path = DEFAULT_DATASET_PATH) -> pd.DataFrame:
     """Load every site on a gap-free daily grid, without imputation."""
     df = pd.read_csv(dataset_path, parse_dates=["Date"])
     full = pd.MultiIndex.from_product(
@@ -57,21 +57,28 @@ def load_daily(dataset_path: str | Path = DEFAULT_DATASET_PATH) -> pd.DataFrame:
     )
     df = df.set_index(["Location_Name", "Date"]).reindex(full).reset_index()
     df["Month"] = df["Date"].dt.month
-    for col in LOG_DRIVERS:
-        df[col] = np.log1p(df[col].clip(lower=0))
     df["red_tide_binary"] = np.where(df[TARGET].isna(), np.nan, (df[TARGET] >= 0.5).astype(float))
     return df
 
 
-def _impute_causal(df: pd.DataFrame, is_train: pd.Series) -> pd.DataFrame:
+def load_daily(dataset_path: str | Path = DEFAULT_DATASET_PATH) -> pd.DataFrame:
+    """Daily grid with skewed drivers log-transformed."""
+    df = load_grid(dataset_path)
+    for col in LOG_DRIVERS:
+        df[col] = np.log1p(df[col].clip(lower=0))
+    return df
+
+
+def impute_causal(df: pd.DataFrame, is_train: pd.Series, cols: list[str]) -> pd.DataFrame:
     """Forward-fill short gaps, then fall back to training-period climatology."""
-    df[DRIVERS] = df.groupby("Location_Name", sort=False)[DRIVERS].ffill(limit=FFILL_LIMIT_DAYS)
+    df[cols] = df.groupby("Location_Name", sort=False)[cols].ffill(limit=FFILL_LIMIT_DAYS)
     train = df[is_train]
-    month_mean = train.groupby(["Location_Name", "Month"])[DRIVERS].mean()
-    site_mean = train.groupby("Location_Name")[DRIVERS].mean()
+    month_mean = train.groupby(["Location_Name", "Month"])[cols].mean()
+    site_mean = train.groupby("Location_Name")[cols].mean()
     keys = pd.MultiIndex.from_arrays([df["Location_Name"], df["Month"]])
-    df[DRIVERS] = df[DRIVERS].fillna(pd.DataFrame(month_mean.reindex(keys).to_numpy(), columns=DRIVERS, index=df.index))
-    df[DRIVERS] = df[DRIVERS].fillna(pd.DataFrame(site_mean.reindex(df["Location_Name"]).to_numpy(), columns=DRIVERS, index=df.index))
+    df[cols] = df[cols].fillna(pd.DataFrame(month_mean.reindex(keys).to_numpy(), columns=cols, index=df.index))
+    df[cols] = df[cols].fillna(pd.DataFrame(site_mean.reindex(df["Location_Name"]).to_numpy(), columns=cols, index=df.index))
+    df[cols] = df[cols].fillna(train[cols].mean())
     return df
 
 
@@ -139,7 +146,7 @@ def build_features(daily: pd.DataFrame, train_end: str) -> pd.DataFrame:
     train_end = pd.Timestamp(train_end)
     df = daily.copy()
     is_train = df["Date"] <= train_end
-    df = _impute_causal(df, is_train)
+    df = impute_causal(df, is_train, DRIVERS)
 
     train = df[is_train]
     clim = train.groupby(["Location_Name", "Month"])[DRIVERS].mean()
