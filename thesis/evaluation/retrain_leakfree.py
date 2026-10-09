@@ -7,8 +7,11 @@ next to the baselines and the environment-driven model, all on the same rows.
 Differences from the original training runs:
   - imputation uses past values and training-period climatology only
     (the original filled gaps from both directions and from all years)
-  - early stopping uses the last 365 days of training across all sites
-    (the original used the tail of the concatenated array, i.e. one site)
+  - LSTM/GRU pick the epoch count on the last 365 days of training across
+    all sites, then refit on the full training period (the original stopped
+    on the tail of the concatenated array, i.e. one site, and never refit)
+  - the Transformer trainer validates on its last 20% of rows; rows are sorted
+    by date, so that is the most recent period across all sites
   - XGBoost hyperparameters are chosen on year-blocked folds
     (the original used non-temporal 3-fold CV)
 
@@ -65,6 +68,9 @@ def build_sequences(grid: pd.DataFrame, cfg: dict) -> SimpleNamespace:
     """Past-only imputation, then 30-day windows that predict the next day's label."""
     train_end = pd.Timestamp(cfg["train_end"])
     df = impute_causal(grid.copy(), grid["Date"] <= train_end, FEATURES)
+    missing = [c for c in FEATURES if df[c].isna().any()]
+    if missing:
+        raise ValueError(f"No training-period data to impute {missing} for split {cfg['split_num']}")
 
     X_tr, y_tr, d_tr, X_te, y_te, d_te, l_te = [], [], [], [], [], [], []
     for loc, g in df.groupby("Location_Name", sort=False):
@@ -124,26 +130,37 @@ def train_rnn(s: SimpleNamespace, kind: str) -> np.ndarray:
         alpha_t = y_true * alpha + (1 - y_true) * (1 - alpha)
         return tf.reduce_mean(alpha_t * tf.pow(1 - p_t, gamma) * bce)
 
-    model.compile(optimizer=tf.keras.optimizers.Adam(1e-3), loss=focal)
+    def class_weight(y):
+        n_pos, n_neg = y.sum(), len(y) - y.sum()
+        return {0: len(y) / (2.0 * n_neg), 1: len(y) / (2.0 * max(n_pos, 1))}
+
     hold = _holdout_mask(s)
-    n_pos, n_neg = s.y_train[~hold].sum(), (~hold).sum() - s.y_train[~hold].sum()
-    class_weight = {0: (n_pos + n_neg) / (2.0 * n_neg), 1: (n_pos + n_neg) / (2.0 * max(n_pos, 1))}
+    model.compile(optimizer=tf.keras.optimizers.Adam(1e-3), loss=focal)
+    stopper = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=8, restore_best_weights=True)
     model.fit(
         s.X_train[~hold], s.y_train[~hold].astype(np.float32),
         validation_data=(s.X_train[hold], s.y_train[hold].astype(np.float32)),
-        epochs=60, batch_size=64, class_weight=class_weight, verbose=0,
-        callbacks=[
-            tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=8, restore_best_weights=True),
-            tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=4, min_lr=1e-6),
-        ],
+        epochs=60, batch_size=64, class_weight=class_weight(s.y_train[~hold]), verbose=0,
+        callbacks=[stopper],
     )
+    best_epochs = max(1, stopper.best_epoch + 1)
+
+    # Refit on the full training period for the chosen number of epochs
+    tf.keras.backend.clear_session()
+    tf.random.set_seed(SEED)
+    model = build(n_features=len(FEATURES), lookback=LOOKBACK)
+    model.compile(optimizer=tf.keras.optimizers.Adam(1e-3), loss=focal)
+    model.fit(s.X_train, s.y_train.astype(np.float32), epochs=best_epochs, batch_size=64,
+              class_weight=class_weight(s.y_train), verbose=0)
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     model.save(MODEL_DIR / f"{kind}_split{s.split_num}.keras")
     return model.predict(s.X_test, verbose=0).ravel()
 
 
 def train_transformer(s: SimpleNamespace) -> np.ndarray:
-    from ensemble_inference import predict_transformer
+    from ensemble_inference import _transformer_weights_name, predict_transformer
+    # predict_transformer loads existing weights if present; remove them so it retrains
+    (MODEL_DIR / _transformer_weights_name(s.split_num, "leakfree")).unlink(missing_ok=True)
     # Training rows are sorted by date, so the trainer's last-20% validation
     # slice is the most recent period across all sites.
     split = SimpleNamespace(
@@ -159,9 +176,9 @@ def train_xgboost(s: SimpleNamespace) -> np.ndarray:
     years = pd.DatetimeIndex(s.dates_train).year.to_numpy()
     last_year = years.max()
 
-    def make(params):
-        pos = s.y_train.sum()
-        return XGBClassifier(**params, scale_pos_weight=(len(s.y_train) - pos) / max(pos, 1),
+    def make(params, y):
+        pos = y.sum()
+        return XGBClassifier(**params, scale_pos_weight=(len(y) - pos) / max(pos, 1),
                              objective="binary:logistic", eval_metric="auc",
                              random_state=SEED, n_jobs=-1)
 
@@ -172,12 +189,12 @@ def train_xgboost(s: SimpleNamespace) -> np.ndarray:
             fit, val = years < val_year, years == val_year
             if len(np.unique(s.y_train[val])) < 2 or len(np.unique(s.y_train[fit])) < 2:
                 continue
-            p = make(params).fit(X_tab[fit], s.y_train[fit]).predict_proba(X_tab[val])[:, 1]
+            p = make(params, s.y_train[fit]).fit(X_tab[fit], s.y_train[fit]).predict_proba(X_tab[val])[:, 1]
             aucs.append(roc_auc_score(s.y_train[val], p))
         if aucs and np.mean(aucs) > best_auc:
             best, best_auc = params, float(np.mean(aucs))
 
-    model = make(best).fit(X_tab, s.y_train)
+    model = make(best, s.y_train).fit(X_tab, s.y_train)
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     model.save_model(str(MODEL_DIR / f"xgboost_split{s.split_num}.json"))
     return model.predict_proba(X_tab_test)[:, 1]
@@ -203,7 +220,7 @@ def main() -> None:
     args = parse_args()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     grid = load_grid(args.dataset_path)
-    daily = load_daily(args.dataset_path)
+    daily = load_daily(grid=grid)
     labeled = load_and_prepare(args.dataset_path, imputation_method="hybrid_adaptive")
 
     records = []

@@ -61,9 +61,9 @@ def load_grid(dataset_path: str | Path = DEFAULT_DATASET_PATH) -> pd.DataFrame:
     return df
 
 
-def load_daily(dataset_path: str | Path = DEFAULT_DATASET_PATH) -> pd.DataFrame:
+def load_daily(dataset_path: str | Path = DEFAULT_DATASET_PATH, grid: pd.DataFrame | None = None) -> pd.DataFrame:
     """Daily grid with skewed drivers log-transformed."""
-    df = load_grid(dataset_path)
+    df = load_grid(dataset_path) if grid is None else grid.copy()
     for col in LOG_DRIVERS:
         df[col] = np.log1p(df[col].clip(lower=0))
     return df
