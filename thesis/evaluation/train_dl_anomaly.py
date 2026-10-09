@@ -55,14 +55,23 @@ MAX_EPOCHS = 40
 BATCH_SIZE = 128
 
 
+def feature_scaling(feats: pd.DataFrame, train_end: pd.Timestamp) -> tuple[pd.Series, pd.Series]:
+    """Mean and standard deviation of each feature over training dates."""
+    train = feats.loc[feats["Date"] <= train_end, MODEL_FEATURES]
+    return train.mean(), train.std().replace(0, 1)
+
+
+def standardize(feats: pd.DataFrame, mean: pd.Series, std: pd.Series) -> np.ndarray:
+    return ((feats[MODEL_FEATURES].fillna(mean) - mean) / std).to_numpy(dtype=np.float32)
+
+
 def build_windows(feats: pd.DataFrame, cfg: dict) -> SimpleNamespace:
     """LOOKBACK-day windows of standardized features, each predicting the next day's label."""
     train_end = pd.Timestamp(cfg["train_end"])
-    test_start, test_end = pd.Timestamp(cfg["test_start"]), pd.Timestamp(cfg["test_end"])
-    is_train_row = feats["Date"] <= train_end
-    mean = feats.loc[is_train_row, MODEL_FEATURES].mean()
-    std = feats.loc[is_train_row, MODEL_FEATURES].std().replace(0, 1)
-    X_all = ((feats[MODEL_FEATURES].fillna(mean) - mean) / std).to_numpy(dtype=np.float32)
+    test_start = pd.Timestamp(cfg.get("test_start", train_end + pd.Timedelta(days=1)))
+    test_end = pd.Timestamp(cfg.get("test_end", test_start))
+    mean, std = feature_scaling(feats, train_end)
+    X_all = standardize(feats, mean, std)
 
     parts = {k: [] for k in ("X_tr", "y_tr", "w_tr", "d_tr", "X_te", "y_te", "d_te", "l_te")}
     for loc, idx in feats.groupby("Location_Name", sort=False).indices.items():
@@ -81,13 +90,15 @@ def build_windows(feats: pd.DataFrame, cfg: dict) -> SimpleNamespace:
                 parts["d_te"].append(td[t]); parts["l_te"].append(loc)
 
     return SimpleNamespace(
-        split_num=cfg["split_num"],
+        split_num=cfg.get("split_num"),
+        feature_mean=mean,
+        feature_std=std,
         train_end=cfg["train_end"],
         X_train=np.stack(parts["X_tr"]),
         y_train=np.array(parts["y_tr"], dtype=np.float32),
         w_train=np.nan_to_num(np.array(parts["w_tr"], dtype=np.float32), nan=1.0),
         dates_train=np.array(parts["d_tr"]),
-        X_test=np.stack(parts["X_te"]),
+        X_test=np.stack(parts["X_te"]) if parts["X_te"] else np.empty((0, LOOKBACK, len(MODEL_FEATURES)), np.float32),
         y_test=np.array(parts["y_te"], dtype=np.int64),
         dates_test=np.array(parts["d_te"]),
         locs_test=np.array(parts["l_te"], dtype=object),
@@ -120,28 +131,31 @@ def build_model(kind: str, n_features: int):
     return model
 
 
-def train_dl(s: SimpleNamespace, kind: str) -> np.ndarray:
-    """Average of N_SEEDS models, each refit on the full training period for the epochs chosen on a holdout."""
+def fit_dl(s: SimpleNamespace, kind: str, seed: int):
+    """Choose the epoch count on the last HOLDOUT_DAYS of training, then refit on the full training period."""
     import tensorflow as tf
 
     hold = s.dates_train > np.datetime64(pd.Timestamp(s.train_end) - pd.Timedelta(days=HOLDOUT_DAYS))
-    preds = []
-    for seed in range(N_SEEDS):
-        tf.keras.backend.clear_session()
-        tf.keras.utils.set_random_seed(seed)
-        model = build_model(kind, s.X_train.shape[2])
-        stopper = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True)
-        model.fit(s.X_train[~hold], s.y_train[~hold], sample_weight=s.w_train[~hold],
-                  validation_data=(s.X_train[hold], s.y_train[hold], s.w_train[hold]),
-                  epochs=MAX_EPOCHS, batch_size=BATCH_SIZE, callbacks=[stopper], verbose=0)
-        epochs = max(1, stopper.best_epoch + 1)
+    tf.keras.backend.clear_session()
+    tf.keras.utils.set_random_seed(seed)
+    model = build_model(kind, s.X_train.shape[2])
+    stopper = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True)
+    model.fit(s.X_train[~hold], s.y_train[~hold], sample_weight=s.w_train[~hold],
+              validation_data=(s.X_train[hold], s.y_train[hold], s.w_train[hold]),
+              epochs=MAX_EPOCHS, batch_size=BATCH_SIZE, callbacks=[stopper], verbose=0)
+    epochs = max(1, stopper.best_epoch + 1)
 
-        tf.keras.backend.clear_session()
-        tf.keras.utils.set_random_seed(seed)
-        model = build_model(kind, s.X_train.shape[2])
-        model.fit(s.X_train, s.y_train, sample_weight=s.w_train,
-                  epochs=epochs, batch_size=BATCH_SIZE, verbose=0)
-        preds.append(model.predict(s.X_test, verbose=0).ravel())
+    tf.keras.backend.clear_session()
+    tf.keras.utils.set_random_seed(seed)
+    model = build_model(kind, s.X_train.shape[2])
+    model.fit(s.X_train, s.y_train, sample_weight=s.w_train,
+              epochs=epochs, batch_size=BATCH_SIZE, verbose=0)
+    return model
+
+
+def train_dl(s: SimpleNamespace, kind: str) -> np.ndarray:
+    """Average test predictions of N_SEEDS models."""
+    preds = [fit_dl(s, kind, seed).predict(s.X_test, verbose=0).ravel() for seed in range(N_SEEDS)]
     return np.mean(preds, axis=0)
 
 
