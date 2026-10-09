@@ -47,7 +47,7 @@ np.random.seed(SEED)
 tf.random.set_seed(SEED)
 
 # ── Paths ──
-DATA_PATH = os.path.join("..", "final_compiled_dataset", "Combined_Labeled.csv")
+DATA_PATH = os.path.join("..", "final_compiled_dataset", "Combined_Labeled_2_0.csv")
 MODEL_DIR = os.path.join("saved_model")
 os.makedirs(MODEL_DIR, exist_ok=True)
 

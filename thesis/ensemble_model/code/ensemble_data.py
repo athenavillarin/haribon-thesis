@@ -30,7 +30,7 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 _THIS_DIR = Path(__file__).resolve().parent
 _ROOT = _THIS_DIR.parent.parent
-DEFAULT_DATASET_PATH = _ROOT / "final_compiled_dataset" / "Combined_Labeled.csv"
+DEFAULT_DATASET_PATH = _ROOT / "final_compiled_dataset" / "Combined_Labeled_2_0.csv"
 
 # ---------------------------------------------------------------------------
 # Feature & target config — matches LSTM / GRU / Transformer training setup
