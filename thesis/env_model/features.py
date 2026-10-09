@@ -101,10 +101,13 @@ def _sample_weights(df: pd.DataFrame, is_train: pd.Series) -> np.ndarray:
 
 
 def _oni_column(dates: pd.Series) -> np.ndarray:
+    """ONI lagged by ONI_LAG_MONTHS; months past the end of the file use the latest value."""
     oni = pd.read_csv(ONI_PATH)
     oni["period"] = pd.PeriodIndex.from_fields(year=oni["year"], month=oni["month"], freq="M")
-    lookup = oni.set_index("period")["oni"]
-    return lookup.reindex(dates.dt.to_period("M") - ONI_LAG_MONTHS).to_numpy()
+    lookup = oni.set_index("period")["oni"].sort_index()
+    needed = dates.dt.to_period("M") - ONI_LAG_MONTHS
+    full = pd.period_range(lookup.index.min(), max(lookup.index.max(), needed.max()), freq="M")
+    return lookup.reindex(full).ffill().reindex(needed).to_numpy()
 
 
 def _history_priors(df: pd.DataFrame, train_end: pd.Timestamp) -> pd.DataFrame:
@@ -138,10 +141,12 @@ def _history_priors(df: pd.DataFrame, train_end: pd.Timestamp) -> pd.DataFrame:
     return keys.merge(priors, on=["Location_Name", "eff_year", "Month"], how="left")[PRIOR_FEATURES]
 
 
-def build_features(daily: pd.DataFrame, train_end: str) -> pd.DataFrame:
+def build_features(daily: pd.DataFrame, train_end: str, keep_unlabeled: bool = False) -> pd.DataFrame:
     """
     Return one row per site-day with CORE_FEATURES, PRIOR_FEATURES, the next-day
     target and its training weight. Every statistic uses dates up to `train_end`.
+    Rows whose next-day label is unknown are dropped unless `keep_unlabeled`,
+    which inference uses to score today.
     """
     train_end = pd.Timestamp(train_end)
     df = daily.copy()
@@ -168,9 +173,11 @@ def build_features(daily: pd.DataFrame, train_end: str) -> pd.DataFrame:
     df["sample_weight"] = _sample_weights(df, is_train)
 
     nxt = df.groupby("Location_Name", sort=False)
-    df["target_date"] = nxt["Date"].shift(-1)
+    df["target_date"] = df["Date"] + pd.Timedelta(days=1)
     df["target"] = nxt["red_tide_binary"].shift(-1)
     df["target_weight"] = nxt["sample_weight"].shift(-1)
-    df = df.dropna(subset=["target"]).reset_index(drop=True)
+    if not keep_unlabeled:
+        df = df.dropna(subset=["target"])
+    df = df.reset_index(drop=True)
     df[PRIOR_FEATURES] = _history_priors(df, train_end).to_numpy()
     return df
