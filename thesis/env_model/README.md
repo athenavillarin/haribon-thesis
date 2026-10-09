@@ -6,59 +6,73 @@ Logistic regression on slow-moving environmental drivers plus each site's ban hi
 
 `evaluation/baselines.py` showed that the existing models mostly recognised sites:
 
-- Their AUC within a single site was 0.47–0.59, which is close to chance.
-- A lookup of each site's monthly ban rate scored higher (0.66).
+- Their AUC within a single site was 0.45–0.61, which is close to chance.
+- A lookup of each site's monthly ban rate scored higher (0.67).
 - The top SHAP features (`mlotst`, `NDVI_daily`, `so`, `thetao`) vary more between sites than within them, so they act as site fingerprints.
 
 Changes made here:
 
-- **Site-relative anomalies.** Each variable is compared with its own site's monthly climatology and scaled by that site's standard deviation, using training dates only.
-- **Rolling and lagged windows** of 7–90 days, plus the ENSO index (ONI, lagged 2 months).
-- **Testing-delay-aware weights.** Shellfish testing takes about 2 weeks, so the 14 days before a ban starts and the last 14 days of a ban get weight 0.3. Days with a real bulletin get weight 3.
+- **Site-relative anomalies.** Sea temperature and rainfall are compared with each site's monthly climatology and scaled by that site's standard deviation.
+- **30/60/90-day rolling means, season and ENSO.** ONI is lagged 3 months so it is available on the date it is used. These slow-moving drivers were the only ones with a consistent within-site signal; satellite chlorophyll showed none.
+- **Site ban history from earlier years only.** Each row's history features come from years before its own.
+- **Testing-delay-aware weights.** Shellfish testing takes about 2 weeks, so the 14 days before a ban starts and the last 14 days of a ban get weight 0.3. Days with a real bulletin get weight 3. Weights use training labels only.
+- **No look-ahead in features.** Gaps are forward-filled for up to 14 days, then filled from training-period climatology. Every statistic uses training dates only.
 - **A small linear model.** The data hold about 130 ban onsets. XGBoost on about 100 features scored lower within sites (0.49).
 
-## Results (6 rolling-origin splits, mean)
+## Results (6 rolling-origin splits, mean; all models scored on the same rows)
 
 | Model | All sites | Within site | Onset 7d | Onset 14d |
 |---|---|---|---|---|
 | Yesterday's label (persistence) | 0.995 | 0.991 | 0.500 | 0.500 |
-| Site rate, last 365 days | 0.785 | 0.500 | 0.636 | 0.630 |
-| Site rate by month (climatology) | 0.749 | 0.661 | 0.691 | 0.669 |
-| History features only | 0.745 | 0.661 | 0.657 | 0.636 |
-| Environment only | 0.687 | 0.607 | 0.602 | 0.565 |
-| **History + environment** | **0.787** | **0.667** | **0.708** | **0.686** |
-| LSTM (existing) | 0.683 | 0.470 | 0.575 | 0.577 |
-| GRU (existing) | 0.674 | 0.593 | 0.640 | 0.649 |
-| Transformer (existing) | 0.845 | 0.470 | 0.781 | 0.774 |
-| XGBoost (existing) | 0.727 | 0.479 | 0.677 | 0.670 |
+| Site rate, last 365 days | 0.788 | 0.500 | 0.636 | 0.630 |
+| Site rate by month (climatology) | 0.751 | 0.667 | 0.691 | 0.669 |
+| History features only | 0.770 | 0.664 | 0.606 | 0.596 |
+| Environment only | 0.692 | 0.618 | 0.591 | 0.555 |
+| **History + environment** | **0.831** | 0.642 | 0.621 | 0.605 |
+| LSTM (existing) | 0.683 | 0.474 | 0.575 | 0.577 |
+| GRU (existing) | 0.674 | 0.607 | 0.640 | 0.649 |
+| Transformer (existing) | 0.846 | 0.453 | 0.781 | 0.774 |
+| XGBoost (existing) | 0.729 | 0.480 | 0.677 | 0.670 |
 
 The onset columns score whether a ban starts within 7 or 14 days, counting only days that are not already under a ban.
 
-**Leave-one-site-out (environment only, the held-out site is never seen in training):**
+**Within-site AUC by split:**
+
+| Split (test year) | Sites scored | Climatology | Environment only | History + environment |
+|---|---|---|---|---|
+| 1 (2020) | 1 | 0.849 | 0.876 | 0.866 |
+| 2 (2021) | 2 | 0.664 | 0.628 | 0.640 |
+| 3 (2022) | 5 | 0.606 | 0.780 | 0.770 |
+| 4 (2023) | 5 | 0.666 | 0.845 | 0.851 |
+| 5 (2024) | 1 | 0.338 | 0.235 | 0.196 |
+| 6 (2025–26) | 1 | 0.880 | 0.347 | 0.530 |
+
+In splits 3–4, five sites have both banned and clear days in the test year. In those splits the environmental features clearly beat seasonal history. In splits 5–6 only Matarinao Bay has both, and the environmental signal fails there.
+
+**Leave-one-site-out (environment only):** the model trains on six sites up to 2021 and is tested on the seventh site from 2022 on, so neither that site nor that period is seen in training.
 
 | Site | AUC |
 |---|---|
-| Dumanquillas Bay | 0.747 |
-| Gigantes Islands | 0.619 |
-| Matarinao Bay | 0.618 |
-| Pilar | 0.715 |
-| President Roxas | 0.766 |
-| Roxas City | 0.807 |
-| Sapian Bay | 0.674 |
+| Gigantes Islands | 0.769 |
+| Pilar | 0.755 |
+| Sapian Bay | 0.752 |
+| Roxas City | 0.751 |
+| President Roxas | 0.693 |
+| Matarinao Bay | 0.603 |
+| Dumanquillas Bay | n/a (banned every day after 2021) |
 
 **Strongest drivers (standardized coefficients, final split):**
 
-- the site's ban rate for that month: +1.27
-- 90-day sea temperature anomaly: +0.83
-- ONI (El Niño): +0.58
-- 90-day rainfall anomaly: +0.41
-
-Satellite chlorophyll showed no within-site signal and is not used.
+- site's ban rate over the previous year: +0.96
+- 60-day rainfall anomaly: +0.47
+- 90-day sea temperature anomaly: +0.44
+- season (`doy_sin`): −0.41
 
 ## Limitations
 
-- Within-site AUC in splits 5–6 rests on one site (Matarinao Bay). In 2024–26, every other site was entirely banned or entirely clear.
-- The environmental signal is seasonal-scale, not a sharp warning just before a ban.
+- The environmental signal is seasonal-scale. It does not give a sharp warning just before a ban: onset AUC is 0.61, below the seasonal baseline (0.67) and the existing Transformer (0.77).
+- Within-site AUC in splits 1, 5 and 6 rests on a single site.
+- The existing LSTM/GRU/XGBoost pipeline (`ensemble_data.py`) still imputes with future values (`limit_direction="both"` and all-years climatology). Its scores are optimistic by the same mechanism that was fixed here.
 - More sites with recurring seasonal blooms would add onset events, which are the limiting factor.
 
 ## Usage

@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-import warnings
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -38,14 +37,12 @@ from sklearn.metrics import roc_auc_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-warnings.filterwarnings("ignore")
-
 _THIS_DIR = Path(__file__).resolve().parent
 for p in (_THIS_DIR.parent / "evaluation", _THIS_DIR.parent / "ensemble_model" / "code"):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
-from baselines import baseline_scores, build_test_frame, score_split  # noqa: E402
+from baselines import baseline_scores, build_test_frame, score_split, summarize  # noqa: E402
 from ensemble_data import DEFAULT_DATASET_PATH, SPLITS, load_and_prepare  # noqa: E402
 from features import CORE_FEATURES, PRIOR_FEATURES, build_features, load_daily  # noqa: E402
 
@@ -54,6 +51,7 @@ MODEL_DIR = _THIS_DIR / "saved_model"
 
 MODEL_FEATURES = CORE_FEATURES + PRIOR_FEATURES
 REG_C = 0.1
+LOSO_TRAIN_END = "2021-12-31"
 
 
 def fit_model(train: pd.DataFrame, feature_cols: list[str]) -> Pipeline:
@@ -76,7 +74,7 @@ def run_splits(daily: pd.DataFrame, labeled: pd.DataFrame) -> tuple[pd.DataFrame
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     records, model = [], None
     for cfg in SPLITS:
-        feats, _ = build_features(daily, cfg["train_end"])
+        feats = build_features(daily, cfg["train_end"])
         train = feats[feats["target_date"] <= pd.Timestamp(cfg["train_end"])]
         test = feats[(feats["target_date"] >= pd.Timestamp(cfg["test_start"]))
                      & (feats["target_date"] <= pd.Timestamp(cfg["test_end"]))]
@@ -111,14 +109,17 @@ def run_splits(daily: pd.DataFrame, labeled: pd.DataFrame) -> tuple[pd.DataFrame
 
 
 def run_loso(daily: pd.DataFrame) -> pd.DataFrame:
-    """Environment-only model trained on six sites and tested on the seventh.
-
-    The site-history features are left out: an unseen site has no ban history.
+    """Environment-only model trained on six sites up to LOSO_TRAIN_END and
+    tested on the seventh site after it, so neither the site nor the test
+    period is seen in training. Site-history features are left out: an unseen
+    site has no ban history.
     """
-    feats, _ = build_features(daily, train_end=str(daily["Date"].max().date()))
+    feats = build_features(daily, LOSO_TRAIN_END)
+    is_train = feats["target_date"] <= pd.Timestamp(LOSO_TRAIN_END)
     rows = []
     for site in feats["Location_Name"].unique():
-        train, test = feats[feats["Location_Name"] != site], feats[feats["Location_Name"] == site]
+        at_site = feats["Location_Name"] == site
+        train, test = feats[~at_site & is_train], feats[at_site & ~is_train]
         p = predict(fit_model(train, CORE_FEATURES), test, CORE_FEATURES)
         y = test["target"].to_numpy()
         auc = roc_auc_score(y, p) if len(np.unique(y)) == 2 else float("nan")
@@ -142,15 +143,9 @@ def main() -> None:
     labeled = load_and_prepare(args.dataset_path, imputation_method="hybrid_adaptive")
 
     per_split, coefs = run_splits(daily, labeled)
-    metric_cols = ["pooled_auc", "per_site_auc", "onset_auc_7d", "onset_auc_14d"]
-    summary = per_split.groupby("model", sort=False)[metric_cols].agg(["mean", "std"]).round(4)
-    summary.columns = [f"{m}_{s}" for m, s in summary.columns]
-    per_split.to_csv(RESULTS_DIR / "env_model_per_split.csv", index=False)
-    summary.to_csv(RESULTS_DIR / "env_model_summary.csv")
+    summarize(per_split, RESULTS_DIR, "env_model")
     coefs.to_csv(RESULTS_DIR / "env_model_coefficients.csv", index=False)
 
-    print("\nMean across splits:")
-    print(per_split.groupby("model", sort=False)[metric_cols].mean().round(3).to_string())
     print("\nStandardized coefficients (final split):")
     print(coefs.round(3).to_string(index=False))
 
