@@ -36,12 +36,11 @@ export default function MapSection({ forecastData, selectedLocation, onLocationS
     if (!mapRef.current || mapInstanceRef.current) return;
 
     const map = L.map(mapRef.current, {
-        zoomControl: false,
-        attributionControl: false
+        zoomControl: false
     }).setView([11.5, 122.5], 9);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
       maxZoom: 19
     }).addTo(map);
     L.control.zoom({ position: 'topright' }).addTo(map);
