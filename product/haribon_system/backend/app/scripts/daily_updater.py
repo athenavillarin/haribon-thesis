@@ -56,7 +56,7 @@ try:
     from app.services.env_model_service import predict_site as predict_env_model
 except Exception as env_model_import_error:
     predict_env_model = None
-    print(f"[WARN] Environment-driven model unavailable; using the ensemble: {env_model_import_error}")
+    print(f"[WARN] Ensemble unavailable; using the previous models: {env_model_import_error}")
 
 
 XGB_JUMP_THRESHOLD = 0.4
@@ -648,7 +648,7 @@ def _compute_recent_red_tide_signal(
     }
 
 def _run_env_model(location: str, reference_date: datetime) -> Optional[dict]:
-    """Environment-driven model probability for a location, or None if it cannot run."""
+    """Ensemble probability for a location, or None if it cannot run."""
     if predict_env_model is None:
         return None
     try:
@@ -915,8 +915,8 @@ def run_daily_update_with_5day_forecast():
             env_result = _run_env_model(location, today)
             if env_result is not None:
                 probability = env_result["probability"]
-                final_probability_source = "env_model"
-                print(f"  [MODEL] Environment-driven model probability: {probability:.6f}")
+                final_probability_source = env_result["model"]
+                print(f"  [MODEL] {final_probability_source} probability: {probability:.6f}")
 
             use_weighted = env_result is None and (
                 "ensemble" in str(manifest_forecasting).lower() or "weighted" in str(manifest_forecasting).lower()
@@ -1100,7 +1100,10 @@ def run_daily_update_with_5day_forecast():
                     "coverage_note": "limited" if data_limited else "sufficient",
                     "environment_data_source": env_source,
                     "environment_imputation_strategy": manifest_imputation,
-                    "forecasting_model": "Environment-driven model" if final_probability_source == "env_model" else manifest_forecasting,
+                    "forecasting_model": {
+                        "ensemble": "Ensemble",
+                        "logistic_regression": "Logistic regression (ensemble fallback)",
+                    }.get(final_probability_source, manifest_forecasting),
                     "base_xgboost_probability": round(xgb_prob, 6),
                     "sequence_models_probability": round(deep_prob, 6) if deep_prob is not None else None,
                     "xgboost_weight_damped": xgb_damped,
@@ -1109,6 +1112,11 @@ def run_daily_update_with_5day_forecast():
                     "env_model_inputs": env_result["features"] if env_result else None,
                     "env_model_precip_sources": env_result["precip_sources"] if env_result else None,
                     "env_model_trained_through": env_result["trained_through"] if env_result else None,
+                    "ensemble_logistic_probability": round(env_result["logistic_probability"], 6) if env_result else None,
+                    "ensemble_deep_probabilities": (
+                        {k: round(v, 6) for k, v in env_result["deep_probabilities"].items()}
+                        if env_result and env_result["deep_probabilities"] else None
+                    ),
                     "environment_imputation_sources": {
                         "CHL": imputation_sources.get("CHL"),
                         "thetao": imputation_sources.get("thetao"),
@@ -1240,19 +1248,19 @@ def run_daily_update_with_5day_forecast():
 
     ensemble_fallbacks = [
         f["location"] for f in forecasts
-        if f["data_quality"]["final_probability_source"] != "env_model"
+        if f["data_quality"]["final_probability_source"] != "ensemble"
     ]
     status = "partial" if failed_locations else "ok"
     print(f"Run status: {status} ({len(forecasts)} generated, failed: {failed_locations or 'none'})")
     if ensemble_fallbacks:
-        print(f"[WARN] Environment-driven model unavailable; older models used for: {ensemble_fallbacks}")
+        print(f"[WARN] Ensemble unavailable; fallback model used for: {ensemble_fallbacks}")
 
     output_data = {
         "last_updated": today.isoformat(),
         "status": status,
         "failed_locations": failed_locations,
         "ensemble_fallback_locations": ensemble_fallbacks,
-        "system_version": "v2.1 (environment-driven model)" if not ensemble_fallbacks else f"v2.1 ({manifest_forecasting} fallback)",
+        "system_version": "v2.2 (ensemble)" if not ensemble_fallbacks else "v2.2 (ensemble, fallback for some sites)",
         "manifest": {
             "path": str(settings.THESIS_WINNERS_PATH),
             "imputation_primary": manifest_imputation,

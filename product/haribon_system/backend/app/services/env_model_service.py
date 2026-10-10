@@ -1,8 +1,10 @@
 """
-Environment-driven red tide model for the daily forecast.
+Ensemble model for the daily forecast.
 
-Loads the exported model (artifacts/best_model/env_model/env_model.json) and
-scores today for a site. Sea temperature and rainfall history come from
+Loads the exported models (artifacts/best_model/env_model/) and scores today
+for a site: the LSTM, GRU and Transformer predictions (each averaged over its
+seeds) are averaged, then averaged with the logistic regression. If the deep
+models cannot run, the logistic regression is used alone. Sea temperature and rainfall history come from
 Combined_Labeled_2_0.csv; the days after it ends are fetched live with the
 same sampling points as training (SITES and MATCHED_CELLS in
 thesis/final_compiled_dataset/fetch_site_environment.py).
@@ -32,7 +34,8 @@ REPO_ROOT = _repo_root()
 MODEL_PATH = REPO_ROOT / "artifacts" / "best_model" / "env_model" / "env_model.json"
 DATASET_DIR = REPO_ROOT / "thesis" / "final_compiled_dataset"
 
-for _path in (REPO_ROOT / "thesis" / "env_model", DATASET_DIR, REPO_ROOT / "thesis" / "ensemble_model" / "code"):
+for _path in (REPO_ROOT / "thesis" / "env_model", DATASET_DIR, REPO_ROOT / "thesis" / "ensemble_model" / "code",
+              REPO_ROOT / "thesis" / "evaluation"):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
@@ -40,6 +43,37 @@ for _path in (REPO_ROOT / "thesis" / "env_model", DATASET_DIR, REPO_ROOT / "thes
 @functools.lru_cache(maxsize=1)
 def load_bundle() -> dict:
     return json.loads(MODEL_PATH.read_text(encoding="utf-8"))
+
+
+@functools.lru_cache(maxsize=1)
+def _deep_models() -> dict:
+    """Rebuilt LSTM, GRU and Transformer networks with their exported weights, by model type."""
+    from train_dl_anomaly import build_model
+
+    spec = load_bundle()["deep_models"]
+    models = {}
+    for kind, files in spec["weights"].items():
+        models[kind] = []
+        for name in files:
+            model = build_model(kind, len(spec["feature_mean"]))
+            model.load_weights(MODEL_PATH.parent / name)
+            models[kind].append(model)
+    return models
+
+
+def _deep_probability(feats: pd.DataFrame, today: pd.Timestamp, features: list[str]) -> tuple[float, dict]:
+    """Mean of the deep model types' predictions for the window ending today."""
+    spec = load_bundle()["deep_models"]
+    window = feats[feats["Date"] <= today].sort_values("Date").tail(spec["lookback"])
+    if len(window) < spec["lookback"]:
+        raise ValueError(f"Only {len(window)} days of features before {today.date()}")
+    mean, std = pd.Series(spec["feature_mean"], index=features), pd.Series(spec["feature_std"], index=features)
+    X = ((window[features].fillna(mean) - mean) / std).to_numpy(dtype=np.float32)[None, :, :]
+    by_kind = {
+        kind: float(np.mean([m(X, training=False).numpy().ravel()[0] for m in models]))
+        for kind, models in _deep_models().items()
+    }
+    return float(np.mean(list(by_kind.values()))), by_kind
 
 
 @functools.lru_cache(maxsize=1)
@@ -86,10 +120,21 @@ def predict_site(location: str, today: pd.Timestamp) -> dict:
     x = row[bundle["features"]].iloc[0].to_numpy(dtype=float)
     x = np.where(np.isnan(x), mean, x)
     z = (x - mean) / np.array(bundle["scaler_scale"])
-    probability = float(1.0 / (1.0 + np.exp(-(z @ np.array(bundle["coef"]) + bundle["intercept"]))))
+    lr_probability = float(1.0 / (1.0 + np.exp(-(z @ np.array(bundle["coef"]) + bundle["intercept"]))))
+
+    model, probability, deep_by_kind = "logistic_regression", lr_probability, None
+    if "deep_models" in bundle:
+        try:
+            deep_probability, deep_by_kind = _deep_probability(feats, today, bundle["features"])
+            model, probability = "ensemble", (deep_probability + lr_probability) / 2
+        except Exception as exc:
+            print(f"[WARN] Deep models unavailable for {location}; using the logistic regression alone: {exc}")
 
     return {
         "probability": probability,
+        "model": model,
+        "logistic_probability": lr_probability,
+        "deep_probabilities": deep_by_kind,
         "features": {name: round(float(v), 4) for name, v in zip(bundle["features"], x)},
         "precip_sources": precip_sources,
         "history_through": str(history["Date"].max().date()),
