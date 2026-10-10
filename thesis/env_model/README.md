@@ -69,6 +69,8 @@ The environmental features beat the monthly baseline in 2021–23, when the most
 | Milagros (Masbate) | Masbate | 0.456 |
 | Dumanquillas Bay | Zamboanga | n/a (banned every day after 2021) |
 
+**Other environmental parameters:** adding chlorophyll-a, salinity, mixed layer depth, NDVI, wind and currents lowers per-site AUC (all 11: 0.557; all except NDVI: 0.599; see `compare_drivers.py` and `evaluation/README.md`), so only sea temperature and rainfall are used.
+
 **Strongest drivers (standardized coefficients, final split):**
 
 - site's ban rate over the previous year: +1.01
@@ -87,11 +89,28 @@ The environmental features beat the monthly baseline in 2021–23, when the most
 
 The daily forecast does not use this model alone. It uses the ensemble of this model with LSTM, GRU and Transformer models trained on the same features (see `evaluation/README.md`). `export_deployment.py` writes both to `artifacts/best_model/env_model/`; this model is also the fallback if the deep models cannot run.
 
+## SHAP for the deployed ensemble
+
+`shap_ensemble.py` explains the deployed ensemble (artifacts/best_model/env_model/) on 2,000 sampled days with expected gradients, summing each feature over the 30-day window. Mean |SHAP| in ban probability:
+
+| Feature | Mean \|SHAP\| |
+|---|---|
+| Site ban rate, previous year | 0.137 |
+| Season (sine / cosine) | 0.050 / 0.049 |
+| Sea temperature anomaly, 90-day | 0.026 |
+| ONI | 0.015 |
+| Rainfall anomaly, 90 / 60-day | 0.012 / 0.008 |
+| Monthly site ban rate, 60/30-day sea temperature, 30-day rainfall | < 0.006 |
+
+Warmer-than-usual sea temperature raises the predicted risk. Figures: `results/shap_ensemble_bar.png`, `results/shap_ensemble_beeswarm.png`.
+
 ## Usage
 
 ```bash
 cd env_model
 python train_env_model.py --loso
+python compare_drivers.py
+python shap_ensemble.py        # --plot-only redraws from saved values
 cd ../evaluation
 python retrain_leakfree.py
 ```
