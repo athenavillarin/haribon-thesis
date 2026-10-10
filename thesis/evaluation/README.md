@@ -9,6 +9,7 @@ Scores every model against simple predictors that use no environmental data, on 
 | `pooled_auc` | Ranks banned vs clear days across all sites together. This rewards telling sites apart. |
 | `per_site_auc` | Ranks banned vs clear days within each site, averaged over sites that have both in the test year. |
 | `onset_auc_7d` / `onset_auc_14d` | On days not under a ban: will a ban start within 7 or 14 days? This is the early-warning question. |
+| `accuracy`, `precision`, `recall`, `f1` | Next-day ban prediction at a 0.5 probability cutoff, pooled across sites. |
 
 ## Baselines
 
@@ -45,9 +46,9 @@ Data: `final_compiled_dataset/Combined_Labeled_2_0.csv` (9 sites, month/day swap
 | Persistence | 0.996 | 0.991 | 0.500 | 0.500 |
 | Site rate, last 365 days | 0.755 | 0.500 | 0.608 | 0.609 |
 | Site rate by month | 0.729 | **0.689** | 0.653 | 0.652 |
-| LSTM | 0.656 | 0.480 | 0.663 | 0.658 |
-| GRU | 0.664 | 0.480 | **0.689** | **0.690** |
-| Transformer | 0.661 | 0.414 | 0.654 | 0.658 |
+| LSTM | 0.654 | 0.544 | 0.672 | 0.649 |
+| GRU | 0.675 | 0.438 | 0.654 | **0.662** |
+| Transformer | 0.547 | 0.420 | 0.561 | 0.568 |
 | XGBoost | 0.703 | 0.534 | 0.621 | 0.633 |
 | Env model (`env_model/`) | **0.803** | 0.667 | 0.648 | 0.646 |
 
@@ -55,12 +56,12 @@ Data: `final_compiled_dataset/Combined_Labeled_2_0.csv` (9 sites, month/day swap
 
 | Split (test year) | LSTM | GRU | Transformer | XGBoost | Env model |
 |---|---|---|---|---|---|
-| 1 (2020) | 0.59 | 0.60 | 0.53 | 0.77 | 0.93 |
-| 2 (2021) | 0.42 | 0.39 | 0.78 | 0.56 | 0.70 |
-| 3 (2022) | 0.72 | 0.73 | 0.70 | 0.62 | 0.82 |
-| 4 (2023) | 0.54 | 0.53 | 0.52 | 0.57 | 0.84 |
-| 5 (2024) | 0.81 | 0.84 | 0.74 | 0.80 | 0.57 |
-| 6 (2025–26) | 0.86 | 0.90 | 0.70 | 0.91 | 0.96 |
+| 1 (2020) | 0.66 | 0.61 | 0.52 | 0.77 | 0.93 |
+| 2 (2021) | 0.42 | 0.44 | 0.22 | 0.56 | 0.70 |
+| 3 (2022) | 0.73 | 0.74 | 0.57 | 0.62 | 0.82 |
+| 4 (2023) | 0.54 | 0.54 | 0.36 | 0.57 | 0.84 |
+| 5 (2024) | 0.72 | 0.81 | 0.72 | 0.80 | 0.57 |
+| 6 (2025–26) | 0.85 | 0.91 | 0.90 | 0.91 | 0.96 |
 
 ## Results: deep models on the environment-driven features (`results/dl_anomaly_summary.csv`)
 
@@ -80,22 +81,40 @@ Data: `final_compiled_dataset/Combined_Labeled_2_0.csv` (9 sites, month/day swap
 
 | Model | All sites | Within site |
 |---|---|---|
-| LSTM | 0.656 → 0.767 | 0.480 → 0.662 |
-| GRU | 0.664 → 0.790 | 0.480 → 0.654 |
-| Transformer | 0.661 → 0.776 | 0.414 → 0.682 |
+| LSTM | 0.654 → 0.767 | 0.544 → 0.662 |
+| GRU | 0.675 → 0.790 | 0.438 → 0.654 |
+| Transformer | 0.547 → 0.776 | 0.420 → 0.682 |
 
 **Deployed model.** The daily forecast uses the ensemble in the "Deep mean + logistic regression" row: each deep model's 3 seeds are averaged, the three deep models are averaged, and that is averaged with the logistic regression. `env_model/export_deployment.py` trains the final versions on all data; if the deep models cannot run, the forecast falls back to the logistic regression alone.
+
+**All metrics** (raw-input rows from `results/leakfree_summary.csv`, the rest from `results/dl_anomaly_summary.csv`; classification metrics at a 0.5 cutoff):
+
+| Model | All-site AUC | Within-site AUC | Onset 14d AUC | Accuracy | Precision | Recall | F1 |
+|---|---|---|---|---|---|---|---|
+| Site rate by month | 0.729 | 0.689 | 0.652 | 0.753 | 0.551 | 0.152 | 0.234 |
+| XGBoost (raw inputs) | 0.703 | 0.534 | 0.633 | 0.704 | 0.382 | 0.453 | 0.398 |
+| LSTM (raw inputs) | 0.654 | 0.544 | 0.649 | 0.752 | 0.343 | 0.021 | 0.040 |
+| GRU (raw inputs) | 0.675 | 0.438 | 0.662 | 0.751 | 0.346 | 0.008 | 0.015 |
+| Transformer (raw inputs) | 0.547 | 0.420 | 0.568 | 0.462 | 0.191 | 0.667 | 0.294 |
+| LSTM (new features) | 0.767 | 0.662 | 0.652 | 0.773 | 0.642 | 0.320 | 0.396 |
+| GRU (new features) | 0.790 | 0.654 | 0.613 | 0.779 | 0.647 | 0.446 | 0.498 |
+| Transformer (new features) | 0.776 | 0.682 | 0.642 | 0.775 | 0.476 | 0.331 | 0.374 |
+| Logistic regression | 0.803 | 0.667 | 0.646 | 0.795 | 0.683 | 0.441 | 0.502 |
+| **Ensemble (deployed)** | 0.797 | 0.669 | 0.644 | **0.801** | **0.692** | 0.448 | **0.514** |
+
+Recall at a 0.5 cutoff is modest for the calibrated models because a calibrated probability rarely reaches 0.5 except at sites already under a ban; the forecast's risk levels use lower cutoffs (0.32 / 0.45 / 0.60). Day-level predictions for the new-feature models are in `results/dl_anomaly_predictions.csv`, so other cutoffs can be scored without retraining.
 
 The change of inputs, not of architecture, accounts for the improvement: within-site AUC rises from near chance to about the level of the monthly baseline. With the same inputs, the deep models and the logistic regression perform about the same; the Transformer has the best within-site AUC of the trained models (0.682) but the weakest single split (0.47 in 2024).
 
 ## Findings
 
 1. **The original models' published scores came from corrupted data.** In `Combined_Labeled.csv`, about 36% of rows have month and day swapped (see `final_compiled_dataset/fix_date_swap.py`), and their scores also benefited from look-ahead imputation. None of the earlier numbers should be reported.
-2. **The sequence models do not learn within-site patterns.** Their within-site AUC is 0.41–0.48, below chance and well below the monthly baseline (0.69).
-3. **The env model is best across sites** (0.803) and better within sites than the sequence models and XGBoost. It does not beat the monthly baseline within sites (0.667 vs 0.689). Its worst split is 0.57, about the same as XGBoost (0.56) and better than the others (0.39–0.52).
-4. **The deep models are unstable.** Adding three weeks of data (labels through 2026-10-01 instead of 2026-09-07) moved the Transformer's 2021 AUC from 0.24 to 0.78 and its mean from 0.575 to 0.661. The env model's results did not change.
+2. **On raw inputs, the sequence models do not learn within-site patterns.** Their within-site AUC is 0.42–0.54, close to chance and well below the monthly baseline (0.69).
+3. **The env model is best across sites** (0.803) and better within sites than the sequence models and XGBoost. It does not beat the monthly baseline within sites (0.667 vs 0.689). Its worst split is 0.57, about the same as XGBoost (0.56) and better than the raw-input deep models (0.22–0.44).
+4. **On raw inputs, the deep models are unstable.** Across three retraining runs the raw-input Transformer's mean all-site AUC was 0.575, 0.661 and 0.547, and its 2021 AUC ranged from 0.22 to 0.78; the last two runs used identical data. On the new features, a rerun reproduced every deep-model AUC exactly, and the env model's results did not change.
 5. **The deep models were held back by their inputs, not their architecture.** Trained on site-relative anomalies instead of raw values, LSTM, GRU and Transformer reach 0.77–0.79 all-site and 0.65–0.68 within-site AUC, close to the logistic regression on the same features (0.803 / 0.667).
-6. **No model clearly beats the monthly baseline at predicting when a ban starts.** GRU is highest at 0.690 against 0.652 for the baseline, but with 51 ban starts the onset results are too noisy to separate the models.
+6. **No model clearly beats the monthly baseline at predicting when a ban starts.** Onset 14d AUC ranges from 0.57 to 0.66 against 0.652 for the baseline; with 51 ban starts the onset results are too noisy to separate the models.
+7. **The deployed ensemble has the best classification metrics** at a 0.5 cutoff (accuracy 0.801, precision 0.692, F1 0.514).
 
 ## Usage
 

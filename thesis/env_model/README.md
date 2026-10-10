@@ -32,9 +32,9 @@ Changes made here:
 | History features only | 0.773 | 0.689 | 0.629 | 0.628 |
 | Environment only | 0.658 | 0.669 | 0.605 | 0.599 |
 | **History + environment** | **0.803** | 0.667 | 0.648 | 0.646 |
-| LSTM (retrained leak-free) | 0.656 | 0.480 | 0.663 | 0.658 |
-| GRU (retrained leak-free) | 0.664 | 0.480 | 0.689 | **0.690** |
-| Transformer (retrained leak-free) | 0.661 | 0.414 | 0.654 | 0.658 |
+| LSTM (retrained leak-free) | 0.654 | 0.544 | 0.672 | 0.649 |
+| GRU (retrained leak-free) | 0.675 | 0.438 | 0.654 | 0.662 |
+| Transformer (retrained leak-free) | 0.547 | 0.420 | 0.561 | 0.568 |
 | XGBoost (retrained leak-free) | 0.703 | 0.534 | 0.621 | 0.633 |
 | LSTM on these features | 0.767 | 0.662 | 0.651 | 0.652 |
 | GRU on these features | 0.790 | 0.654 | 0.619 | 0.613 |
