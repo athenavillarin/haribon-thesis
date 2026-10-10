@@ -25,7 +25,8 @@ Scores every model against simple predictors that use no environmental data, on 
 |---|---|
 | `baselines.py` | Scores the saved models as they are (`--no-models` for baselines only) |
 | `retrain_leakfree.py` | Retrains LSTM, GRU, Transformer and XGBoost without look-ahead, and scores them alongside `env_model` |
-| `train_dl_anomaly.py` | Trains LSTM, GRU and Transformer on the `env_model` features instead of raw daily values |
+| `train_dl_anomaly.py` | Trains LSTM, GRU and Transformer on the `env_model` features instead of raw daily values (`--all-drivers` for all 11 environmental parameters) |
+| `plot_model_comparison.py` | Draws the all-site and per-site AUC chart (`results/figures/model_comparison_auc.png`) from the saved summaries |
 
 `retrain_leakfree.py` keeps the original architectures, lookback, loss and features, and changes only what leaked or was mis-validated:
 
@@ -106,6 +107,22 @@ Recall at a 0.5 cutoff is modest for the calibrated models because a calibrated 
 
 The change of inputs, not of architecture, accounts for the improvement: within-site AUC rises from near chance to about the level of the monthly baseline. With the same inputs, the deep models and the logistic regression perform about the same; the Transformer has the best within-site AUC of the trained models (0.682) but the weakest single split (0.47 in 2024).
 
+## Results: other environmental parameters
+
+`env_model/compare_drivers.py` and `train_dl_anomaly.py --all-drivers` give chlorophyll-a, salinity, mixed layer depth, NDVI, wind (speed, u, v) and currents (u, v) the same treatment as sea temperature and rainfall: site-relative anomalies with 30/60/90-day rolling means. Each set is scored on the same splits and rows.
+
+| Model | Inputs | All-site AUC | Per-site AUC | Precision | F1 |
+|---|---|---|---|---|---|
+| Logistic regression | sea temperature + rainfall | **0.803** | **0.667** | **0.682** | 0.501 |
+| Logistic regression | all except NDVI | 0.770 | 0.599 | 0.631 | 0.526 |
+| Logistic regression | all 11 | 0.746 | 0.557 | 0.593 | 0.488 |
+| LSTM | all 11 | 0.736 | 0.526 | 0.516 | 0.397 |
+| GRU | all 11 | 0.749 | 0.559 | 0.535 | 0.432 |
+| Transformer | all 11 | 0.756 | 0.497 | 0.451 | 0.342 |
+| Ensemble | all 11 | 0.757 | 0.548 | 0.594 | 0.471 |
+
+Adding any single parameter to the logistic regression leaves per-site AUC at 0.615–0.672; the two small gains (east–west wind and current) come only from 2020, when 3 sites are scored. Within sites, sea temperature anomalies point the same way at 8 of 9 sites, while salinity, mixed layer depth and NDVI change direction between sites, so a pooled model can only use them to tell sites apart. Chlorophyll-a points the same way at 7 of 9 sites but is weak (within-site AUC 0.57).
+
 ## Findings
 
 1. **The original models' published scores came from corrupted data.** In `Combined_Labeled.csv`, about 36% of rows have month and day swapped (see `final_compiled_dataset/fix_date_swap.py`), and their scores also benefited from look-ahead imputation. None of the earlier numbers should be reported.
@@ -115,6 +132,7 @@ The change of inputs, not of architecture, accounts for the improvement: within-
 5. **The deep models were held back by their inputs, not their architecture.** Trained on site-relative anomalies instead of raw values, LSTM, GRU and Transformer reach 0.77–0.79 all-site and 0.65–0.68 within-site AUC, close to the logistic regression on the same features (0.803 / 0.667).
 6. **No model clearly beats the monthly baseline at predicting when a ban starts.** Onset 14d AUC ranges from 0.57 to 0.66 against 0.652 for the baseline; with 51 ban starts the onset results are too noisy to separate the models.
 7. **The deployed ensemble has the best classification metrics** at a 0.5 cutoff (accuracy 0.801, precision 0.692, F1 0.514).
+8. **More environmental parameters make every model worse.** With all 11 parameters, per-site AUC falls to 0.50–0.56 for every model (Ensemble 0.669 → 0.548), back near the raw-input models. Sea temperature and rainfall anomalies are the only parameters kept.
 
 ## Usage
 
@@ -123,4 +141,6 @@ cd evaluation
 python baselines.py
 python retrain_leakfree.py          # ~2 h on CPU
 python train_dl_anomaly.py          # ~1.5 h on CPU
+python train_dl_anomaly.py --all-drivers
+python plot_model_comparison.py
 ```

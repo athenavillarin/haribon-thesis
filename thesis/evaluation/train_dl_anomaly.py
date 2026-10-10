@@ -24,6 +24,7 @@ metrics can be computed without retraining.
 Usage:
     cd evaluation
     python train_dl_anomaly.py
+    python train_dl_anomaly.py --all-drivers   # all 11 parameters, results/dl_anomaly_all_drivers_*
 """
 
 from __future__ import annotations
@@ -45,7 +46,7 @@ for p in (_THESIS_DIR / "env_model", _THESIS_DIR / "ensemble_model" / "code"):
 
 from baselines import baseline_scores, build_test_frame, score_split, summarize  # noqa: E402
 from ensemble_data import DEFAULT_DATASET_PATH, SPLITS, load_and_prepare  # noqa: E402
-from features import build_features, load_daily  # noqa: E402
+from features import ALL_DRIVERS, PRIOR_FEATURES, SKEWED_DRIVERS, build_features, core_features, load_daily  # noqa: E402
 from train_env_model import MODEL_FEATURES, fit_model, predict  # noqa: E402
 
 RESULTS_DIR = _THIS_DIR / "results"
@@ -57,23 +58,25 @@ MAX_EPOCHS = 40
 BATCH_SIZE = 128
 
 
-def feature_scaling(feats: pd.DataFrame, train_end: pd.Timestamp) -> tuple[pd.Series, pd.Series]:
+def feature_scaling(feats: pd.DataFrame, train_end: pd.Timestamp,
+                    features: list[str] = MODEL_FEATURES) -> tuple[pd.Series, pd.Series]:
     """Mean and standard deviation of each feature over training dates."""
-    train = feats.loc[feats["Date"] <= train_end, MODEL_FEATURES]
+    train = feats.loc[feats["Date"] <= train_end, features]
     return train.mean(), train.std().replace(0, 1)
 
 
-def standardize(feats: pd.DataFrame, mean: pd.Series, std: pd.Series) -> np.ndarray:
-    return ((feats[MODEL_FEATURES].fillna(mean) - mean) / std).to_numpy(dtype=np.float32)
+def standardize(feats: pd.DataFrame, mean: pd.Series, std: pd.Series,
+                features: list[str] = MODEL_FEATURES) -> np.ndarray:
+    return ((feats[features].fillna(mean) - mean) / std).to_numpy(dtype=np.float32)
 
 
-def build_windows(feats: pd.DataFrame, cfg: dict) -> SimpleNamespace:
+def build_windows(feats: pd.DataFrame, cfg: dict, features: list[str] = MODEL_FEATURES) -> SimpleNamespace:
     """LOOKBACK-day windows of standardized features, each predicting the next day's label."""
     train_end = pd.Timestamp(cfg["train_end"])
     test_start = pd.Timestamp(cfg.get("test_start", train_end + pd.Timedelta(days=1)))
     test_end = pd.Timestamp(cfg.get("test_end", test_start))
-    mean, std = feature_scaling(feats, train_end)
-    X_all = standardize(feats, mean, std)
+    mean, std = feature_scaling(feats, train_end, features)
+    X_all = standardize(feats, mean, std, features)
 
     parts = {k: [] for k in ("X_tr", "y_tr", "w_tr", "d_tr", "X_te", "y_te", "d_te", "l_te")}
     for loc, idx in feats.groupby("Location_Name", sort=False).indices.items():
@@ -100,7 +103,7 @@ def build_windows(feats: pd.DataFrame, cfg: dict) -> SimpleNamespace:
         y_train=np.array(parts["y_tr"], dtype=np.float32),
         w_train=np.nan_to_num(np.array(parts["w_tr"], dtype=np.float32), nan=1.0),
         dates_train=np.array(parts["d_tr"]),
-        X_test=np.stack(parts["X_te"]) if parts["X_te"] else np.empty((0, LOOKBACK, len(MODEL_FEATURES)), np.float32),
+        X_test=np.stack(parts["X_te"]) if parts["X_te"] else np.empty((0, LOOKBACK, len(features)), np.float32),
         y_test=np.array(parts["y_te"], dtype=np.int64),
         dates_test=np.array(parts["d_te"]),
         locs_test=np.array(parts["l_te"], dtype=object),
@@ -161,35 +164,43 @@ def train_dl(s: SimpleNamespace, kind: str) -> np.ndarray:
     return np.mean(preds, axis=0)
 
 
-def env_model_scores(feats: pd.DataFrame, s: SimpleNamespace) -> np.ndarray:
+def env_model_scores(feats: pd.DataFrame, s: SimpleNamespace, features: list[str] = MODEL_FEATURES) -> np.ndarray:
     labeled = feats.dropna(subset=["target"])
-    model = fit_model(labeled[labeled["target_date"] <= pd.Timestamp(s.train_end)], MODEL_FEATURES)
+    model = fit_model(labeled[labeled["target_date"] <= pd.Timestamp(s.train_end)], features)
     rows = labeled.set_index(["Location_Name", "target_date"]).reindex(
         list(zip(s.locs_test, pd.to_datetime(s.dates_test))))
-    return predict(model, rows, MODEL_FEATURES)
+    return predict(model, rows, features)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Deep models on the environment-driven features.")
     parser.add_argument("--dataset-path", default=str(DEFAULT_DATASET_PATH))
     parser.add_argument("--models", nargs="+", default=DL_MODELS, choices=DL_MODELS)
+    parser.add_argument("--all-drivers", action="store_true",
+                        help="Use all 11 environmental parameters instead of sea temperature and rainfall.")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    daily = load_daily(args.dataset_path)
+    if args.all_drivers:
+        daily = load_daily(args.dataset_path, log_drivers=SKEWED_DRIVERS)
+        features, prefix, drivers = core_features(ALL_DRIVERS) + PRIOR_FEATURES, "dl_anomaly_all_drivers", ALL_DRIVERS
+    else:
+        daily = load_daily(args.dataset_path)
+        features, prefix, drivers = MODEL_FEATURES, "dl_anomaly", None
     labeled = load_and_prepare(args.dataset_path, imputation_method="hybrid_adaptive")
 
     records, predictions = [], []
     for cfg in SPLITS:
-        feats = build_features(daily, cfg["train_end"], keep_unlabeled=True)
-        s = build_windows(feats, cfg)
+        feats = build_features(daily, cfg["train_end"], keep_unlabeled=True,
+                               **({"drivers": drivers} if drivers else {}))
+        s = build_windows(feats, cfg, features)
         print(f"\nSplit {s.split_num}: train={len(s.y_train):,}  test={len(s.y_test):,}", flush=True)
         frame = build_test_frame(labeled, s)
         scores = baseline_scores(labeled, s, frame)
-        scores["env_model"] = env_model_scores(feats, s)
+        scores["env_model"] = env_model_scores(feats, s, features)
 
         for kind in args.models:
             scores[kind] = train_dl(s, kind)
@@ -205,8 +216,8 @@ def main() -> None:
             row["split"] = s.split_num
             records.append(row)
 
-    pd.concat(predictions).to_csv(RESULTS_DIR / "dl_anomaly_predictions.csv", index=False)
-    summarize(pd.DataFrame(records), RESULTS_DIR, "dl_anomaly")
+    pd.concat(predictions).to_csv(RESULTS_DIR / f"{prefix}_predictions.csv", index=False)
+    summarize(pd.DataFrame(records), RESULTS_DIR, prefix)
 
 
 if __name__ == "__main__":

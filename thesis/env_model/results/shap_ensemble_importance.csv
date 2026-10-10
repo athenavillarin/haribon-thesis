@@ -1,0 +1,12 @@
+feature,label,mean_abs_shap
+site_rate_365,"Site ban rate, previous year",0.13729863
+doy_sin,Season (day-of-year sine),0.04954296
+doy_cos,Season (day-of-year cosine),0.04891875
+thetao_roll90,Sea temp. anomaly (90-day),0.026367174
+oni,"ENSO index (ONI, 3-month lag)",0.014606536
+precip_mm_day_roll90,Rainfall anomaly (90-day),0.0119550275
+precip_mm_day_roll60,Rainfall anomaly (60-day),0.008048481
+clim_rate,Site ban rate for this month (earlier years),0.005907929
+thetao_roll60,Sea temp. anomaly (60-day),0.004305624
+thetao_roll30,Sea temp. anomaly (30-day),0.0036916758
+precip_mm_day_roll30,Rainfall anomaly (30-day),0.0024962195

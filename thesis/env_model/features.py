@@ -45,7 +45,16 @@ LABEL_DELAY_DAYS = 14
 UNCERTAIN_WEIGHT = 0.3
 BULLETIN_WEIGHT = 3.0
 
-CORE_FEATURES = [f"{d}_roll{w}" for d in DRIVERS for w in ROLL_WINDOWS] + ["doy_sin", "doy_cos", "oni"]
+ALL_DRIVERS = ["thetao", "precip_mm_day", "CHL", "so", "mlotst", "NDVI_daily",
+               "wind_speed_ms", "wind_u_ms", "wind_v_ms", "uo", "vo"]
+SKEWED_DRIVERS = ["precip_mm_day", "CHL"]
+
+
+def core_features(drivers: list[str] = DRIVERS) -> list[str]:
+    return [f"{d}_roll{w}" for d in drivers for w in ROLL_WINDOWS] + ["doy_sin", "doy_cos", "oni"]
+
+
+CORE_FEATURES = core_features()
 PRIOR_FEATURES = ["clim_rate", "site_rate_365"]
 
 
@@ -62,10 +71,11 @@ def load_grid(dataset_path: str | Path = DEFAULT_DATASET_PATH) -> pd.DataFrame:
     return df
 
 
-def load_daily(dataset_path: str | Path = DEFAULT_DATASET_PATH, grid: pd.DataFrame | None = None) -> pd.DataFrame:
+def load_daily(dataset_path: str | Path = DEFAULT_DATASET_PATH, grid: pd.DataFrame | None = None,
+               log_drivers: list[str] = LOG_DRIVERS) -> pd.DataFrame:
     """Daily grid with skewed drivers log-transformed."""
     df = load_grid(dataset_path) if grid is None else grid.copy()
-    for col in LOG_DRIVERS:
+    for col in log_drivers:
         df[col] = np.log1p(df[col].clip(lower=0))
     return df
 
@@ -142,9 +152,10 @@ def _history_priors(df: pd.DataFrame, train_end: pd.Timestamp) -> pd.DataFrame:
     return keys.merge(priors, on=["Location_Name", "eff_year", "Month"], how="left")[PRIOR_FEATURES]
 
 
-def build_features(daily: pd.DataFrame, train_end: str, keep_unlabeled: bool = False) -> pd.DataFrame:
+def build_features(daily: pd.DataFrame, train_end: str, keep_unlabeled: bool = False,
+                   drivers: list[str] = DRIVERS) -> pd.DataFrame:
     """
-    Return one row per site-day with CORE_FEATURES, PRIOR_FEATURES, the next-day
+    Return one row per site-day with core_features(drivers), PRIOR_FEATURES, the next-day
     target and its training weight. Every statistic uses dates up to `train_end`.
     Rows whose next-day label is unknown are dropped unless `keep_unlabeled`,
     which inference uses to score today.
@@ -152,18 +163,18 @@ def build_features(daily: pd.DataFrame, train_end: str, keep_unlabeled: bool = F
     train_end = pd.Timestamp(train_end)
     df = daily.copy()
     is_train = df["Date"] <= train_end
-    df = impute_causal(df, is_train, DRIVERS)
+    df = impute_causal(df, is_train, drivers)
 
     train = df[is_train]
-    clim = train.groupby(["Location_Name", "Month"])[DRIVERS].mean()
-    scale = train.groupby("Location_Name")[DRIVERS].std().replace(0, 1)
+    clim = train.groupby(["Location_Name", "Month"])[drivers].mean()
+    scale = train.groupby("Location_Name")[drivers].std().replace(0, 1)
     keys = pd.MultiIndex.from_arrays([df["Location_Name"], df["Month"]])
     anom = pd.DataFrame(
-        (df[DRIVERS].to_numpy() - clim.reindex(keys).to_numpy()) / scale.reindex(df["Location_Name"]).to_numpy(),
-        columns=DRIVERS, index=df.index,
+        (df[drivers].to_numpy() - clim.reindex(keys).to_numpy()) / scale.reindex(df["Location_Name"]).to_numpy(),
+        columns=drivers, index=df.index,
     )
     grouped = anom.groupby(df["Location_Name"], sort=False)
-    for d in DRIVERS:
+    for d in drivers:
         for w in ROLL_WINDOWS:
             df[f"{d}_roll{w}"] = grouped[d].transform(lambda s, w=w: s.rolling(w, min_periods=1).mean())
 
