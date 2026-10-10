@@ -33,13 +33,13 @@ ROWS = [
     ("leakfree", "lstm", "LSTM\n(raw inputs)", "raw"),
     ("leakfree", "gru", "GRU\n(raw inputs)", "raw"),
     ("leakfree", "transformer", "Transformer\n(raw inputs)", "raw"),
-    ("dl_anomaly", "lstm", "LSTM\n(new features)", "new"),
-    ("dl_anomaly", "gru", "GRU\n(new features)", "new"),
-    ("dl_anomaly", "transformer", "Transformer\n(new features)", "new"),
-    ("dl_anomaly", "env_model", "Logistic\nregression", "new"),
+    ("dl_anomaly", "lstm", "LSTM\n(anomaly features)", "anomaly"),
+    ("dl_anomaly", "gru", "GRU\n(anomaly features)", "anomaly"),
+    ("dl_anomaly", "transformer", "Transformer\n(anomaly features)", "anomaly"),
+    ("dl_anomaly", "env_model", "Logistic\nregression", "anomaly"),
     ("dl_anomaly", "dl_lr", "Ensemble\n(deployed)", "ensemble"),
 ]
-COLORS = {"baseline": "#9e9e9e", "raw": "#e0a458", "new": "#5b8fc7", "ensemble": "#1f4e8c"}
+COLORS = {"baseline": "#9e9e9e", "raw": "#e0a458", "anomaly": "#5b8fc7", "ensemble": "#1f4e8c"}
 
 
 def load_rows() -> pd.DataFrame:
@@ -82,7 +82,7 @@ def main() -> None:
         Patch(facecolor="white", edgecolor="black", hatch="///", label="Per-site AUC"),
         Patch(facecolor=COLORS["baseline"], label="Baseline"),
         Patch(facecolor=COLORS["raw"], label="Raw daily inputs"),
-        Patch(facecolor=COLORS["new"], label="New features"),
+        Patch(facecolor=COLORS["anomaly"], label="Anomaly features"),
         Patch(facecolor=COLORS["ensemble"], label="Ensemble (deployed)"),
         Line2D([], [], color="#555555", linestyle=":", label=f"Baseline per-site AUC ({baseline_site:.3f})"),
         Line2D([], [], color="red", linestyle="--", label="Random chance (0.5)"),
