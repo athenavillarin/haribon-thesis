@@ -56,7 +56,7 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
 
       {/* Conditions Grid */}
       <div className="mb-8">
-        <h3 className="text-sm font-bold text-gray-800 mb-4">Conditions Contributing to Risk</h3>
+        <h3 className="text-sm font-bold text-gray-800 mb-4">Current Conditions</h3>
         <div className="grid grid-cols-2 gap-3">
             {conditionItems.map((item) => (
               <MetricItem
