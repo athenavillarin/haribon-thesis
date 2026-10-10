@@ -17,7 +17,9 @@ Reported models:
     dl_lr                    average of dl_mean and the logistic regression
     env_model                logistic regression benchmark
 
-Results go to results/dl_anomaly_per_split.csv and dl_anomaly_summary.csv.
+Results go to results/dl_anomaly_per_split.csv and dl_anomaly_summary.csv;
+every test-day prediction goes to results/dl_anomaly_predictions.csv so other
+metrics can be computed without retraining.
 
 Usage:
     cd evaluation
@@ -180,7 +182,7 @@ def main() -> None:
     daily = load_daily(args.dataset_path)
     labeled = load_and_prepare(args.dataset_path, imputation_method="hybrid_adaptive")
 
-    records = []
+    records, predictions = [], []
     for cfg in SPLITS:
         feats = build_features(daily, cfg["train_end"], keep_unlabeled=True)
         s = build_windows(feats, cfg)
@@ -195,10 +197,15 @@ def main() -> None:
         scores["dl_mean"] = np.mean([scores[k] for k in args.models], axis=0)
         scores["dl_lr"] = (scores["dl_mean"] + scores["env_model"]) / 2
 
+        predictions.append(pd.DataFrame({
+            "split": s.split_num, "Location_Name": s.locs_test, "target_date": s.dates_test, "y": s.y_test,
+            **{name: np.asarray(p, dtype=float) for name, p in scores.items()},
+        }))
         for row in score_split(frame, scores):
             row["split"] = s.split_num
             records.append(row)
 
+    pd.concat(predictions).to_csv(RESULTS_DIR / "dl_anomaly_predictions.csv", index=False)
     summarize(pd.DataFrame(records), RESULTS_DIR, "dl_anomaly")
 
 
