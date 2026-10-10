@@ -36,7 +36,7 @@ from typing import Dict, List
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, roc_auc_score
 
 warnings.filterwarnings("ignore")
 
@@ -49,7 +49,9 @@ from ensemble_data import DEFAULT_DATASET_PATH, build_splits, load_and_prepare  
 
 RESULTS_DIR = _THIS_DIR / "results"
 ONSET_HORIZONS = (7, 14)
-METRIC_COLS = ["pooled_auc", "per_site_auc", "onset_auc_7d", "onset_auc_14d"]
+THRESHOLD = 0.5
+METRIC_COLS = ["pooled_auc", "per_site_auc", "onset_auc_7d", "onset_auc_14d",
+               "accuracy", "precision", "recall", "f1"]
 
 
 def _safe_auc(y: np.ndarray, p: np.ndarray) -> float:
@@ -127,6 +129,11 @@ def score_split(test: pd.DataFrame, scores: Dict[str, np.ndarray]) -> List[dict]
             target = test[f"onset_{h}d"].to_numpy()
             row[f"onset_auc_{h}d"] = _safe_auc(target[not_in_ban], p[not_in_ban])
             row[f"n_onset_pos_{h}d"] = int(target[not_in_ban].sum())
+        predicted = (p >= THRESHOLD).astype(int)
+        row["accuracy"] = accuracy_score(y, predicted)
+        row["precision"] = precision_score(y, predicted, zero_division=0)
+        row["recall"] = recall_score(y, predicted, zero_division=0)
+        row["f1"] = f1_score(y, predicted, zero_division=0)
         rows.append(row)
     return rows
 
