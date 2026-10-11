@@ -201,7 +201,7 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
 
         {isSnapshotOpen && (
           <div className="mt-4">
-            <div className="space-y-2 max-h-[184px] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[184px] overflow-y-auto p-1">
               {forecastData?.locations?.map(loc => (
                 <div
                   key={loc.id}
