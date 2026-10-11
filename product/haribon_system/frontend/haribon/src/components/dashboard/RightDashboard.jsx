@@ -1,6 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RiskIcon } from '../RiskIcon';
+import { FiMinus, FiPlus } from 'react-icons/fi';
+import RiskIcon from '../RiskIcon';
+import { getRiskStyle } from '../riskStyles';
+
+const BFAR_BULLETIN_URL = 'https://www.bfar.da.gov.ph/red-tide-archives/';
 
 export default function RightDashboard({ forecastData, selectedLocation }) {
   const [isSnapshotOpen, setIsSnapshotOpen] = React.useState(false);
@@ -8,23 +12,19 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
 
   if (!selectedLocation) {
     return (
-      <div className="h-full flex items-center justify-center text-gray-400">
+      <div className="h-full flex items-center justify-center text-gray-600">
         <p>Select a location from the map or list</p>
       </div>
     );
   }
 
-  const getRiskBgColor = (color) => {
-    switch (color) {
-      case 'red': return 'bg-[#E74C3C]';
-      case 'orange': return 'bg-[#E67E22]';
-      case 'yellow': return 'bg-[#F1C40F]';
-      case 'green': return 'bg-[#2ECC71]';
-      default: return 'bg-gray-400';
-    }
-  };
-
-  const todayStr = new Date().toISOString().split('T')[0];
+  const riskStyle = getRiskStyle(selectedLocation.risk_color);
+  const metadata = forecastData?.metadata || {};
+  const todayStr = metadata.forecast_date || new Date().toLocaleDateString('en-CA');
+  const lastUpdated = metadata.last_updated ? new Date(metadata.last_updated) : null;
+  const lastUpdatedStr = lastUpdated && !Number.isNaN(lastUpdated.getTime())
+    ? lastUpdated.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : null;
 
   const environmentalData = selectedLocation.environmental_data || {};
   const recommendationItems = selectedLocation?.today_forecast?.recommendations || [];
@@ -47,14 +47,21 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
 
   return (
     <div className="h-full font-quicksand flex flex-col gap-4">
-      <div className="rounded-xl border border-gray-100 bg-[#F3F4F6] p-5 sm:p-5.5 shadow-sm">
+      <div className="rounded-xl border border-gray-100 bg-[#F3F4F6] p-5 shadow-sm ring-2 ring-[#3F6D72]">
       {/* Location Header */}
-      <div className="mb-3 flex justify-between items-start">
+      <div className="mb-3 flex justify-between items-start gap-3">
         <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-[#3F6D72] mb-0.5">Selected bay</p>
           <h2 className="text-xl font-bold text-gray-900 leading-tight mb-1">{selectedLocation.name}</h2>
-          <p className="text-sm text-gray-500 font-medium">{todayStr}</p>
+          <p className="text-sm text-gray-600 font-medium">Forecast for {todayStr}</p>
+          {lastUpdatedStr && (
+            <p className="text-xs text-gray-600 mt-0.5">Updated {lastUpdatedStr}</p>
+          )}
         </div>
-        <div className={`px-4 py-2 rounded-xl text-white text-[13px] font-bold shadow-sm flex items-center gap-2 ${getRiskBgColor(selectedLocation.risk_color)}`}>
+        <div
+          className="px-3 py-1.5 rounded-xl border text-[13px] font-bold flex items-center gap-1.5 shrink-0"
+          style={{ backgroundColor: riskStyle.tint, color: riskStyle.ink, borderColor: riskStyle.border }}
+        >
           <RiskIcon riskColor={selectedLocation.risk_color} size={18} />
           <span>{selectedLocation.risk_level}</span>
         </div>
@@ -152,12 +159,12 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
           </div>
           <div className="mt-3">
             <a
-              href="https://www.bfar.da.gov.ph/?s=Shellfish+Bulletin"
+              href={BFAR_BULLETIN_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 bg-[#3F6D72] hover:bg-[#32575B] text-white text-xs font-bold rounded-xl shadow-sm transition-colors duration-150 group"
             >
-              <span>View Advisories</span>
+              <span>View BFAR Shellfish Bulletins</span>
               <svg
                 className="w-3.5 h-3.5 opacity-80 group-hover:opacity-100 transition-opacity"
                 fill="none"
@@ -167,6 +174,9 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
               </svg>
             </a>
+            <p className="mt-2 text-[11px] text-gray-600 text-center">
+              Forecasts support awareness only. Always follow official BFAR and local advisories.
+            </p>
           </div>
         </div>
       </div>
@@ -176,12 +186,14 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
         <div className="flex justify-between items-center">
           <h3 className="text-sm font-bold text-gray-800">Today's Snapshot</h3>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-400">{todayStr}</span>
+            <span className="text-xs text-gray-600">{todayStr}</span>
             <button
               type="button"
               onClick={() => setIsSnapshotOpen((open) => !open)}
-              className="text-xs font-semibold text-gray-600 hover:text-gray-800 transition-colors"
+              aria-expanded={isSnapshotOpen}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-gray-700 hover:text-gray-900 transition-colors"
             >
+              {isSnapshotOpen ? <FiMinus aria-hidden="true" /> : <FiPlus aria-hidden="true" />}
               {isSnapshotOpen ? 'Hide' : 'Show'}
             </button>
           </div>
@@ -191,13 +203,17 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
           <div className="mt-4">
             <div className="space-y-2 max-h-[184px] overflow-y-auto pr-1">
               {forecastData?.locations?.map(loc => (
-                <div key={loc.id} className="bg-[#F8F9FA] rounded-lg p-3 flex justify-between items-center border border-transparent hover:border-gray-200 transition-colors">
-                  <span className="text-xs font-medium text-gray-600">{loc.name}</span>
-                  <span className={`text-[11px] font-bold flex items-center gap-1.5 ${
-                    loc.risk_color === 'red' ? 'text-red-500' :
-                    loc.risk_color === 'orange' ? 'text-orange-500' :
-                    loc.risk_color === 'yellow' ? 'text-yellow-500' : 'text-green-500'
-                  }`}>
+                <div
+                  key={loc.id}
+                  className={`bg-[#F8F9FA] rounded-lg p-3 flex justify-between items-center border transition-colors ${
+                    loc.id === selectedLocation.id ? 'border-transparent ring-2 ring-[#3F6D72]' : 'border-transparent hover:border-gray-200'
+                  }`}
+                >
+                  <span className="text-xs font-medium text-gray-700">{loc.name}</span>
+                  <span
+                    className="text-[11px] font-bold flex items-center gap-1.5"
+                    style={{ color: getRiskStyle(loc.risk_color).ink }}
+                  >
                     <RiskIcon riskColor={loc.risk_color} size={14} />
                     <span>{loc.risk_level}</span>
                   </span>
@@ -267,60 +283,45 @@ function MetricItem({ label, value, unit, isFullWidth }) {
         isFullWidth ? 'col-span-2' : ''
       }`}
     >
-      <span className="text-[11px] text-gray-500 font-semibold leading-snug">
+      <span className="text-[11px] text-gray-600 font-semibold leading-snug">
         {label}
       </span>
       <div className="flex items-baseline gap-1 mt-1 text-left">
         <span className="text-lg font-bold text-gray-900 tracking-tight leading-none">{value}</span>
-        {unit && <span className="text-[11px] font-semibold text-gray-400">{unit}</span>}
+        {unit && <span className="text-[11px] font-semibold text-gray-600">{unit}</span>}
       </div>
     </div>
   );
 }
 
+const RISK_MEANINGS = {
+  red: 'High chance of a harmful algal bloom. Avoid harvesting, selling, or eating shellfish from this area.',
+  orange: 'Elevated chance of a bloom. Hold off on non-urgent harvesting and check the latest BFAR bulletin first.',
+  yellow: 'Some bloom indicators are present. Harvest with caution and check for updates daily.',
+  green: 'Conditions do not point to a bloom. Continue routine monitoring and follow any official advisory.',
+};
+
+function getConfidenceExplanation(confidence) {
+  const val = parseFloat(confidence);
+  if (Number.isNaN(val)) {
+    return 'Confidence is not available for this forecast. Treat the risk level as a rough guide.';
+  }
+  if (val >= 75) {
+    return 'The model is fairly sure of this risk level. Conditions can still change, so check before harvesting.';
+  }
+  if (val >= 60) {
+    return 'The model is moderately sure. The risk level could shift, so check again before large harvests.';
+  }
+  return 'The model is unsure about this risk level. Rely more on local observations and official advisories.';
+}
+
 function HarvestSafetyNotice({ location }) {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = React.useState(true);
 
   if (!location) return null;
 
-  const getRiskExplanation = (riskColor) => {
-    switch (riskColor) {
-      case 'red':
-        return {
-          meaning: 'Severe bloom conditions detected. Shellfish harvesting and consumption are strictly unsafe.',
-          badgeColor: 'text-red-700 bg-red-50 border-red-200',
-        };
-      case 'orange':
-        return {
-          meaning: 'Elevated bloom threat. Delay non-urgent harvesting and verify local BFAR advisories.',
-          badgeColor: 'text-amber-800 bg-amber-50 border-amber-200',
-        };
-      case 'yellow':
-        return {
-          meaning: 'Mild bloom markers observed. Harvesting is viable with caution—continue checking daily updates.',
-          badgeColor: 'text-yellow-800 bg-yellow-50 border-yellow-200',
-        };
-      case 'green':
-      default:
-        return {
-          meaning: 'Clean ocean conditions. Optimum window for safe shellfish harvesting and coastal activities.',
-          badgeColor: 'text-emerald-800 bg-emerald-50 border-emerald-200',
-        };
-    }
-  };
-
-  const getConfidenceExplanation = (confidenceStr) => {
-    const val = parseFloat(confidenceStr) || 75;
-    if (val >= 75) {
-      return 'High model certainty from sea sensors and satellite data. Dependable for scheduling harvest activities.';
-    }
-    if (val >= 60) {
-      return 'Moderate model certainty. Weather or marine shifts may alter risk—verify before making large harvest commitments.';
-    }
-    return 'Developing certainty due to shifting oceanic variables. Re-verify daily with local observations.';
-  };
-
-  const riskInfo = getRiskExplanation(location.risk_color);
+  const riskStyle = getRiskStyle(location.risk_color);
+  const riskMeaning = RISK_MEANINGS[location.risk_color] || 'Risk level is not available for this area.';
   const confidenceInfo = getConfidenceExplanation(location.confidence);
 
   return (
@@ -331,46 +332,31 @@ function HarvestSafetyNotice({ location }) {
         className="w-full px-3.5 py-2.5 flex items-center justify-between gap-2.5 hover:bg-gray-50/80 transition-colors text-left"
         aria-expanded={isOpen}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-5 h-5 rounded-full bg-[#3F6D72]/10 text-[#3F6D72] flex items-center justify-center shrink-0">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <span className="text-xs sm:text-[13px] font-semibold text-gray-800 truncate">
-            Harvest Timing & Confidence Guide
-          </span>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border flex items-center gap-1.5 ${riskInfo.badgeColor}`}>
-            <RiskIcon riskColor={location.risk_color} size={14} />
-            <span>{location.confidence || 'Forecast'}</span>
-          </span>
-          <svg
-            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
+        <span className="text-xs sm:text-[13px] font-semibold text-gray-800 truncate">
+          What this forecast means
+        </span>
+        <span className="flex items-center gap-1 text-xs font-semibold text-gray-700 shrink-0">
+          {isOpen ? <FiMinus aria-hidden="true" /> : <FiPlus aria-hidden="true" />}
+          {isOpen ? 'Hide' : 'Show'}
+        </span>
       </button>
 
       {isOpen && (
         <div className="px-3.5 pb-3.5 pt-2 text-xs sm:text-[13px] text-gray-700 border-t border-gray-100 bg-[#F9FAFB]/80 space-y-2.5">
           <div className="flex items-start gap-3">
-            <span className="w-32 sm:w-36 shrink-0 font-semibold text-gray-900 flex items-center gap-1.5">
+            <span className="w-32 sm:w-36 shrink-0 font-semibold flex items-center gap-1.5" style={{ color: riskStyle.ink }}>
               <RiskIcon riskColor={location.risk_color} size={16} />
-              <span>{location.risk_level || 'Risk Level'}:</span>
+              <span>{location.risk_level || 'Risk level'}</span>
             </span>
-            <span className="text-gray-600 leading-relaxed">{riskInfo.meaning}</span>
+            <span className="text-gray-700 leading-relaxed">
+              For {location.name}: {riskMeaning}
+            </span>
           </div>
           <div className="flex items-start gap-3">
             <span className="w-32 sm:w-36 shrink-0 font-semibold text-gray-900">
-              Confidence ({location.confidence || 'N/A'}):
+              {location.confidence || 'N/A'} confidence
             </span>
-            <span className="text-gray-600 leading-relaxed">{confidenceInfo}</span>
+            <span className="text-gray-700 leading-relaxed">{confidenceInfo}</span>
           </div>
         </div>
       )}

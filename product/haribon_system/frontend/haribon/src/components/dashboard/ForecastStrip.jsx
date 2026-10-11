@@ -2,6 +2,8 @@ import React from 'react';
 import { FiRefreshCw } from 'react-icons/fi';
 import { FiChevronLeft } from 'react-icons/fi';
 import { FiChevronRight } from 'react-icons/fi';
+import RiskIcon from '../RiskIcon';
+import { getRiskStyle } from '../riskStyles';
 
 export default function ForecastStrip({ forecastData, selectedLocation, onRefresh }) {
   const [refreshing, setRefreshing] = React.useState(false);
@@ -36,6 +38,7 @@ export default function ForecastStrip({ forecastData, selectedLocation, onRefres
     || outlook[0]?.is_historical === true;
   const visibleCount = isMobileView ? outlook.length : 5;
   const maxStartIndex = Math.max(0, outlook.length - visibleCount);
+  const todayIndex = Math.max(0, outlook.findIndex((day) => day.label === 'Today' || day.day === 'Today'));
   const visibleOutlook = isMobileView
     ? outlook
     : outlook.slice(startIndex, startIndex + visibleCount);
@@ -89,13 +92,13 @@ export default function ForecastStrip({ forecastData, selectedLocation, onRefres
       </div>
 
       <div className="relative">
-        <div className="flex gap-3 overflow-x-auto pb-1 pr-1 snap-x snap-mandatory md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 md:gap-4 md:overflow-visible">
+        <div className="flex gap-3 overflow-x-auto p-1 md:p-0 snap-x snap-mandatory md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 md:gap-4 md:overflow-visible">
           {visibleOutlook.map((day, index) => (
             <div key={`${day.date || 'forecast'}-${startIndex + index}`} className="w-[230px] shrink-0 snap-start md:w-auto md:shrink md:snap-none">
               <ForecastCard
               data={day}
               locationName={selectedLocation.name}
-              isSelected={startIndex + index === 0}
+              isSelected={(isMobileView ? index : startIndex + index) === todayIndex}
               />
             </div>
           ))}
@@ -124,16 +127,6 @@ export default function ForecastStrip({ forecastData, selectedLocation, onRefres
 }
 
 function ForecastCard({ data, locationName, isSelected }) {
-  const getRiskColor = (color) => {
-    switch (color) {
-      case 'green': return 'text-[#2ECC71]'; // Haribon Green
-      case 'yellow': return 'text-[#F1C40F]'; // Haribon Yellow
-      case 'orange': return 'text-[#E67E22]'; // Haribon Orange
-      case 'red': return 'text-[#E74C3C]'; // Haribon Red
-      default: return 'text-gray-400';
-    }
-  };
-
   const getRiskAction = (color) => {
     switch (color) {
       case 'red':
@@ -154,24 +147,37 @@ function ForecastCard({ data, locationName, isSelected }) {
   const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
   return (
-    <div className="bg-[#F3F4F6] rounded-2xl p-5 flex flex-col justify-between h-[160px] cursor-default transition-all duration-200 border border-gray-200/80">
-      <div className="flex justify-between items-start">
+    <div
+      className={`rounded-2xl p-5 flex flex-col justify-between h-[160px] cursor-default transition-all duration-200 border ${
+        isSelected ? 'bg-white border-transparent ring-2 ring-[#3F6D72]' : 'bg-[#F3F4F6] border-gray-200/80'
+      }`}
+    >
+      <div className="flex justify-between items-start gap-2">
         <div>
           <h3 className="font-bold text-gray-800 text-base mb-1">{formattedDate}</h3>
-          <p className="text-gray-500 text-xs font-medium">{locationName}</p>
+          <p className="text-gray-600 text-xs font-medium">{locationName}</p>
         </div>
+        {isSelected && (
+          <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-[#3F6D72] rounded-full px-2 py-0.5">
+            Today
+          </span>
+        )}
       </div>
 
       <div className="flex justify-between items-end mt-4">
         <div>
           <div className="text-2xl font-bold text-gray-800 mb-0.5">{data.confidence}</div>
-          <div className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold">confidence level</div>
+          <div className="text-[10px] text-gray-600 uppercase tracking-wide font-semibold">confidence level</div>
         </div>
         <div className="text-right">
-          <div className={`font-bold text-sm mb-0.5 ${getRiskColor(data.risk_color)}`}>
+          <div
+            className="font-bold text-sm mb-0.5 flex items-center justify-end gap-1"
+            style={{ color: getRiskStyle(data.risk_color).ink }}
+          >
+            <RiskIcon riskColor={data.risk_color} size={14} />
             {data.risk_level}
           </div>
-           <div className="text-[10px] font-bold text-[#3C6468] opacity-80">
+           <div className="text-[10px] font-bold text-[#3C6468]">
              {getRiskAction(data.risk_color)}
           </div>
         </div>
