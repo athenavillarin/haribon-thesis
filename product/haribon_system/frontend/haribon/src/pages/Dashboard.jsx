@@ -5,11 +5,16 @@ import RightDashboard from '../components/dashboard/RightDashboard';
 import ForecastStrip from '../components/dashboard/ForecastStrip';
 import ForecastStatusBanner from '../components/ForecastStatusBanner';
 import useLatestForecast from '../hooks/useLatestForecast';
+import { getTodayDate } from '../components/dashboard/forecastDay';
 
 export default function Dashboard() {
   const forecast = useLatestForecast();
   const { data: forecastData, loading, slow, error, refresh } = forecast;
   const { selectedLocation, setSelectedLocation } = useAppLocation();
+  const [selectedDate, setSelectedDate] = React.useState(null);
+
+  const outlookDates = (selectedLocation?.five_day_outlook || []).map((day) => day.date);
+  const activeDate = outlookDates.includes(selectedDate) ? selectedDate : getTodayDate(selectedLocation);
 
   if (!forecastData && loading) {
     return (
@@ -47,8 +52,9 @@ export default function Dashboard() {
         {/* Forecast Strip - spans both columns */}
         <div className="lg:col-span-2 mt-0 lg:-mt-2 mb-1">
           <ForecastStrip
-            forecastData={forecastData}
             selectedLocation={selectedLocation}
+            selectedDate={activeDate}
+            onSelectDate={setSelectedDate}
             onRefresh={refresh}
           />
         </div>
@@ -58,6 +64,7 @@ export default function Dashboard() {
           <MapSection
             forecastData={forecastData}
             selectedLocation={selectedLocation}
+            selectedDate={activeDate}
             onLocationSelect={setSelectedLocation}
           />
         </div>
@@ -67,6 +74,7 @@ export default function Dashboard() {
           <RightDashboard
             forecastData={forecastData}
             selectedLocation={selectedLocation}
+            selectedDate={activeDate}
           />
         </div>
       </div>

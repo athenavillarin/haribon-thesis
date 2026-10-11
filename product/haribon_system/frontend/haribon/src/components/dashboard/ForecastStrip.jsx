@@ -5,7 +5,7 @@ import { FiChevronRight } from 'react-icons/fi';
 import RiskIcon from '../RiskIcon';
 import { getRiskStyle } from '../riskStyles';
 
-export default function ForecastStrip({ forecastData, selectedLocation, onRefresh }) {
+export default function ForecastStrip({ selectedLocation, selectedDate, onSelectDate, onRefresh }) {
   const [refreshing, setRefreshing] = React.useState(false);
   const [startIndex, setStartIndex] = React.useState(0);
   const [isMobileView, setIsMobileView] = React.useState(() =>
@@ -38,7 +38,6 @@ export default function ForecastStrip({ forecastData, selectedLocation, onRefres
     || outlook[0]?.is_historical === true;
   const visibleCount = isMobileView ? outlook.length : 5;
   const maxStartIndex = Math.max(0, outlook.length - visibleCount);
-  const todayIndex = Math.max(0, outlook.findIndex((day) => day.label === 'Today' || day.day === 'Today'));
   const visibleOutlook = isMobileView
     ? outlook
     : outlook.slice(startIndex, startIndex + visibleCount);
@@ -98,7 +97,8 @@ export default function ForecastStrip({ forecastData, selectedLocation, onRefres
               <ForecastCard
               data={day}
               locationName={selectedLocation.name}
-              isSelected={(isMobileView ? index : startIndex + index) === todayIndex}
+              isSelected={day.date === selectedDate}
+              onSelect={() => onSelectDate(day.date)}
               />
             </div>
           ))}
@@ -126,7 +126,7 @@ export default function ForecastStrip({ forecastData, selectedLocation, onRefres
   );
 }
 
-function ForecastCard({ data, locationName, isSelected }) {
+function ForecastCard({ data, locationName, isSelected, onSelect }) {
   const getRiskAction = (color) => {
     switch (color) {
       case 'red':
@@ -146,10 +146,17 @@ function ForecastCard({ data, locationName, isSelected }) {
   const dateObj = new Date(data.date);
   const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
+  const dayTag = data.label === 'Today' || data.day === 'Today'
+    ? 'Today'
+    : (data.label === 'Yesterday' || data.day === 'Yesterday' ? 'Yesterday' : null);
+
   return (
-    <div
-      className={`rounded-2xl p-5 flex flex-col justify-between h-[160px] cursor-default transition-all duration-200 border ${
-        isSelected ? 'bg-white border-transparent ring-2 ring-[#3F6D72]' : 'bg-[#F3F4F6] border-gray-200/80'
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={isSelected}
+      className={`w-full text-left rounded-2xl p-5 flex flex-col justify-between h-[160px] cursor-pointer transition-all duration-200 border focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3F6D72]/60 ${
+        isSelected ? 'bg-white border-transparent ring-2 ring-[#3F6D72]' : 'bg-[#F3F4F6] border-gray-200/80 hover:border-gray-300 hover:bg-white/70'
       }`}
     >
       <div className="flex justify-between items-start gap-2">
@@ -157,9 +164,13 @@ function ForecastCard({ data, locationName, isSelected }) {
           <h3 className="font-bold text-gray-800 text-base mb-1">{formattedDate}</h3>
           <p className="text-gray-600 text-xs font-medium">{locationName}</p>
         </div>
-        {isSelected && (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-[#3F6D72] rounded-full px-2 py-0.5">
-            Today
+        {dayTag && (
+          <span
+            className={`text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 ${
+              isSelected ? 'text-white bg-[#3F6D72]' : 'text-[#3F6D72] bg-[#3F6D72]/10'
+            }`}
+          >
+            {dayTag}
           </span>
         )}
       </div>
@@ -182,6 +193,6 @@ function ForecastCard({ data, locationName, isSelected }) {
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 }

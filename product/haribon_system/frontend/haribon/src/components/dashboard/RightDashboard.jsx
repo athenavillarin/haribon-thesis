@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { FiMinus, FiPlus } from 'react-icons/fi';
 import RiskIcon from '../RiskIcon';
 import { getRiskStyle } from '../riskStyles';
+import { getDayForecast, formatDayLabel } from './forecastDay';
 
 const BFAR_BULLETIN_URL = 'https://www.bfar.da.gov.ph/shellfish-bulletin-no-02-2022/';
 
-export default function RightDashboard({ forecastData, selectedLocation }) {
+export default function RightDashboard({ forecastData, selectedLocation, selectedDate }) {
   const [isSnapshotOpen, setIsSnapshotOpen] = React.useState(false);
   const navigate = useNavigate();
 
@@ -18,16 +19,18 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
     );
   }
 
-  const riskStyle = getRiskStyle(selectedLocation.risk_color);
+  const day = getDayForecast(selectedLocation, selectedDate);
+  const riskStyle = getRiskStyle(day.risk_color);
   const metadata = forecastData?.metadata || {};
   const todayStr = metadata.forecast_date || new Date().toLocaleDateString('en-CA');
+  const dayStr = day.isToday ? todayStr : day.date;
   const lastUpdated = metadata.last_updated ? new Date(metadata.last_updated) : null;
   const lastUpdatedStr = lastUpdated && !Number.isNaN(lastUpdated.getTime())
     ? lastUpdated.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
     : null;
 
   const environmentalData = selectedLocation.environmental_data || {};
-  const recommendationItems = selectedLocation?.today_forecast?.recommendations || [];
+  const recommendationItems = day.isToday ? selectedLocation?.today_forecast?.recommendations || [] : [];
 
   const conditionItems = Object.entries(environmentalData).map(([key, value]) =>
     parseMetricParam(key, value)
@@ -53,7 +56,7 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-[#3F6D72] mb-0.5">Selected bay</p>
           <h2 className="text-xl font-bold text-gray-900 leading-tight mb-1">{selectedLocation.name}</h2>
-          <p className="text-sm text-gray-600 font-medium">Forecast for {todayStr}</p>
+          <p className="text-sm text-gray-600 font-medium">Forecast for {day.isToday ? `today, ${dayStr}` : formatDayLabel(dayStr)}</p>
           {lastUpdatedStr && (
             <p className="text-xs text-gray-600 mt-0.5">Updated {lastUpdatedStr}</p>
           )}
@@ -62,19 +65,24 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
           className="px-3 py-1.5 rounded-xl border text-[13px] font-bold flex items-center gap-1.5 shrink-0"
           style={{ backgroundColor: riskStyle.tint, color: riskStyle.ink, borderColor: riskStyle.border }}
         >
-          <RiskIcon riskColor={selectedLocation.risk_color} size={18} />
-          <span>{selectedLocation.risk_level}</span>
+          <RiskIcon riskColor={day.risk_color} size={18} />
+          <span>{day.risk_level}</span>
         </div>
       </div>
 
       {/* Collapsible Harvest Timing & Confidence Note */}
-      <HarvestSafetyNotice location={selectedLocation} />
+      <HarvestSafetyNotice location={selectedLocation} day={day} />
 
       <hr className="border-gray-100 mb-3" />
 
       {/* Conditions Grid */}
       <div className="mb-8">
-        <h3 className="text-sm font-bold text-gray-800 mb-3">Current Conditions</h3>
+        <h3 className="text-sm font-bold text-gray-800 mb-1">Current Conditions</h3>
+        <p className="text-[11px] text-gray-600 mb-3">
+          {day.isToday
+            ? `Latest readings for ${todayStr}.`
+            : `Today's readings. Conditions are not forecast for ${formatDayLabel(dayStr)}.`}
+        </p>
         <div className="grid grid-cols-2 gap-2.5">
             {conditionItems.map((item, idx) => (
               <MetricItem
@@ -101,7 +109,7 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
             ))}
             {recommendationItems.length === 0 && (
               <>
-                {selectedLocation.risk_color === 'red' && (
+                {day.risk_color === 'red' && (
                     <>
                     <li className="text-xs text-gray-600 flex gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
@@ -117,7 +125,7 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
                     </li>
                     </>
                 )}
-                 {selectedLocation.risk_color === 'green' && (
+                 {day.risk_color === 'green' && (
                     <>
                     <li className="text-xs text-gray-600 flex gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
@@ -129,7 +137,7 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
                     </li>
                     </>
                 )}
-                   {selectedLocation.risk_color === 'orange' && (
+                   {day.risk_color === 'orange' && (
                     <>
                     <li className="text-xs text-gray-600 flex gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
@@ -141,7 +149,7 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
                     </li>
                     </>
                 )}
-                   {selectedLocation.risk_color === 'yellow' && (
+                   {day.risk_color === 'yellow' && (
                     <>
                     <li className="text-xs text-gray-600 flex gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
@@ -184,9 +192,9 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
       {/* Snapshot List */}
       <div className="rounded-xl border border-gray-100 bg-[#F3F4F6] p-4 shadow-sm">
         <div className="flex justify-between items-center">
-          <h3 className="text-sm font-bold text-gray-800">Today's Snapshot</h3>
+          <h3 className="text-sm font-bold text-gray-800">{day.isToday ? "Today's Snapshot" : 'Snapshot'}</h3>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-600">{todayStr}</span>
+            <span className="text-xs text-gray-600">{day.isToday ? dayStr : formatDayLabel(dayStr)}</span>
             <button
               type="button"
               onClick={() => setIsSnapshotOpen((open) => !open)}
@@ -202,23 +210,26 @@ export default function RightDashboard({ forecastData, selectedLocation }) {
         {isSnapshotOpen && (
           <div className="mt-4">
             <div className="space-y-2 max-h-[184px] overflow-y-auto p-1">
-              {forecastData?.locations?.map(loc => (
-                <div
-                  key={loc.id}
-                  className={`bg-[#F8F9FA] rounded-lg p-3 flex justify-between items-center border transition-colors ${
-                    loc.id === selectedLocation.id ? 'border-transparent ring-2 ring-[#3F6D72]' : 'border-transparent hover:border-gray-200'
-                  }`}
-                >
-                  <span className="text-xs font-medium text-gray-700">{loc.name}</span>
-                  <span
-                    className="text-[11px] font-bold flex items-center gap-1.5"
-                    style={{ color: getRiskStyle(loc.risk_color).ink }}
+              {forecastData?.locations?.map(loc => {
+                const locDay = getDayForecast(loc, selectedDate);
+                return (
+                  <div
+                    key={loc.id}
+                    className={`bg-[#F8F9FA] rounded-lg p-3 flex justify-between items-center border transition-colors ${
+                      loc.id === selectedLocation.id ? 'border-transparent ring-2 ring-[#3F6D72]' : 'border-transparent hover:border-gray-200'
+                    }`}
                   >
-                    <RiskIcon riskColor={loc.risk_color} size={14} />
-                    <span>{loc.risk_level}</span>
-                  </span>
-                </div>
-              ))}
+                    <span className="text-xs font-medium text-gray-700">{loc.name}</span>
+                    <span
+                      className="text-[11px] font-bold flex items-center gap-1.5"
+                      style={{ color: getRiskStyle(locDay.risk_color).ink }}
+                    >
+                      <RiskIcon riskColor={locDay.risk_color} size={14} />
+                      <span>{locDay.risk_level}</span>
+                    </span>
+                  </div>
+                );
+              })}
             </div>
             <div className="pt-2 text-right">
               <button
@@ -315,14 +326,15 @@ function getConfidenceExplanation(confidence) {
   return 'The model is unsure about this risk level. Rely more on local observations and official advisories.';
 }
 
-function HarvestSafetyNotice({ location }) {
+function HarvestSafetyNotice({ location, day }) {
   const [isOpen, setIsOpen] = React.useState(true);
 
   if (!location) return null;
 
-  const riskStyle = getRiskStyle(location.risk_color);
-  const riskMeaning = RISK_MEANINGS[location.risk_color] || 'Risk level is not available for this area.';
-  const confidenceInfo = getConfidenceExplanation(location.confidence);
+  const riskStyle = getRiskStyle(day.risk_color);
+  const riskMeaning = RISK_MEANINGS[day.risk_color] || 'Risk level is not available for this area.';
+  const confidenceInfo = getConfidenceExplanation(day.confidence);
+  const dayLabel = day.isToday ? 'today' : formatDayLabel(day.date);
 
   return (
     <div className="mb-3 rounded-xl border border-gray-200/90 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden transition-all duration-200">
@@ -345,16 +357,16 @@ function HarvestSafetyNotice({ location }) {
         <div className="px-3.5 pb-3.5 pt-2 text-xs sm:text-[13px] text-gray-700 border-t border-gray-100 bg-[#F9FAFB]/80 space-y-2.5">
           <div className="flex items-start gap-3">
             <span className="w-32 sm:w-36 shrink-0 font-semibold flex items-center gap-1.5" style={{ color: riskStyle.ink }}>
-              <RiskIcon riskColor={location.risk_color} size={16} />
-              <span>{location.risk_level || 'Risk level'}</span>
+              <RiskIcon riskColor={day.risk_color} size={16} />
+              <span>{day.risk_level || 'Risk level'}</span>
             </span>
             <span className="text-gray-700 leading-relaxed">
-              For {location.name}: {riskMeaning}
+              For {location.name}, {dayLabel}: {riskMeaning}
             </span>
           </div>
           <div className="flex items-start gap-3">
             <span className="w-32 sm:w-36 shrink-0 font-semibold text-gray-900">
-              {location.confidence || 'N/A'} confidence
+              {day.confidence || 'N/A'} confidence
             </span>
             <span className="text-gray-700 leading-relaxed">{confidenceInfo}</span>
           </div>

@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import RiskIcon from '../RiskIcon';
 import { getRiskSvgString, getRiskIconMarkup, getRiskStyle, SELECTED_ACCENT } from '../riskStyles';
+import { getDayForecast, formatDayLabel } from './forecastDay';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -11,28 +12,10 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-export default function MapSection({ forecastData, selectedLocation, onLocationSelect }) {
+export default function MapSection({ forecastData, selectedLocation, selectedDate, onLocationSelect }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersRef = useRef(new Map());
-
-  const getRiskMessage = (location) => {
-    const recs = location?.today_forecast?.recommendations || [];
-    if (recs.length > 0) {
-      return recs[0];
-    }
-
-    switch (location?.risk_color) {
-      case 'red':
-        return 'High algal activity detected. Monitor conditions closely and avoid harvesting or selling seafood.';
-      case 'orange':
-        return 'Elevated risk detected. Limit harvesting and monitor local advisories closely.';
-      case 'yellow':
-        return 'Mild risk detected. Harvest with caution and continue regular monitoring.';
-      default:
-        return 'Conditions are favorable. Continue routine monitoring.';
-    }
-  };
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -80,25 +63,11 @@ export default function MapSection({ forecastData, selectedLocation, onLocationS
 
     // Markers for each location
     forecastData.locations.forEach(location => {
-      const { ink, tint, border } = getRiskStyle(location.risk_color);
-
-      const popupHtml = `
-        <div class="haribon-hover-popup-card">
-          <p class="haribon-popup-overline">coastal waters of</p>
-          <h3 class="haribon-popup-title">${location.name}</h3>
-          <div class="haribon-popup-risk" style="background-color: ${tint}; color: ${ink}; border: 1px solid ${border}; display: inline-flex; align-items: center; gap: 6px; font-size: 13px;">
-            ${getRiskSvgString(location.risk_color, 16)}
-            <span>${location.risk_level}</span>
-          </div>
-          <p class="haribon-popup-message">${getRiskMessage(location)}</p>
-        </div>
-      `;
-
       const marker = L.marker([location.coordinates.lat, location.coordinates.lng], {
         icon: buildPinIcon(location.risk_color, false),
       })
         .addTo(map)
-        .bindTooltip(popupHtml, {
+        .bindTooltip('', {
           className: 'haribon-hover-popup',
           direction: 'bottom',
           offset: [0, 20],
@@ -126,16 +95,21 @@ export default function MapSection({ forecastData, selectedLocation, onLocationS
   useEffect(() => {
     markersRef.current.forEach(({ marker, location }, id) => {
       const isSelected = selectedLocation?.id === id;
-      marker.setIcon(buildPinIcon(location.risk_color, isSelected));
+      const day = getDayForecast(location, selectedDate);
+      marker.setIcon(buildPinIcon(day.risk_color, isSelected));
+      marker.setTooltipContent(buildPopupHtml(location, day));
       marker.setZIndexOffset(isSelected ? 1000 : 0);
     });
-  }, [forecastData, selectedLocation?.id]);
+  }, [forecastData, selectedLocation?.id, selectedDate]);
 
   return (
     <div className="h-full w-full relative">
       <div ref={mapRef} className="h-full w-full rounded-xl overflow-hidden" />
       <div className="hidden sm:block absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl p-3.5 shadow-lg border border-gray-100 z-[1000]">
-        <h3 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2.5">Risk Levels</h3>
+        <h3 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-0.5">Risk Levels</h3>
+        <p className="text-[11px] font-semibold text-[#3F6D72] mb-2.5">
+          {selectedLocation && getDayForecast(selectedLocation, selectedDate).isToday ? 'Today' : formatDayLabel(selectedDate)}
+        </p>
         <div className="space-y-2 text-[13px] font-semibold">
           <div className="flex items-center gap-2" style={{ color: getRiskStyle('green').ink }}>
             <RiskIcon riskColor="green" size={18} />
@@ -178,4 +152,39 @@ function buildPinIcon(riskColor, isSelected) {
     iconAnchor: [pinSize / 2, pinSize],
     popupAnchor: [0, 12]
   });
+}
+
+function getRiskMessage(location, day) {
+  const recs = day.isToday ? location?.today_forecast?.recommendations || [] : [];
+  if (recs.length > 0) {
+    return recs[0];
+  }
+
+  switch (day.risk_color) {
+    case 'red':
+      return 'High algal activity detected. Monitor conditions closely and avoid harvesting or selling seafood.';
+    case 'orange':
+      return 'Elevated risk detected. Limit harvesting and monitor local advisories closely.';
+    case 'yellow':
+      return 'Mild risk detected. Harvest with caution and continue regular monitoring.';
+    default:
+      return 'Conditions are favorable. Continue routine monitoring.';
+  }
+}
+
+function buildPopupHtml(location, day) {
+  const { ink, tint, border } = getRiskStyle(day.risk_color);
+  const dayLabel = day.isToday ? 'Today' : formatDayLabel(day.date);
+
+  return `
+    <div class="haribon-hover-popup-card">
+      <p class="haribon-popup-overline">coastal waters of</p>
+      <h3 class="haribon-popup-title">${location.name}</h3>
+      <div class="haribon-popup-risk" style="background-color: ${tint}; color: ${ink}; border: 1px solid ${border}; display: inline-flex; align-items: center; gap: 6px; font-size: 13px;">
+        ${getRiskSvgString(day.risk_color, 16)}
+        <span>${day.risk_level} · ${dayLabel}</span>
+      </div>
+      <p class="haribon-popup-message">${getRiskMessage(location, day)}</p>
+    </div>
+  `;
 }
