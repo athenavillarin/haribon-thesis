@@ -25,6 +25,7 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
+    allow_origin_regex=settings.ALLOWED_ORIGIN_REGEX or None,
     allow_credentials=False,
     allow_methods=["GET"],
     allow_headers=["*"],

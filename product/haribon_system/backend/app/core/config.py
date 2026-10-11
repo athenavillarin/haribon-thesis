@@ -88,6 +88,8 @@ class Settings(BaseSettings):
     DATABASE_URL: Optional[str] = None
     # CORS configuration
     ALLOWED_ORIGINS: str = "https://haribon-ph.vercel.app"
+    # Vercel preview deployments, e.g. haribon-thesis-git-<branch>-athenavillarin-3450s-projects.vercel.app
+    ALLOWED_ORIGIN_REGEX: Optional[str] = r"https://haribon-thesis-[a-z0-9-]+-athenavillarin-3450s-projects\.vercel\.app"
 
     class Config:
         env_file = str(Path(__file__).resolve().parent.parent.parent / ".env")
