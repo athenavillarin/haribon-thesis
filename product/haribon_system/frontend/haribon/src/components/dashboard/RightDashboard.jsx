@@ -107,9 +107,9 @@ export default function RightDashboard({ forecastData, selectedLocation, selecte
         </p>
       </div>
 
-      {/* Water conditions */}
+      {/* Current Conditions */}
       <CollapsibleSection
-        title="Water conditions"
+        title="Current Conditions"
         subtitle={day.isToday ? `Latest readings for ${todayStr}` : `Today's readings, not forecast for ${formatDayLabel(dayStr)}`}
       >
         <div className="grid grid-cols-2 gap-2">
