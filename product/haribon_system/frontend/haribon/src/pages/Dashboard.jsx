@@ -11,10 +11,6 @@ export default function Dashboard() {
   const { data: forecastData, loading, slow, error, refresh } = forecast;
   const { selectedLocation, setSelectedLocation } = useAppLocation();
 
-  const handleLocationSelect = (location) => {
-    setSelectedLocation(location);
-  };
-
   if (!forecastData && loading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -62,7 +58,7 @@ export default function Dashboard() {
           <MapSection
             forecastData={forecastData}
             selectedLocation={selectedLocation}
-            onLocationSelect={handleLocationSelect}
+            onLocationSelect={setSelectedLocation}
           />
         </div>
 
