@@ -1,8 +1,9 @@
 import axios from 'axios';
-import { MOCK_LATEST_FORECAST, MOCK_LOCATIONS, MOCK_HISTORICAL_DATA } from './mockData';
 
-// Set to false for live backend connection. Can be toggled with VITE_USE_MOCK_DATA=true.
+// Set VITE_USE_MOCK_DATA=true to use bundled sample data instead of the backend.
 export const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+// Loaded lazily so the sample data stays out of the production bundle.
+const loadMockData = () => import('./mockData');
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';  // Fallback for local dev
 
@@ -45,9 +46,7 @@ class ApiService {
   }
 
   getCachedForecast() {
-    if (USE_MOCK_DATA) {
-      return { data: MOCK_LATEST_FORECAST, savedAt: Date.now() };
-    }
+    if (USE_MOCK_DATA) return null;
     try {
       const raw = localStorage.getItem(FORECAST_STORAGE_KEY);
       return raw ? JSON.parse(raw) : null;
@@ -67,7 +66,7 @@ class ApiService {
 
   getLatestForecast({ force = false } = {}) {
     if (USE_MOCK_DATA) {
-      return Promise.resolve(MOCK_LATEST_FORECAST);
+      return loadMockData().then((mock) => mock.MOCK_LATEST_FORECAST);
     }
 
     const fresh = Date.now() - this.latest.fetchedAt < LATEST_TTL_MS;
@@ -92,7 +91,7 @@ class ApiService {
 
   async getLocations() {
     if (USE_MOCK_DATA) {
-      return MOCK_LOCATIONS;
+      return (await loadMockData()).MOCK_LOCATIONS;
     }
     try {
       return await this.getWithRetry('/api/forecast/locations');
@@ -104,6 +103,7 @@ class ApiService {
 
   async getLocationDetails(locationId) {
     if (USE_MOCK_DATA) {
+      const { MOCK_LATEST_FORECAST } = await loadMockData();
       const loc = MOCK_LATEST_FORECAST.locations.find(
         (l) => l.id === locationId || l.name.toLowerCase() === (locationId || '').toLowerCase()
       );
@@ -119,6 +119,7 @@ class ApiService {
 
   async getHistoricalData(locationId, options = {}) {
     if (USE_MOCK_DATA) {
+      const { MOCK_HISTORICAL_DATA } = await loadMockData();
       const normId = (locationId || 'all').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
       const isAll = normId === 'all' || !normId;
       const rawRows = isAll
