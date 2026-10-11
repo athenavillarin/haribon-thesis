@@ -47,7 +47,7 @@ export default function Dashboard() {
   return (
     <>
       <ForecastStatusBanner {...forecast} onRetry={refresh} className="mx-4 mt-2 sm:mx-6" />
-      <div className="px-4 pb-4 pt-1 sm:px-6 lg:p-6 lg:pb-4 lg:pr-5 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-x-6 gap-y-4 lg:gap-y-3 lg:items-stretch">
+      <div className="px-4 pb-4 pt-1 sm:px-6 lg:p-6 lg:pb-4 lg:pr-5 grid grid-cols-1 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_420px] gap-x-6 gap-y-4 lg:gap-y-3 lg:items-stretch">
         {/* Forecast Strip - spans both columns */}
         <div className="lg:col-span-2 mt-0 lg:-mt-2 mb-1">
           <ForecastStrip
