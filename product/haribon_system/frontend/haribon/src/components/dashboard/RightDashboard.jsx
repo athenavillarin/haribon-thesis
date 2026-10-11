@@ -30,7 +30,10 @@ export default function RightDashboard({ forecastData, selectedLocation, selecte
     : null;
 
   const environmentalData = selectedLocation.environmental_data || {};
-  const recommendationItems = day.isToday ? selectedLocation?.today_forecast?.recommendations || [] : [];
+  const backendRecommendations = day.isToday ? selectedLocation?.today_forecast?.recommendations || [] : [];
+  const recommendationItems = backendRecommendations.length > 0
+    ? backendRecommendations
+    : FALLBACK_RECOMMENDATIONS[day.risk_color] || [];
 
   const conditionItems = Object.entries(environmentalData).map(([key, value]) =>
     parseMetricParam(key, value)
@@ -70,123 +73,57 @@ export default function RightDashboard({ forecastData, selectedLocation, selecte
         </div>
       </div>
 
-      {/* Collapsible Harvest Timing & Confidence Note */}
-      <HarvestSafetyNotice location={selectedLocation} day={day} />
+      <ForecastSummary location={selectedLocation} day={day} />
 
-      <hr className="border-gray-100 mb-3" />
-
-      {/* Conditions Grid */}
-      <div className="mb-8">
-        <h3 className="text-sm font-bold text-gray-800 mb-1">Current Conditions</h3>
-        <p className="text-[11px] text-gray-600 mb-3">
-          {day.isToday
-            ? `Latest readings for ${todayStr}.`
-            : `Today's readings. Conditions are not forecast for ${formatDayLabel(dayStr)}.`}
+      {/* Before harvesting */}
+      <div className="mt-4">
+        <h3 className="text-sm font-bold text-gray-800 mb-2">Before harvesting</h3>
+        <ul className="space-y-1.5 mb-3">
+          {recommendationItems.map((text, idx) => (
+            <li key={`${selectedLocation.id || 'loc'}-rec-${idx}`} className="text-xs text-gray-700 flex gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-500 mt-1.5 shrink-0"></span>
+              {text}
+            </li>
+          ))}
+        </ul>
+        <a
+          href={BFAR_BULLETIN_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 bg-[#3F6D72] hover:bg-[#32575B] text-white text-xs font-bold rounded-xl shadow-sm transition-colors duration-150 group"
+        >
+          <span>View BFAR Shellfish Bulletins</span>
+          <svg
+            className="w-3.5 h-3.5 opacity-80 group-hover:opacity-100 transition-opacity"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+        <p className="mt-2 text-[11px] text-gray-600 text-center">
+          Forecasts support awareness only. Always follow official BFAR and local advisories.
         </p>
-        <div className="grid grid-cols-2 gap-2.5">
-            {conditionItems.map((item, idx) => (
-              <MetricItem
-                key={`${item.label}-${idx}`}
-                label={item.label}
-                value={item.value}
-                unit={item.unit}
-                isFullWidth={conditionItems.length % 2 === 1 && idx === conditionItems.length - 1}
-              />
-            ))}
-        </div>
       </div>
 
-      {/* Recommendations */}
-      <div>
-        <h3 className="text-sm font-bold text-gray-800 mb-3">Recommendations</h3>
-        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-            <ul className="space-y-2">
-            {recommendationItems.length > 0 && recommendationItems.map((text, idx) => (
-              <li key={`${selectedLocation.id || 'loc'}-rec-${idx}`} className="text-xs text-gray-600 flex gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
-                {text}
-              </li>
-            ))}
-            {recommendationItems.length === 0 && (
-              <>
-                {day.risk_color === 'red' && (
-                    <>
-                    <li className="text-xs text-gray-600 flex gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
-                        Severe algal activity detected in the area
-                    </li>
-                    <li className="text-xs text-gray-600 flex gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
-                        Stop harvesting and selling shellfish immediately
-                    </li>
-                    <li className="text-xs text-gray-600 flex gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
-                        Avoid swimming and fishing until risk decreases
-                    </li>
-                    </>
-                )}
-                 {day.risk_color === 'green' && (
-                    <>
-                    <li className="text-xs text-gray-600 flex gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
-                        Conditions are normal
-                    </li>
-                    <li className="text-xs text-gray-600 flex gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
-                        Safe for harvesting and recreational activities
-                    </li>
-                    </>
-                )}
-                   {day.risk_color === 'orange' && (
-                    <>
-                    <li className="text-xs text-gray-600 flex gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
-                       Elevated risk levels detected
-                    </li>
-                    <li className="text-xs text-gray-600 flex gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
-                       Limit harvesting and monitor local advisories closely
-                    </li>
-                    </>
-                )}
-                   {day.risk_color === 'yellow' && (
-                    <>
-                    <li className="text-xs text-gray-600 flex gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
-                       Mild risk detected
-                    </li>
-                    <li className="text-xs text-gray-600 flex gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
-                       Harvest with caution and continue regular monitoring
-                    </li>
-                    </>
-                  )}
-                  </>
-                  )}
-            </ul>
-          </div>
-          <div className="mt-3">
-            <a
-              href={BFAR_BULLETIN_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 bg-[#3F6D72] hover:bg-[#32575B] text-white text-xs font-bold rounded-xl shadow-sm transition-colors duration-150 group"
-            >
-              <span>View BFAR Shellfish Bulletins</span>
-              <svg
-                className="w-3.5 h-3.5 opacity-80 group-hover:opacity-100 transition-opacity"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-            <p className="mt-2 text-[11px] text-gray-600 text-center">
-              Forecasts support awareness only. Always follow official BFAR and local advisories.
-            </p>
-          </div>
+      {/* Water conditions */}
+      <CollapsibleSection
+        title="Water conditions"
+        subtitle={day.isToday ? `Latest readings for ${todayStr}` : `Today's readings, not forecast for ${formatDayLabel(dayStr)}`}
+      >
+        <div className="grid grid-cols-2 gap-2">
+          {conditionItems.map((item, idx) => (
+            <MetricItem
+              key={`${item.label}-${idx}`}
+              label={item.label}
+              value={item.value}
+              unit={item.unit}
+              isFullWidth={conditionItems.length % 2 === 1 && idx === conditionItems.length - 1}
+            />
+          ))}
         </div>
+      </CollapsibleSection>
       </div>
 
       {/* Snapshot List */}
@@ -305,6 +242,17 @@ function MetricItem({ label, value, unit, isFullWidth }) {
   );
 }
 
+const FALLBACK_RECOMMENDATIONS = {
+  red: [
+    'Severe algal activity detected in the area',
+    'Stop harvesting and selling shellfish immediately',
+    'Avoid swimming and fishing until risk decreases',
+  ],
+  orange: ['Elevated risk levels detected', 'Limit harvesting and monitor local advisories closely'],
+  yellow: ['Mild risk detected', 'Harvest with caution and continue regular monitoring'],
+  green: ['Conditions are normal', 'Safe for harvesting and recreational activities'],
+};
+
 const RISK_MEANINGS = {
   red: 'High chance of a harmful algal bloom. Avoid harvesting, selling, or eating shellfish from this area.',
   orange: 'Elevated chance of a bloom. Hold off on non-urgent harvesting and check the latest BFAR bulletin first.',
@@ -326,52 +274,44 @@ function getConfidenceExplanation(confidence) {
   return 'The model is unsure about this risk level. Rely more on local observations and official advisories.';
 }
 
-function HarvestSafetyNotice({ location, day }) {
-  const [isOpen, setIsOpen] = React.useState(true);
-
-  if (!location) return null;
-
-  const riskStyle = getRiskStyle(day.risk_color);
+function ForecastSummary({ location, day }) {
   const riskMeaning = RISK_MEANINGS[day.risk_color] || 'Risk level is not available for this area.';
-  const confidenceInfo = getConfidenceExplanation(day.confidence);
   const dayLabel = day.isToday ? 'today' : formatDayLabel(day.date);
 
   return (
-    <div className="mb-3 rounded-xl border border-gray-200/90 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.03)] overflow-hidden transition-all duration-200">
+    <div className="rounded-xl bg-white border border-gray-200/90 px-3.5 py-3 space-y-1.5">
+      <p className="text-[13px] text-gray-800 leading-relaxed">
+        <span className="font-semibold">For {location.name}, {dayLabel}:</span> {riskMeaning}
+      </p>
+      <p className="text-xs text-gray-600 leading-relaxed">
+        <span className="font-semibold text-gray-800">{day.confidence || 'N/A'} confidence.</span>{' '}
+        {getConfidenceExplanation(day.confidence)}
+      </p>
+    </div>
+  );
+}
+
+function CollapsibleSection({ title, subtitle, children }) {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  return (
+    <div className="mt-4 border-t border-gray-200 pt-3">
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="w-full px-3.5 py-2.5 flex items-center justify-between gap-2.5 hover:bg-gray-50/80 transition-colors text-left"
         aria-expanded={isOpen}
+        className="w-full flex items-center justify-between gap-3 text-left"
       >
-        <span className="text-xs sm:text-[13px] font-semibold text-gray-800 truncate">
-          What this forecast means
+        <span>
+          <span className="block text-sm font-bold text-gray-800">{title}</span>
+          {subtitle && <span className="block text-[11px] text-gray-600">{subtitle}</span>}
         </span>
         <span className="flex items-center gap-1 text-xs font-semibold text-gray-700 shrink-0">
           {isOpen ? <FiMinus aria-hidden="true" /> : <FiPlus aria-hidden="true" />}
           {isOpen ? 'Hide' : 'Show'}
         </span>
       </button>
-
-      {isOpen && (
-        <div className="px-3.5 pb-3.5 pt-2 text-xs sm:text-[13px] text-gray-700 border-t border-gray-100 bg-[#F9FAFB]/80 space-y-2.5">
-          <div className="flex items-start gap-3">
-            <span className="w-32 sm:w-36 shrink-0 font-semibold flex items-center gap-1.5" style={{ color: riskStyle.ink }}>
-              <RiskIcon riskColor={day.risk_color} size={16} />
-              <span>{day.risk_level || 'Risk level'}</span>
-            </span>
-            <span className="text-gray-700 leading-relaxed">
-              For {location.name}, {dayLabel}: {riskMeaning}
-            </span>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="w-32 sm:w-36 shrink-0 font-semibold text-gray-900">
-              {day.confidence || 'N/A'} confidence
-            </span>
-            <span className="text-gray-700 leading-relaxed">{confidenceInfo}</span>
-          </div>
-        </div>
-      )}
+      {isOpen && <div className="mt-3">{children}</div>}
     </div>
   );
 }
