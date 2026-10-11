@@ -4,7 +4,7 @@ import { FiMinus, FiPlus } from 'react-icons/fi';
 import RiskIcon from '../RiskIcon';
 import { getRiskStyle } from '../riskStyles';
 
-const BFAR_BULLETIN_URL = 'https://www.bfar.da.gov.ph/red-tide-archives/';
+const BFAR_BULLETIN_URL = 'https://www.bfar.da.gov.ph/shellfish-bulletin-no-02-2022/';
 
 export default function RightDashboard({ forecastData, selectedLocation }) {
   const [isSnapshotOpen, setIsSnapshotOpen] = React.useState(false);
