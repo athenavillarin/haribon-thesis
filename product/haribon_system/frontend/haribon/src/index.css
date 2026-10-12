@@ -20,6 +20,11 @@ body {
   box-shadow: none !important;
 }
 
+/* Decrease colors and visual noise in the map tiles so data markers pop */
+.leaflet-tile {
+  filter: saturate(0.35) contrast(0.92) brightness(1.05) !important;
+}
+
 .leaflet-top,
 .leaflet-bottom,
 .leaflet-pane,

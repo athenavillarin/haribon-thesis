@@ -5,15 +5,16 @@ import RightDashboard from '../components/dashboard/RightDashboard';
 import ForecastStrip from '../components/dashboard/ForecastStrip';
 import ForecastStatusBanner from '../components/ForecastStatusBanner';
 import useLatestForecast from '../hooks/useLatestForecast';
+import { getTodayDate } from '../components/dashboard/forecastDay';
 
 export default function Dashboard() {
   const forecast = useLatestForecast();
   const { data: forecastData, loading, slow, error, refresh } = forecast;
   const { selectedLocation, setSelectedLocation } = useAppLocation();
+  const [selectedDate, setSelectedDate] = React.useState(null);
 
-  const handleLocationSelect = (location) => {
-    setSelectedLocation(location);
-  };
+  const outlookDates = (selectedLocation?.five_day_outlook || []).map((day) => day.date);
+  const activeDate = outlookDates.includes(selectedDate) ? selectedDate : getTodayDate(selectedLocation);
 
   if (!forecastData && loading) {
     return (
@@ -47,12 +48,13 @@ export default function Dashboard() {
   return (
     <>
       <ForecastStatusBanner {...forecast} onRetry={refresh} className="mx-4 mt-2 sm:mx-6" />
-      <div className="px-4 pb-4 pt-1 sm:px-6 lg:p-6 lg:pb-4 lg:pr-5 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-x-6 gap-y-4 lg:gap-y-3 lg:items-stretch">
+      <div className="px-4 pb-4 pt-1 sm:px-6 lg:p-6 lg:pb-4 lg:pr-5 grid grid-cols-1 lg:grid-cols-[1fr_390px] xl:grid-cols-[1fr_420px] gap-x-6 gap-y-4 lg:gap-y-3 lg:items-stretch">
         {/* Forecast Strip - spans both columns */}
         <div className="lg:col-span-2 mt-0 lg:-mt-2 mb-1">
           <ForecastStrip
-            forecastData={forecastData}
             selectedLocation={selectedLocation}
+            selectedDate={activeDate}
+            onSelectDate={setSelectedDate}
             onRefresh={refresh}
           />
         </div>
@@ -62,7 +64,8 @@ export default function Dashboard() {
           <MapSection
             forecastData={forecastData}
             selectedLocation={selectedLocation}
-            onLocationSelect={handleLocationSelect}
+            selectedDate={activeDate}
+            onLocationSelect={setSelectedLocation}
           />
         </div>
 
@@ -71,6 +74,7 @@ export default function Dashboard() {
           <RightDashboard
             forecastData={forecastData}
             selectedLocation={selectedLocation}
+            selectedDate={activeDate}
           />
         </div>
       </div>

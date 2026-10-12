@@ -1,5 +1,10 @@
 import axios from 'axios';
 
+// Set VITE_USE_MOCK_DATA=true to use bundled sample data instead of the backend.
+export const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+// Loaded lazily so the sample data stays out of the production bundle.
+const loadMockData = () => import('./mockData');
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';  // Fallback for local dev
 
 const LATEST_TTL_MS = 10 * 60 * 1000;
@@ -24,6 +29,7 @@ class ApiService {
 
   // Render's free tier sleeps when idle; ping early so it starts waking up.
   warmUp() {
+    if (USE_MOCK_DATA) return;
     this.client.get('/health').catch(() => {});
   }
 
@@ -40,6 +46,7 @@ class ApiService {
   }
 
   getCachedForecast() {
+    if (USE_MOCK_DATA) return null;
     try {
       const raw = localStorage.getItem(FORECAST_STORAGE_KEY);
       return raw ? JSON.parse(raw) : null;
@@ -49,6 +56,7 @@ class ApiService {
   }
 
   saveCachedForecast(data) {
+    if (USE_MOCK_DATA) return;
     try {
       localStorage.setItem(FORECAST_STORAGE_KEY, JSON.stringify({ data, savedAt: Date.now() }));
     } catch {
@@ -57,6 +65,10 @@ class ApiService {
   }
 
   getLatestForecast({ force = false } = {}) {
+    if (USE_MOCK_DATA) {
+      return loadMockData().then((mock) => mock.MOCK_LATEST_FORECAST);
+    }
+
     const fresh = Date.now() - this.latest.fetchedAt < LATEST_TTL_MS;
     if (this.latest.promise && !force && fresh) {
       return this.latest.promise;
@@ -78,6 +90,9 @@ class ApiService {
   }
 
   async getLocations() {
+    if (USE_MOCK_DATA) {
+      return (await loadMockData()).MOCK_LOCATIONS;
+    }
     try {
       return await this.getWithRetry('/api/forecast/locations');
     } catch (error) {
@@ -87,6 +102,13 @@ class ApiService {
   }
 
   async getLocationDetails(locationId) {
+    if (USE_MOCK_DATA) {
+      const { MOCK_LATEST_FORECAST } = await loadMockData();
+      const loc = MOCK_LATEST_FORECAST.locations.find(
+        (l) => l.id === locationId || l.name.toLowerCase() === (locationId || '').toLowerCase()
+      );
+      return loc || MOCK_LATEST_FORECAST.locations[0];
+    }
     try {
       return await this.getWithRetry(`/api/forecast/location/${locationId}`);
     } catch (error) {
@@ -96,6 +118,31 @@ class ApiService {
   }
 
   async getHistoricalData(locationId, options = {}) {
+    if (USE_MOCK_DATA) {
+      const { MOCK_HISTORICAL_DATA } = await loadMockData();
+      const normId = (locationId || 'all').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+      const isAll = normId === 'all' || !normId;
+      const rawRows = isAll
+        ? MOCK_HISTORICAL_DATA.all
+        : (MOCK_HISTORICAL_DATA.byLocation[normId] || []);
+
+      let filtered = rawRows;
+      if (options.fromDate) {
+        const fromYm = options.fromDate.slice(0, 7);
+        filtered = filtered.filter((r) => r.label >= fromYm);
+      }
+      if (options.toDate) {
+        const toYm = options.toDate.slice(0, 7);
+        filtered = filtered.filter((r) => r.label <= toYm);
+      }
+
+      return {
+        location: isAll ? 'all' : locationId,
+        monthly_alerts: filtered,
+        timeline: [],
+        available_range: MOCK_HISTORICAL_DATA.available_range,
+      };
+    }
     try {
       const params = {};
       if (options.fromDate) params.from_date = options.fromDate;
