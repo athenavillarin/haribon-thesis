@@ -124,34 +124,36 @@ export default function MapSection({ forecastData, selectedLocation, selectedDat
   return (
     <div className="h-full w-full relative">
       <div ref={mapRef} className="h-full w-full rounded-xl overflow-hidden" />
-      <div className="absolute top-4 left-4 w-[min(320px,calc(100%-5rem))] z-[1001]">
-        <MapSearch
-          locations={forecastData?.locations}
-          selectedDate={selectedDate}
-          onSelect={handleSearchSelect}
-        />
-      </div>
-      <div className="hidden sm:block absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl p-3.5 shadow-lg border border-gray-100 z-[1000]">
-        <h3 className={`font-bold text-gray-800 text-xs uppercase tracking-wider ${isOtherDay ? 'mb-0.5' : 'mb-2.5'}`}>Risk Levels</h3>
-        {isOtherDay && (
-          <p className="text-[11px] font-semibold text-[#3F6D72] mb-2.5">{formatDayLabel(selectedDate)}</p>
-        )}
-        <div className="space-y-2 text-[13px] font-semibold">
-          <div className="flex items-center gap-2" style={{ color: getRiskStyle('green').ink }}>
-            <RiskIcon riskColor="green" size={18} />
-            <span className="text-gray-800 font-medium">Very Low Risk</span>
-          </div>
-          <div className="flex items-center gap-2" style={{ color: getRiskStyle('yellow').ink }}>
-            <RiskIcon riskColor="yellow" size={18} />
-            <span className="text-gray-800 font-medium">Low Risk</span>
-          </div>
-          <div className="flex items-center gap-2" style={{ color: getRiskStyle('orange').ink }}>
-            <RiskIcon riskColor="orange" size={18} />
-            <span className="text-gray-800 font-medium">Moderate Risk</span>
-          </div>
-          <div className="flex items-center gap-2" style={{ color: getRiskStyle('red').ink }}>
-            <RiskIcon riskColor="red" size={18} />
-            <span className="text-gray-800 font-medium">High Risk</span>
+      <div className="absolute top-4 left-4 w-[min(320px,calc(100%-5rem))] z-[1001] flex flex-col items-start gap-2">
+        <div className="w-full">
+          <MapSearch
+            locations={forecastData?.locations}
+            selectedDate={selectedDate}
+            onSelect={handleSearchSelect}
+          />
+        </div>
+        <div className="hidden sm:block bg-white/95 backdrop-blur-sm rounded-xl p-3.5 shadow-lg border border-gray-100">
+          <h3 className={`font-bold text-gray-800 text-xs uppercase tracking-wider ${isOtherDay ? 'mb-0.5' : 'mb-2.5'}`}>Risk Levels</h3>
+          {isOtherDay && (
+            <p className="text-[11px] font-semibold text-[#3F6D72] mb-2.5">{formatDayLabel(selectedDate)}</p>
+          )}
+          <div className="space-y-2 text-[13px] font-semibold">
+            <div className="flex items-center gap-2" style={{ color: getRiskStyle('green').ink }}>
+              <RiskIcon riskColor="green" size={18} />
+              <span className="text-gray-800 font-medium">Very Low Risk</span>
+            </div>
+            <div className="flex items-center gap-2" style={{ color: getRiskStyle('yellow').ink }}>
+              <RiskIcon riskColor="yellow" size={18} />
+              <span className="text-gray-800 font-medium">Low Risk</span>
+            </div>
+            <div className="flex items-center gap-2" style={{ color: getRiskStyle('orange').ink }}>
+              <RiskIcon riskColor="orange" size={18} />
+              <span className="text-gray-800 font-medium">Moderate Risk</span>
+            </div>
+            <div className="flex items-center gap-2" style={{ color: getRiskStyle('red').ink }}>
+              <RiskIcon riskColor="red" size={18} />
+              <span className="text-gray-800 font-medium">High Risk</span>
+            </div>
           </div>
         </div>
       </div>

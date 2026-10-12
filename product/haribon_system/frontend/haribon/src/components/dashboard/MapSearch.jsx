@@ -81,7 +81,7 @@ export default function MapSearch({ locations, selectedDate, onSelect }) {
         <ul
           id={listId}
           role="listbox"
-          className="mt-1.5 max-h-64 overflow-y-auto bg-white rounded-xl shadow-lg border border-gray-100 py-1"
+          className="absolute left-0 right-0 top-full z-10 mt-1.5 max-h-64 overflow-y-auto bg-white rounded-xl shadow-lg border border-gray-100 py-1"
         >
           {matches.length === 0 && (
             <li className="px-3 py-2 text-sm text-gray-600">No matching bay</li>
