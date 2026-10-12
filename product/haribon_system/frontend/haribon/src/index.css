@@ -49,6 +49,7 @@ body {
   padding: 14px 14px 12px;
   text-align: center;
   color: #24353a;
+  white-space: normal;
 }
 
 .haribon-popup-overline {
@@ -64,6 +65,13 @@ body {
   font-size: 20px;
   line-height: 1.2;
   font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.haribon-popup-day {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3f6d72;
   margin: 0 0 10px;
 }
 

@@ -208,9 +208,10 @@ function buildPopupHtml(location, day) {
     <div class="haribon-hover-popup-card">
       <p class="haribon-popup-overline">coastal waters of</p>
       <h3 class="haribon-popup-title">${location.name}</h3>
+      <p class="haribon-popup-day">${dayLabel}</p>
       <div class="haribon-popup-risk" style="background-color: ${tint}; color: ${ink}; border: 1px solid ${border}; display: inline-flex; align-items: center; gap: 6px; font-size: 13px;">
         ${getRiskSvgString(day.risk_color, 16)}
-        <span>${day.risk_level} · ${dayLabel}</span>
+        <span>${day.risk_level}</span>
       </div>
       <p class="haribon-popup-message">${getRiskMessage(location, day)}</p>
     </div>
