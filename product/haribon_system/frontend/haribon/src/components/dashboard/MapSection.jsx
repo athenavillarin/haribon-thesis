@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import RiskIcon from '../RiskIcon';
-import { getRiskSvgString, getRiskIconMarkup, getRiskStyle, SELECTED_ACCENT } from '../riskStyles';
+import { getRiskSvgString, getRiskStyle, SELECTED_ACCENT } from '../riskStyles';
 import { getDayForecast, formatDayLabel } from './forecastDay';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -134,7 +134,7 @@ export default function MapSection({ forecastData, selectedLocation, selectedDat
 }
 
 function buildPinIcon(riskColor, isSelected) {
-  const { fill, ink } = getRiskStyle(riskColor);
+  const { fill } = getRiskStyle(riskColor);
   const pinSize = isSelected ? 54 : 46;
   const halo = isSelected
     ? `<circle cx="12" cy="9" r="10.5" fill="${SELECTED_ACCENT}" fill-opacity="0.18" stroke="${SELECTED_ACCENT}" stroke-width="2" />`
@@ -145,8 +145,8 @@ function buildPinIcon(riskColor, isSelected) {
     html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-3 -3 30 30" width="${pinSize}px" height="${pinSize}px" style="filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4)); display: block; overflow: visible;">
              ${halo}
              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="${fill}" stroke="#FFFFFF" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" />
-             <circle cx="12" cy="9" r="5.2" fill="#FFFFFF"/>
-             <svg x="7.6" y="4.6" width="8.8" height="8.8" viewBox="0 0 24 24" fill="none" color="${ink}">${getRiskIconMarkup(riskColor, { strokeWidth: 2.6 })}</svg>
+             <circle cx="12" cy="9" r="3" fill="#FFFFFF"/>
+             <circle cx="12" cy="9" r="1.5" fill="${fill}"/>
            </svg>`,
     iconSize: [pinSize, pinSize],
     iconAnchor: [pinSize / 2, pinSize],

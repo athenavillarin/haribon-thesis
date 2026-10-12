@@ -28,17 +28,16 @@ export const getRiskHugeicon = (riskColor) => {
 
 const toKebab = (name) => name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 
-export function getRiskIconMarkup(riskColor, { strokeWidth } = {}) {
+function getRiskIconMarkup(riskColor) {
   const iconData = getRiskHugeicon(riskColor);
   if (!Array.isArray(iconData)) return '';
   return iconData
     .map(([tag, attrs]) => {
       const attrStr = Object.entries(attrs)
-        .filter(([k]) => k !== 'key' && !(strokeWidth && k === 'strokeWidth'))
+        .filter(([k]) => k !== 'key')
         .map(([k, v]) => `${toKebab(k)}="${v}"`)
         .join(' ');
-      const width = strokeWidth ? ` stroke-width="${strokeWidth}"` : '';
-      return `<${tag} ${attrStr}${width} />`;
+      return `<${tag} ${attrStr} />`;
     })
     .join('');
 }
