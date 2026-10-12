@@ -4,6 +4,9 @@ import 'leaflet/dist/leaflet.css';
 import RiskIcon from '../RiskIcon';
 import { getRiskSvgString, getRiskStyle, SELECTED_ACCENT } from '../riskStyles';
 import { getDayForecast, formatDayLabel } from './forecastDay';
+import MapSearch from './MapSearch';
+
+const SEARCH_ZOOM = 9;
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -104,10 +107,31 @@ export default function MapSection({ forecastData, selectedLocation, selectedDat
 
   const isOtherDay = Boolean(selectedLocation && selectedDate) && !getDayForecast(selectedLocation, selectedDate).isToday;
 
+  const handleSearchSelect = (location) => {
+    onLocationSelect(location);
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    const target = [location.coordinates.lat, location.coordinates.lng];
+    const zoom = Math.max(map.getZoom(), SEARCH_ZOOM);
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      map.setView(target, zoom);
+    } else {
+      map.flyTo(target, zoom, { duration: 0.8 });
+    }
+  };
+
   return (
     <div className="h-full w-full relative">
       <div ref={mapRef} className="h-full w-full rounded-xl overflow-hidden" />
-      <div className="hidden sm:block absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl p-3.5 shadow-lg border border-gray-100 z-[1000]">
+      <div className="absolute top-4 left-4 w-[min(320px,calc(100%-5rem))] z-[1001]">
+        <MapSearch
+          locations={forecastData?.locations}
+          selectedDate={selectedDate}
+          onSelect={handleSearchSelect}
+        />
+      </div>
+      <div className="hidden sm:block absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl p-3.5 shadow-lg border border-gray-100 z-[1000]">
         <h3 className={`font-bold text-gray-800 text-xs uppercase tracking-wider ${isOtherDay ? 'mb-0.5' : 'mb-2.5'}`}>Risk Levels</h3>
         {isOtherDay && (
           <p className="text-[11px] font-semibold text-[#3F6D72] mb-2.5">{formatDayLabel(selectedDate)}</p>
