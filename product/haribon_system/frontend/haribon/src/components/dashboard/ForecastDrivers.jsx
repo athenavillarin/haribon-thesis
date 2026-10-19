@@ -95,12 +95,9 @@ function formatSigned(value) {
 
 function effectOf(contribution) {
   const size = Math.abs(contribution);
-  if (size < MIN_EFFECT) return { text: 'Little effect', color: 'text-gray-500' };
+  if (size < MIN_EFFECT) return 'Little effect';
   const verb = contribution > 0 ? 'raises' : 'lowers';
-  return {
-    text: size >= STRONG_EFFECT ? capitalize(verb) + ' risk' : `Slightly ${verb} risk`,
-    color: contribution > 0 ? 'text-[#B45309]' : 'text-[#3F6D72]',
-  };
+  return size >= STRONG_EFFECT ? `${capitalize(verb)} risk` : `Slightly ${verb} risk`;
 }
 
 export default function ForecastDrivers({ drivers, locationName, dateLabel }) {
@@ -156,12 +153,12 @@ export default function ForecastDrivers({ drivers, locationName, dateLabel }) {
           <ul className="space-y-2">
             {drivers.map((d) => {
               const { label, detail } = describeDriver(d);
-              const { color, text } = effectOf(d.contribution);
+              const effect = effectOf(d.contribution);
               return (
                 <li key={d.key} className="bg-[#F8F9FA] rounded-xl p-3 border border-gray-100/80">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-[13px] font-semibold text-gray-800">{label}</span>
-                    <span className={`text-[11px] font-bold shrink-0 ${color}`}>{text}</span>
+                    <span className="text-[11px] font-bold shrink-0 text-gray-500">{effect}</span>
                   </div>
                   <p className="text-xs text-gray-600 mt-0.5">{detail}</p>
                 </li>
