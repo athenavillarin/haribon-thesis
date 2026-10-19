@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { FiArrowDown, FiArrowUp, FiMinus, FiX, FiChevronRight } from 'react-icons/fi';
+import { FiX, FiChevronRight } from 'react-icons/fi';
 
 const MIN_EFFECT = 0.1;
 const STRONG_EFFECT = 0.5;
@@ -95,11 +95,10 @@ function formatSigned(value) {
 
 function effectOf(contribution) {
   const size = Math.abs(contribution);
-  if (size < MIN_EFFECT) return { text: 'Little effect', Icon: FiMinus, color: 'text-gray-500' };
+  if (size < MIN_EFFECT) return { text: 'Little effect', color: 'text-gray-500' };
   const verb = contribution > 0 ? 'raises' : 'lowers';
   return {
     text: size >= STRONG_EFFECT ? capitalize(verb) + ' risk' : `Slightly ${verb} risk`,
-    Icon: contribution > 0 ? FiArrowUp : FiArrowDown,
     color: contribution > 0 ? 'text-[#B45309]' : 'text-[#3F6D72]',
   };
 }
@@ -128,11 +127,9 @@ export default function ForecastDrivers({ drivers, locationName, dateLabel }) {
         <span className="block">
           {items.map((d, idx) => {
             const { short } = describeDriver(d);
-            const { Icon, color, text } = effectOf(d.contribution);
             return (
               <span key={d.key} className="whitespace-nowrap">
                 {short}
-                <Icon className={`inline ml-0.5 -mt-0.5 ${color}`} role="img" aria-label={text} />
                 {idx < items.length - 1 && <span className="mx-1 text-gray-400">·</span>}
               </span>
             );
@@ -159,14 +156,12 @@ export default function ForecastDrivers({ drivers, locationName, dateLabel }) {
           <ul className="space-y-2">
             {drivers.map((d) => {
               const { label, detail } = describeDriver(d);
-              const { Icon, color, text } = effectOf(d.contribution);
+              const { color, text } = effectOf(d.contribution);
               return (
                 <li key={d.key} className="bg-[#F8F9FA] rounded-xl p-3 border border-gray-100/80">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-[13px] font-semibold text-gray-800">{label}</span>
-                    <span className={`text-[11px] font-bold flex items-center gap-1 shrink-0 ${color}`}>
-                      <Icon aria-hidden="true" /> {text}
-                    </span>
+                    <span className={`text-[11px] font-bold shrink-0 ${color}`}>{text}</span>
                   </div>
                   <p className="text-xs text-gray-600 mt-0.5">{detail}</p>
                 </li>
