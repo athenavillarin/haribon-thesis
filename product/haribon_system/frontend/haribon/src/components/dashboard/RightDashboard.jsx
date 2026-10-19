@@ -4,6 +4,7 @@ import { FiMinus, FiPlus } from 'react-icons/fi';
 import RiskIcon from '../RiskIcon';
 import { getRiskStyle } from '../riskStyles';
 import { getDayForecast, formatDayLabel } from './forecastDay';
+import ForecastDrivers from './ForecastDrivers';
 
 const BFAR_BULLETIN_URL = 'https://www.bfar.da.gov.ph/shellfish-bulletin-no-02-2022/';
 
@@ -277,6 +278,7 @@ function getConfidenceExplanation(confidence) {
 function ForecastSummary({ location, day }) {
   const riskMeaning = RISK_MEANINGS[day.risk_color] || 'Risk level is not available for this area.';
   const dayLabel = day.isToday ? 'today' : formatDayLabel(day.date);
+  const drivers = location?.today_forecast?.forecast_drivers || [];
 
   return (
     <div className="rounded-xl bg-white border border-gray-200/90 px-3.5 py-3 space-y-1.5">
@@ -287,6 +289,9 @@ function ForecastSummary({ location, day }) {
         <span className="font-semibold text-gray-800">{day.confidence || 'N/A'} confidence.</span>{' '}
         {getConfidenceExplanation(day.confidence)}
       </p>
+      {day.isToday && drivers.length > 0 && (
+        <ForecastDrivers drivers={drivers} locationName={location.name} dateLabel={formatDayLabel(day.date)} />
+      )}
     </div>
   );
 }
