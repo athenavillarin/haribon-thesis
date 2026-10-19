@@ -119,20 +119,24 @@ export default function ForecastDrivers({ drivers, locationName, dateLabel }) {
         onClick={open}
         className="w-full text-left text-xs text-gray-600 leading-relaxed pt-1.5 border-t border-gray-100 group"
       >
-        <span className="font-semibold text-gray-800">Main drivers:</span>{' '}
-        {items.map((d, idx) => {
-          const { short } = describeDriver(d);
-          const { Icon, color, text } = effectOf(d.contribution);
-          return (
-            <span key={d.key} className="whitespace-nowrap">
-              {short}
-              <Icon className={`inline ml-0.5 -mt-0.5 ${color}`} role="img" aria-label={text} />
-              {idx < items.length - 1 && <span className="mx-1 text-gray-400">·</span>}
-            </span>
-          );
-        })}
-        <span className="ml-1.5 inline-flex items-center font-semibold text-[#3F6D72] group-hover:underline whitespace-nowrap">
-          Details <FiChevronRight aria-hidden="true" />
+        <span className="flex items-center justify-between gap-3">
+          <span className="font-semibold text-gray-800">Main drivers</span>
+          <span className="inline-flex items-center font-semibold text-[#3F6D72] group-hover:underline">
+            Details <FiChevronRight aria-hidden="true" />
+          </span>
+        </span>
+        <span className="block">
+          {items.map((d, idx) => {
+            const { short } = describeDriver(d);
+            const { Icon, color, text } = effectOf(d.contribution);
+            return (
+              <span key={d.key} className="whitespace-nowrap">
+                {short}
+                <Icon className={`inline ml-0.5 -mt-0.5 ${color}`} role="img" aria-label={text} />
+                {idx < items.length - 1 && <span className="mx-1 text-gray-400">·</span>}
+              </span>
+            );
+          })}
         </span>
       </button>
 
