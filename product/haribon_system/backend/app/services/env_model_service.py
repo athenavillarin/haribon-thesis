@@ -82,33 +82,48 @@ def _history_grid() -> pd.DataFrame:
     return load_grid(DATASET_DIR / load_bundle()["dataset"])
 
 
-DRIVER_GROUPS = {
-    "sea_temperature": ["thetao_roll30", "thetao_roll60", "thetao_roll90"],
-    "rainfall": ["precip_mm_day_roll30", "precip_mm_day_roll60", "precip_mm_day_roll90"],
-    "enso": ["oni"],
-    "season": ["doy_sin", "doy_cos"],
-    "ban_history": ["clim_rate", "site_rate_365"],
-}
+def _oni_month_used(today: pd.Timestamp) -> str | None:
+    """The ONI month behind today's `oni` feature, following the lag and carry-forward in features.py."""
+    from features import ONI_LAG_MONTHS, ONI_MAX_CARRY_MONTHS, ONI_PATH
+
+    oni = pd.read_csv(ONI_PATH).dropna(subset=["oni"])
+    available = set(pd.PeriodIndex.from_fields(year=oni["year"], month=oni["month"], freq="M"))
+    needed = today.to_period("M") - ONI_LAG_MONTHS
+    for back in range(ONI_MAX_CARRY_MONTHS + 1):
+        if needed - back in available:
+            return str(needed - back)
+    return None
 
 
-def _drivers(features: dict, contributions: dict, today: pd.Timestamp, trained_through: str) -> list[dict]:
+def _drivers(observed: dict, contributions: dict, today: pd.Timestamp, trained_through: str) -> list[dict]:
     """
     Logistic regression contributions (log-odds relative to an average training day)
-    summed per driver, largest effect first.
+    summed per driver, largest effect first. Detail values are None where the
+    feature was missing and filled with the training mean.
     """
+    from features import PRIOR_FEATURES, ROLL_WINDOWS
+
+    groups = {
+        "sea_temperature": [f"thetao_roll{w}" for w in ROLL_WINDOWS],
+        "rainfall": [f"precip_mm_day_roll{w}" for w in ROLL_WINDOWS],
+        "enso": ["oni"],
+        "season": ["doy_sin", "doy_cos"],
+        "ban_history": PRIOR_FEATURES,
+    }
     target = today + pd.Timedelta(days=1)
-    oni_month = (today.to_period("M") - 3).strftime("%Y-%m")
     history_year = min(target.year, pd.Timestamp(trained_through).year + 1) - 1
+    oni = observed.get("oni")
     details = {
-        "sea_temperature": {"anomaly_90d": features["thetao_roll90"], "anomaly_30d": features["thetao_roll30"]},
-        "rainfall": {"anomaly_60d": features["precip_mm_day_roll60"], "anomaly_30d": features["precip_mm_day_roll30"]},
-        "enso": {"oni": features["oni"], "oni_month": oni_month},
-        "season": {"month": int(target.month)},
-        "ban_history": {"ban_rate": features["site_rate_365"], "year": int(history_year)},
+        "sea_temperature": {"anomaly_90d": observed.get("thetao_roll90"), "anomaly_30d": observed.get("thetao_roll30")},
+        "rainfall": {"anomaly_60d": observed.get("precip_mm_day_roll60"), "anomaly_30d": observed.get("precip_mm_day_roll30")},
+        "enso": {"oni": oni, "oni_month": _oni_month_used(today) if oni is not None else None},
+        "season": {"month": int(today.month)},
+        "ban_history": {"ban_rate": observed.get("site_rate_365"), "year": int(history_year),
+                        "monthly_rate": observed.get("clim_rate"), "month": int(target.month)},
     }
     drivers = [
-        {"key": key, "contribution": round(sum(contributions[name] for name in names), 4), **details[key]}
-        for key, names in DRIVER_GROUPS.items()
+        {"key": key, "contribution": round(float(sum(contributions.get(name, 0.0) for name in names)), 4), **details[key]}
+        for key, names in groups.items()
     ]
     return sorted(drivers, key=lambda d: abs(d["contribution"]), reverse=True)
 
@@ -149,6 +164,7 @@ def predict_site(location: str, today: pd.Timestamp) -> dict:
 
     mean = np.array(bundle["scaler_mean"])
     x = row[bundle["features"]].iloc[0].to_numpy(dtype=float)
+    observed = {name: None if np.isnan(v) else round(float(v), 4) for name, v in zip(bundle["features"], x)}
     x = np.where(np.isnan(x), mean, x)
     z = (x - mean) / np.array(bundle["scaler_scale"])
     lr_probability = float(1.0 / (1.0 + np.exp(-(z @ np.array(bundle["coef"]) + bundle["intercept"]))))
@@ -161,15 +177,20 @@ def predict_site(location: str, today: pd.Timestamp) -> dict:
         except Exception as exc:
             print(f"[WARN] Deep models unavailable for {location}; using the logistic regression alone: {exc}")
 
-    features = {name: round(float(v), 4) for name, v in zip(bundle["features"], x)}
-    contributions = dict(zip(bundle["features"], z * np.array(bundle["coef"])))
+    try:
+        contributions = dict(zip(bundle["features"], z * np.array(bundle["coef"])))
+        drivers = _drivers(observed, contributions, today, bundle["trained_through"])
+    except Exception as exc:
+        print(f"[WARN] Could not build forecast drivers for {location}: {exc}")
+        drivers = None
+
     return {
         "probability": probability,
         "model": model,
         "logistic_probability": lr_probability,
         "deep_probabilities": deep_by_kind,
-        "features": features,
-        "drivers": _drivers(features, contributions, today, bundle["trained_through"]),
+        "features": {name: round(float(v), 4) for name, v in zip(bundle["features"], x)},
+        "drivers": drivers,
         "precip_sources": precip_sources,
         "history_through": str(history["Date"].max().date()),
         "trained_through": bundle["trained_through"],

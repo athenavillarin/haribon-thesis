@@ -1080,7 +1080,11 @@ def run_daily_update_with_5day_forecast():
                     "salinity": safe_float(display_so, 2),
                     "rainfall": safe_float(display_rain, 1),
                 },
-                "forecast_drivers": env_result.get("drivers") if env_result else None,
+                "forecast_drivers": {
+                    "items": env_result["drivers"],
+                    "logistic_probability": round(env_result["logistic_probability"], 4),
+                    "ensemble_probability": round(env_result["probability"], 4),
+                } if env_result and env_result.get("drivers") else None,
                 "environmental_data": {
                     "Chlorophyll-a": f"{safe_float(display_chl, 2)} mg/m3" if safe_float(display_chl, 2) is not None else "N/A",
                     "Temperature": f"{safe_float(display_thetao, 2)} °C" if safe_float(display_thetao, 2) is not None else "N/A",
