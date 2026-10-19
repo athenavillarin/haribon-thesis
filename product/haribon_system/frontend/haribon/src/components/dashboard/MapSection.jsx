@@ -105,7 +105,6 @@ export default function MapSection({ forecastData, selectedLocation, selectedDat
     });
   }, [forecastData, selectedLocation?.id, selectedDate]);
 
-  const isOtherDay = Boolean(selectedLocation && selectedDate) && !getDayForecast(selectedLocation, selectedDate).isToday;
 
   const handleSearchSelect = (location) => {
     onLocationSelect(location);
@@ -133,10 +132,7 @@ export default function MapSection({ forecastData, selectedLocation, selectedDat
           />
         </div>
         <div className="hidden sm:block bg-white/95 backdrop-blur-sm rounded-xl p-3.5 shadow-lg border border-gray-100">
-          <h3 className={`font-bold text-gray-800 text-xs uppercase tracking-wider ${isOtherDay ? 'mb-0.5' : 'mb-2.5'}`}>Risk Levels</h3>
-          {isOtherDay && (
-            <p className="text-[11px] font-semibold text-[#3F6D72] mb-2.5">{formatDayLabel(selectedDate)}</p>
-          )}
+          <h3 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2.5">Risk Levels</h3>
           <div className="space-y-2 text-[13px] font-semibold">
             <div className="flex items-center gap-2" style={{ color: getRiskStyle('green').ink }}>
               <RiskIcon riskColor="green" size={18} />
