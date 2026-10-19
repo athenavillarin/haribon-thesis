@@ -179,21 +179,7 @@ export default function ForecastDrivers({ drivers, logisticProbability, ensemble
             })}
           </ul>
 
-          <div className="mt-3 space-y-1.5 text-[11px] text-gray-600 leading-relaxed">
-            {gapNote && <p className="font-semibold text-gray-800">{gapNote}</p>}
-            <p>
-              Effects are from the logistic regression in the forecast ensemble, compared with an average day. The
-              LSTM, GRU and Transformer models use the same inputs but cannot be broken down this way.
-            </p>
-            <p>
-              ENSO uses the Oceanic Niño Index from 3 months back, the latest available when the forecast runs. It is
-              the same for every site.
-            </p>
-            <p>
-              Of the readings under Current Conditions, only sea temperature and rainfall are model inputs. The rest
-              are shown for reference.
-            </p>
-          </div>
+          {gapNote && <p className="mt-3 text-[11px] font-semibold text-gray-800 leading-relaxed">{gapNote}</p>}
         </div>
       </dialog>, document.body)}
     </>
