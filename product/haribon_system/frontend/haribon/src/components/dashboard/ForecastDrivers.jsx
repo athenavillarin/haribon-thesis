@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { FiX, FiChevronRight } from 'react-icons/fi';
+import { getRiskStyle } from '../riskStyles';
 
 const MIN_EFFECT = 0.1;
 const STRONG_EFFECT = 0.5;
@@ -95,9 +96,15 @@ function formatSigned(value) {
 
 function effectOf(contribution) {
   const size = Math.abs(contribution);
-  if (size < MIN_EFFECT) return 'Little effect';
-  const verb = contribution > 0 ? 'raises' : 'lowers';
-  return size >= STRONG_EFFECT ? `${capitalize(verb)} risk` : `Slightly ${verb} risk`;
+  if (size < MIN_EFFECT) return { text: 'Little effect', color: '#6B7280' };
+  const raises = contribution > 0;
+  const strong = size >= STRONG_EFFECT;
+  const verb = raises ? 'raises' : 'lowers';
+  const riskColor = raises ? (strong ? 'red' : 'orange') : (strong ? 'green' : 'yellow');
+  return {
+    text: strong ? `${capitalize(verb)} risk` : `Slightly ${verb} risk`,
+    color: getRiskStyle(riskColor).ink,
+  };
 }
 
 export default function ForecastDrivers({ drivers, locationName, dateLabel }) {
@@ -158,7 +165,7 @@ export default function ForecastDrivers({ drivers, locationName, dateLabel }) {
                 <li key={d.key} className="bg-[#F8F9FA] rounded-xl p-3 border border-gray-100/80">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-[13px] font-semibold text-gray-800">{label}</span>
-                    <span className="text-[11px] font-bold shrink-0 text-gray-500">{effect}</span>
+                    <span className="text-[11px] font-bold shrink-0" style={{ color: effect.color }}>{effect.text}</span>
                   </div>
                   <p className="text-xs text-gray-600 mt-0.5">{detail}</p>
                 </li>
