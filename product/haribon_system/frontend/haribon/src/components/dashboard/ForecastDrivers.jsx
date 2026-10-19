@@ -6,7 +6,6 @@ const MIN_EFFECT = 0.1;
 const STRONG_EFFECT = 0.5;
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-const MODEL_GAP = 0.15;
 const NO_DATA = 'No recent data, so the model used its usual value.';
 
 function compare(anomaly, higher, lower) {
@@ -105,16 +104,8 @@ function effectOf(contribution) {
   };
 }
 
-function modelGapNote(logistic, ensemble) {
-  if (logistic == null || ensemble == null) return null;
-  const gap = ensemble - logistic;
-  if (Math.abs(gap) < MODEL_GAP) return null;
-  return `The deep learning models in the ensemble rate the risk ${gap > 0 ? 'higher' : 'lower'} than these drivers alone suggest.`;
-}
-
-export default function ForecastDrivers({ drivers, logisticProbability, ensembleProbability, locationName, dateLabel }) {
+export default function ForecastDrivers({ drivers, locationName, dateLabel }) {
   const dialogRef = React.useRef(null);
-  const gapNote = modelGapNote(logisticProbability, ensembleProbability);
   const main = drivers.filter((d) => Math.abs(d.contribution) >= MIN_EFFECT).slice(0, 3);
   const items = main.length > 0 ? main : drivers.slice(0, 1);
 
@@ -179,7 +170,6 @@ export default function ForecastDrivers({ drivers, logisticProbability, ensemble
             })}
           </ul>
 
-          {gapNote && <p className="mt-3 text-[11px] font-semibold text-gray-800 leading-relaxed">{gapNote}</p>}
         </div>
       </dialog>, document.body)}
     </>

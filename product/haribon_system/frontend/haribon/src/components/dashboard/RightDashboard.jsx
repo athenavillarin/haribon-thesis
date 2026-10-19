@@ -278,8 +278,7 @@ function getConfidenceExplanation(confidence) {
 function ForecastSummary({ location, day }) {
   const riskMeaning = RISK_MEANINGS[day.risk_color] || 'Risk level is not available for this area.';
   const dayLabel = day.isToday ? 'today' : formatDayLabel(day.date);
-  const driverInfo = location?.today_forecast?.forecast_drivers;
-  const drivers = driverInfo?.items || [];
+  const drivers = location?.today_forecast?.forecast_drivers || [];
 
   return (
     <div className="rounded-xl bg-white border border-gray-200/90 px-3.5 py-3 space-y-1.5">
@@ -293,8 +292,6 @@ function ForecastSummary({ location, day }) {
       {day.isToday && drivers.length > 0 && (
         <ForecastDrivers
           drivers={drivers}
-          logisticProbability={driverInfo.logistic_probability}
-          ensembleProbability={driverInfo.ensemble_probability}
           locationName={location.name}
           dateLabel={formatDayLabel(day.date)}
         />
