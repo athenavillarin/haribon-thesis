@@ -82,6 +82,37 @@ def _history_grid() -> pd.DataFrame:
     return load_grid(DATASET_DIR / load_bundle()["dataset"])
 
 
+DRIVER_GROUPS = {
+    "sea_temperature": ["thetao_roll30", "thetao_roll60", "thetao_roll90"],
+    "rainfall": ["precip_mm_day_roll30", "precip_mm_day_roll60", "precip_mm_day_roll90"],
+    "enso": ["oni"],
+    "season": ["doy_sin", "doy_cos"],
+    "ban_history": ["clim_rate", "site_rate_365"],
+}
+
+
+def _drivers(features: dict, contributions: dict, today: pd.Timestamp, trained_through: str) -> list[dict]:
+    """
+    Logistic regression contributions (log-odds relative to an average training day)
+    summed per driver, largest effect first.
+    """
+    target = today + pd.Timedelta(days=1)
+    oni_month = (today.to_period("M") - 3).strftime("%Y-%m")
+    history_year = min(target.year, pd.Timestamp(trained_through).year + 1) - 1
+    details = {
+        "sea_temperature": {"anomaly_90d": features["thetao_roll90"], "anomaly_30d": features["thetao_roll30"]},
+        "rainfall": {"anomaly_60d": features["precip_mm_day_roll60"], "anomaly_30d": features["precip_mm_day_roll30"]},
+        "enso": {"oni": features["oni"], "oni_month": oni_month},
+        "season": {"month": int(target.month)},
+        "ban_history": {"ban_rate": features["site_rate_365"], "year": int(history_year)},
+    }
+    drivers = [
+        {"key": key, "contribution": round(sum(contributions[name] for name in names), 4), **details[key]}
+        for key, names in DRIVER_GROUPS.items()
+    ]
+    return sorted(drivers, key=lambda d: abs(d["contribution"]), reverse=True)
+
+
 def predict_site(location: str, today: pd.Timestamp) -> dict:
     """Probability that `location` is under a shellfish ban tomorrow, with the inputs used."""
     from features import DRIVERS, build_features, load_daily
@@ -130,12 +161,15 @@ def predict_site(location: str, today: pd.Timestamp) -> dict:
         except Exception as exc:
             print(f"[WARN] Deep models unavailable for {location}; using the logistic regression alone: {exc}")
 
+    features = {name: round(float(v), 4) for name, v in zip(bundle["features"], x)}
+    contributions = dict(zip(bundle["features"], z * np.array(bundle["coef"])))
     return {
         "probability": probability,
         "model": model,
         "logistic_probability": lr_probability,
         "deep_probabilities": deep_by_kind,
-        "features": {name: round(float(v), 4) for name, v in zip(bundle["features"], x)},
+        "features": features,
+        "drivers": _drivers(features, contributions, today, bundle["trained_through"]),
         "precip_sources": precip_sources,
         "history_through": str(history["Date"].max().date()),
         "trained_through": bundle["trained_through"],
