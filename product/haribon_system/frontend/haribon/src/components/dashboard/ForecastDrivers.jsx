@@ -6,14 +6,17 @@ const MIN_EFFECT = 0.1;
 const STRONG_EFFECT = 0.5;
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-function compare(anomaly, higher, lower, usual) {
-  if (anomaly == null || Math.abs(anomaly) < 0.2) return { short: usual, long: usual };
+const MODEL_GAP = 0.15;
+const NO_DATA = 'No recent data, so the model used its usual value.';
+
+function compare(anomaly, higher, lower) {
+  if (anomaly == null) return null;
+  if (Math.abs(anomaly) < 0.2) return { word: null, long: 'near usual' };
   const word = anomaly > 0 ? higher : lower;
-  return { short: word, long: Math.abs(anomaly) >= 0.6 ? `much ${word}` : word };
+  return { word, long: `${Math.abs(anomaly) >= 0.6 ? 'much ' : ''}${word} than usual` };
 }
 
 function ensoPhase(oni) {
-  if (oni == null) return 'unknown';
   if (oni >= 0.5) return oni >= 1.5 ? 'strong El Niño' : 'El Niño';
   if (oni <= -0.5) return oni <= -1.5 ? 'strong La Niña' : 'La Niña';
   return 'neutral';
@@ -27,22 +30,25 @@ function formatMonth(yearMonth) {
 function describeDriver(driver) {
   switch (driver.key) {
     case 'sea_temperature': {
-      const c = compare(driver.anomaly_90d, 'warmer than usual', 'cooler than usual', 'near usual');
+      const c = compare(driver.anomaly_90d, 'warmer', 'cooler');
       return {
         label: 'Sea temperature',
-        short: c.short === 'near usual' ? 'usual sea temperature' : `${c.short.split(' ')[0]} sea`,
-        detail: `${capitalize(c.long)} for this site and month, over the last 90 days.`,
+        short: c?.word ? `${c.word} sea` : 'sea temperature',
+        detail: c ? `${capitalize(c.long)} for this site and month, over the last 90 days.` : NO_DATA,
       };
     }
     case 'rainfall': {
-      const c = compare(driver.anomaly_60d, 'wetter than usual', 'drier than usual', 'near usual');
+      const c = compare(driver.anomaly_60d, 'wetter', 'drier');
       return {
         label: 'Rainfall',
-        short: c.short === 'near usual' ? 'usual rainfall' : `${c.short.split(' ')[0]} weather`,
-        detail: `${capitalize(c.long)} for this site and month, over the last 60 days.`,
+        short: c?.word ? `${c.word} weather` : 'rainfall',
+        detail: c ? `${capitalize(c.long)} for this site and month, over the last 60 days.` : NO_DATA,
       };
     }
     case 'enso': {
+      if (driver.oni == null) {
+        return { label: 'ENSO (El Niño / La Niña)', short: 'ENSO', detail: 'ONI not available, so the model used its average value.' };
+      }
       const phase = ensoPhase(driver.oni);
       return {
         label: 'ENSO (El Niño / La Niña)',
@@ -52,27 +58,31 @@ function describeDriver(driver) {
     }
     case 'season': {
       const month = MONTHS[(driver.month || 1) - 1];
-      return {
-        label: 'Time of year',
-        short: 'time of year',
-        detail: driver.contribution >= 0
-          ? `Bans have been more common around ${month}.`
-          : `Bans have been less common around ${month}.`,
-      };
+      let detail = `Bans have been less common around ${month}.`;
+      if (Math.abs(driver.contribution) < MIN_EFFECT) detail = `No strong seasonal pattern around ${month}.`;
+      else if (driver.contribution > 0) detail = `Bans have been more common around ${month}.`;
+      return { label: 'Time of year', short: 'time of year', detail };
     }
-    case 'ban_history': {
-      const pct = Math.round((driver.ban_rate || 0) * 100);
-      return {
-        label: 'Ban history at this site',
-        short: pct === 0 ? `no bans in ${driver.year}` : `bans in ${driver.year}`,
-        detail: pct === 0
-          ? `No shellfish ban recorded here in ${driver.year}.`
-          : `Under a shellfish ban on ${pct}% of days in ${driver.year}.`,
-      };
-    }
+    case 'ban_history':
+      return describeBanHistory(driver);
     default:
       return { label: driver.key, short: driver.key, detail: '' };
   }
+}
+
+function describeBanHistory({ ban_rate: banRate, monthly_rate: monthlyRate, year, month, contribution }) {
+  const pct = banRate == null ? null : Math.round(banRate * 100);
+  let lastYear = `No ban records for ${year}.`;
+  if (pct === 0) lastYear = `No shellfish ban recorded here in ${year}.`;
+  else if (pct != null) lastYear = `Under a shellfish ban on ${pct}% of days in ${year}.`;
+  const pastMonths = monthlyRate == null
+    ? ''
+    : ` In earlier years, bans covered ${Math.round(monthlyRate * 100)}% of days in ${MONTHS[(month || 1) - 1]}.`;
+
+  let short = 'ban history';
+  if (pct === 0 && contribution <= 0) short = `no bans in ${year}`;
+  else if (pct > 0 && contribution > 0) short = `bans in ${year}`;
+  return { label: 'Ban history at this site', short, detail: lastYear + pastMonths };
 }
 
 function capitalize(text) {
@@ -95,8 +105,16 @@ function effectOf(contribution) {
   };
 }
 
-export default function ForecastDrivers({ drivers, locationName, dateLabel }) {
+function modelGapNote(logistic, ensemble) {
+  if (logistic == null || ensemble == null) return null;
+  const gap = ensemble - logistic;
+  if (Math.abs(gap) < MODEL_GAP) return null;
+  return `The deep learning models in the ensemble rate the risk ${gap > 0 ? 'higher' : 'lower'} than these drivers alone suggest.`;
+}
+
+export default function ForecastDrivers({ drivers, logisticProbability, ensembleProbability, locationName, dateLabel }) {
   const dialogRef = React.useRef(null);
+  const gapNote = modelGapNote(logisticProbability, ensembleProbability);
   const main = drivers.filter((d) => Math.abs(d.contribution) >= MIN_EFFECT).slice(0, 3);
   const items = main.length > 0 ? main : drivers.slice(0, 1);
 
@@ -117,7 +135,7 @@ export default function ForecastDrivers({ drivers, locationName, dateLabel }) {
           return (
             <span key={d.key} className="whitespace-nowrap">
               {short}
-              <Icon className={`inline ml-0.5 -mt-0.5 ${color}`} aria-label={text} />
+              <Icon className={`inline ml-0.5 -mt-0.5 ${color}`} role="img" aria-label={text} />
               {idx < items.length - 1 && <span className="mx-1 text-gray-400">·</span>}
             </span>
           );
@@ -162,6 +180,7 @@ export default function ForecastDrivers({ drivers, locationName, dateLabel }) {
           </ul>
 
           <div className="mt-3 space-y-1.5 text-[11px] text-gray-600 leading-relaxed">
+            {gapNote && <p className="font-semibold text-gray-800">{gapNote}</p>}
             <p>
               Effects are from the logistic regression in the forecast ensemble, compared with an average day. The
               LSTM, GRU and Transformer models use the same inputs but cannot be broken down this way.

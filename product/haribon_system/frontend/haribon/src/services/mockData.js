@@ -40,37 +40,43 @@ export const MOCK_LATEST_FORECAST = {
           "salinity": 33.86,
           "rainfall": 0.3
         },
-        "forecast_drivers": [
-          {
-            "key": "ban_history",
-            "contribution": -0.9507,
-            "ban_rate": 0.0,
-            "year": 2025
-          },
-          {
-            "key": "season",
-            "contribution": 0.8254,
-            "month": 10
-          },
-          {
-            "key": "sea_temperature",
-            "contribution": 0.4824,
-            "anomaly_90d": 0.4765,
-            "anomaly_30d": 0.6841
-          },
-          {
-            "key": "enso",
-            "contribution": -0.3541,
-            "oni": 1.8,
-            "oni_month": "2026-07"
-          },
-          {
-            "key": "rainfall",
-            "contribution": 0.0028,
-            "anomaly_60d": -0.1372,
-            "anomaly_30d": 0.1195
-          }
-        ]
+        "forecast_drivers": {
+          "items": [
+            {
+              "key": "ban_history",
+              "contribution": -0.9507,
+              "ban_rate": 0.0,
+              "year": 2025,
+              "monthly_rate": 0.1935,
+              "month": 10
+            },
+            {
+              "key": "season",
+              "contribution": 0.8254,
+              "month": 10
+            },
+            {
+              "key": "sea_temperature",
+              "contribution": 0.4824,
+              "anomaly_90d": 0.4765,
+              "anomaly_30d": 0.6841
+            },
+            {
+              "key": "enso",
+              "contribution": -0.3541,
+              "oni": 1.8,
+              "oni_month": "2026-07"
+            },
+            {
+              "key": "rainfall",
+              "contribution": 0.0028,
+              "anomaly_60d": -0.1372,
+              "anomaly_30d": 0.1195
+            }
+          ],
+          "logistic_probability": 0.1263,
+          "ensemble_probability": 0.22
+        }
       },
       "five_day_outlook": [
         {
@@ -184,37 +190,43 @@ export const MOCK_LATEST_FORECAST = {
           "salinity": 33.15,
           "rainfall": 1.6
         },
-        "forecast_drivers": [
-          {
-            "key": "ban_history",
-            "contribution": 3.9601,
-            "ban_rate": 1.0,
-            "year": 2025
-          },
-          {
-            "key": "season",
-            "contribution": 0.8254,
-            "month": 10
-          },
-          {
-            "key": "enso",
-            "contribution": -0.3541,
-            "oni": 1.8,
-            "oni_month": "2026-07"
-          },
-          {
-            "key": "sea_temperature",
-            "contribution": 0.1416,
-            "anomaly_90d": 0.1579,
-            "anomaly_30d": 0.1315
-          },
-          {
-            "key": "rainfall",
-            "contribution": 0.0699,
-            "anomaly_60d": -0.4784,
-            "anomaly_30d": -0.084
-          }
-        ]
+        "forecast_drivers": {
+          "items": [
+            {
+              "key": "ban_history",
+              "contribution": 3.9601,
+              "ban_rate": 1.0,
+              "year": 2025,
+              "monthly_rate": 0.4545,
+              "month": 10
+            },
+            {
+              "key": "season",
+              "contribution": 0.8254,
+              "month": 10
+            },
+            {
+              "key": "enso",
+              "contribution": -0.3541,
+              "oni": 1.8,
+              "oni_month": "2026-07"
+            },
+            {
+              "key": "sea_temperature",
+              "contribution": 0.1416,
+              "anomaly_90d": 0.1579,
+              "anomaly_30d": 0.1315
+            },
+            {
+              "key": "rainfall",
+              "contribution": 0.0699,
+              "anomaly_60d": -0.4784,
+              "anomaly_30d": -0.084
+            }
+          ],
+          "logistic_probability": 0.9372,
+          "ensemble_probability": 0.871
+        }
       },
       "five_day_outlook": [
         {
@@ -328,37 +340,43 @@ export const MOCK_LATEST_FORECAST = {
           "salinity": 33.58,
           "rainfall": 0.4
         },
-        "forecast_drivers": [
-          {
-            "key": "ban_history",
-            "contribution": -0.9321,
-            "ban_rate": 0.0,
-            "year": 2025
-          },
-          {
-            "key": "season",
-            "contribution": 0.8254,
-            "month": 10
-          },
-          {
-            "key": "sea_temperature",
-            "contribution": 0.4975,
-            "anomaly_90d": 0.4868,
-            "anomaly_30d": 0.8901
-          },
-          {
-            "key": "enso",
-            "contribution": -0.3541,
-            "oni": 1.8,
-            "oni_month": "2026-07"
-          },
-          {
-            "key": "rainfall",
-            "contribution": 0.0189,
-            "anomaly_60d": -0.1825,
-            "anomaly_30d": -0.029
-          }
-        ]
+        "forecast_drivers": {
+          "items": [
+            {
+              "key": "ban_history",
+              "contribution": -0.9321,
+              "ban_rate": 0.0,
+              "year": 2025,
+              "monthly_rate": 0.1378,
+              "month": 10
+            },
+            {
+              "key": "season",
+              "contribution": 0.8254,
+              "month": 10
+            },
+            {
+              "key": "sea_temperature",
+              "contribution": 0.4975,
+              "anomaly_90d": 0.4868,
+              "anomaly_30d": 0.8901
+            },
+            {
+              "key": "enso",
+              "contribution": -0.3541,
+              "oni": 1.8,
+              "oni_month": "2026-07"
+            },
+            {
+              "key": "rainfall",
+              "contribution": 0.0189,
+              "anomaly_60d": -0.1825,
+              "anomaly_30d": -0.029
+            }
+          ],
+          "logistic_probability": 0.1319,
+          "ensemble_probability": 0.227
+        }
       },
       "five_day_outlook": [
         {
@@ -472,37 +490,43 @@ export const MOCK_LATEST_FORECAST = {
           "salinity": 33.42,
           "rainfall": 0.5
         },
-        "forecast_drivers": [
-          {
-            "key": "ban_history",
-            "contribution": 2.3266,
-            "ban_rate": 0.6822,
-            "year": 2025
-          },
-          {
-            "key": "season",
-            "contribution": 0.8254,
-            "month": 10
-          },
-          {
-            "key": "sea_temperature",
-            "contribution": 0.403,
-            "anomaly_90d": 0.3982,
-            "anomaly_30d": 0.7253
-          },
-          {
-            "key": "enso",
-            "contribution": -0.3541,
-            "oni": 1.8,
-            "oni_month": "2026-07"
-          },
-          {
-            "key": "rainfall",
-            "contribution": 0.0038,
-            "anomaly_60d": -0.021,
-            "anomaly_30d": 0.2878
-          }
-        ]
+        "forecast_drivers": {
+          "items": [
+            {
+              "key": "ban_history",
+              "contribution": 2.3266,
+              "ban_rate": 0.6822,
+              "year": 2025,
+              "monthly_rate": 0.5894,
+              "month": 10
+            },
+            {
+              "key": "season",
+              "contribution": 0.8254,
+              "month": 10
+            },
+            {
+              "key": "sea_temperature",
+              "contribution": 0.403,
+              "anomaly_90d": 0.3982,
+              "anomaly_30d": 0.7253
+            },
+            {
+              "key": "enso",
+              "contribution": -0.3541,
+              "oni": 1.8,
+              "oni_month": "2026-07"
+            },
+            {
+              "key": "rainfall",
+              "contribution": 0.0038,
+              "anomaly_60d": -0.021,
+              "anomaly_30d": 0.2878
+            }
+          ],
+          "logistic_probability": 0.7799,
+          "ensemble_probability": 0.7305
+        }
       },
       "five_day_outlook": [
         {
@@ -616,37 +640,43 @@ export const MOCK_LATEST_FORECAST = {
           "salinity": 33.88,
           "rainfall": 0.5
         },
-        "forecast_drivers": [
-          {
-            "key": "season",
-            "contribution": 0.8254,
-            "month": 10
-          },
-          {
-            "key": "ban_history",
-            "contribution": 0.653,
-            "ban_rate": 0.3342,
-            "year": 2025
-          },
-          {
-            "key": "enso",
-            "contribution": -0.3541,
-            "oni": 1.8,
-            "oni_month": "2026-07"
-          },
-          {
-            "key": "sea_temperature",
-            "contribution": 0.1124,
-            "anomaly_90d": 0.1257,
-            "anomaly_30d": 0.5361
-          },
-          {
-            "key": "rainfall",
-            "contribution": 0.0182,
-            "anomaly_60d": -0.083,
-            "anomaly_30d": 0.1118
-          }
-        ]
+        "forecast_drivers": {
+          "items": [
+            {
+              "key": "season",
+              "contribution": 0.8254,
+              "month": 10
+            },
+            {
+              "key": "ban_history",
+              "contribution": 0.653,
+              "ban_rate": 0.3342,
+              "year": 2025,
+              "monthly_rate": 0.3935,
+              "month": 10
+            },
+            {
+              "key": "enso",
+              "contribution": -0.3541,
+              "oni": 1.8,
+              "oni_month": "2026-07"
+            },
+            {
+              "key": "sea_temperature",
+              "contribution": 0.1124,
+              "anomaly_90d": 0.1257,
+              "anomaly_30d": 0.5361
+            },
+            {
+              "key": "rainfall",
+              "contribution": 0.0182,
+              "anomaly_60d": -0.083,
+              "anomaly_30d": 0.1118
+            }
+          ],
+          "logistic_probability": 0.3352,
+          "ensemble_probability": 0.3927
+        }
       },
       "five_day_outlook": [
         {
@@ -760,37 +790,43 @@ export const MOCK_LATEST_FORECAST = {
           "salinity": 33.3,
           "rainfall": 0
         },
-        "forecast_drivers": [
-          {
-            "key": "ban_history",
-            "contribution": -0.9556,
-            "ban_rate": 0.0,
-            "year": 2025
-          },
-          {
-            "key": "season",
-            "contribution": 0.8254,
-            "month": 10
-          },
-          {
-            "key": "sea_temperature",
-            "contribution": 0.3575,
-            "anomaly_90d": 0.3553,
-            "anomaly_30d": 0.7535
-          },
-          {
-            "key": "enso",
-            "contribution": -0.3541,
-            "oni": 1.8,
-            "oni_month": "2026-07"
-          },
-          {
-            "key": "rainfall",
-            "contribution": 0.0438,
-            "anomaly_60d": -0.1764,
-            "anomaly_30d": -0.2331
-          }
-        ]
+        "forecast_drivers": {
+          "items": [
+            {
+              "key": "ban_history",
+              "contribution": -0.9556,
+              "ban_rate": 0.0,
+              "year": 2025,
+              "monthly_rate": 0.2082,
+              "month": 10
+            },
+            {
+              "key": "season",
+              "contribution": 0.8254,
+              "month": 10
+            },
+            {
+              "key": "sea_temperature",
+              "contribution": 0.3575,
+              "anomaly_90d": 0.3553,
+              "anomaly_30d": 0.7535
+            },
+            {
+              "key": "enso",
+              "contribution": -0.3541,
+              "oni": 1.8,
+              "oni_month": "2026-07"
+            },
+            {
+              "key": "rainfall",
+              "contribution": 0.0438,
+              "anomaly_60d": -0.1764,
+              "anomaly_30d": -0.2331
+            }
+          ],
+          "logistic_probability": 0.1169,
+          "ensemble_probability": 0.2334
+        }
       },
       "five_day_outlook": [
         {
@@ -904,37 +940,43 @@ export const MOCK_LATEST_FORECAST = {
           "salinity": 33.14,
           "rainfall": 0
         },
-        "forecast_drivers": [
-          {
-            "key": "ban_history",
-            "contribution": -0.9429,
-            "ban_rate": 0.0,
-            "year": 2025
-          },
-          {
-            "key": "season",
-            "contribution": 0.8254,
-            "month": 10
-          },
-          {
-            "key": "sea_temperature",
-            "contribution": 0.3964,
-            "anomaly_90d": 0.3913,
-            "anomaly_30d": 0.8438
-          },
-          {
-            "key": "enso",
-            "contribution": -0.3541,
-            "oni": 1.8,
-            "oni_month": "2026-07"
-          },
-          {
-            "key": "rainfall",
-            "contribution": 0.0344,
-            "anomaly_60d": -0.1995,
-            "anomaly_30d": -0.2299
-          }
-        ]
+        "forecast_drivers": {
+          "items": [
+            {
+              "key": "ban_history",
+              "contribution": -0.9429,
+              "ban_rate": 0.0,
+              "year": 2025,
+              "monthly_rate": 0.1701,
+              "month": 10
+            },
+            {
+              "key": "season",
+              "contribution": 0.8254,
+              "month": 10
+            },
+            {
+              "key": "sea_temperature",
+              "contribution": 0.3964,
+              "anomaly_90d": 0.3913,
+              "anomaly_30d": 0.8438
+            },
+            {
+              "key": "enso",
+              "contribution": -0.3541,
+              "oni": 1.8,
+              "oni_month": "2026-07"
+            },
+            {
+              "key": "rainfall",
+              "contribution": 0.0344,
+              "anomaly_60d": -0.1995,
+              "anomaly_30d": -0.2299
+            }
+          ],
+          "logistic_probability": 0.1213,
+          "ensemble_probability": 0.2403
+        }
       },
       "five_day_outlook": [
         {
@@ -1048,37 +1090,43 @@ export const MOCK_LATEST_FORECAST = {
           "salinity": 33.21,
           "rainfall": 0
         },
-        "forecast_drivers": [
-          {
-            "key": "ban_history",
-            "contribution": -0.9468,
-            "ban_rate": 0.0,
-            "year": 2025
-          },
-          {
-            "key": "season",
-            "contribution": 0.8254,
-            "month": 10
-          },
-          {
-            "key": "sea_temperature",
-            "contribution": 0.4918,
-            "anomaly_90d": 0.4856,
-            "anomaly_30d": 0.8247
-          },
-          {
-            "key": "enso",
-            "contribution": -0.3541,
-            "oni": 1.8,
-            "oni_month": "2026-07"
-          },
-          {
-            "key": "rainfall",
-            "contribution": 0.0431,
-            "anomaly_60d": -0.1241,
-            "anomaly_30d": -0.1851
-          }
-        ]
+        "forecast_drivers": {
+          "items": [
+            {
+              "key": "ban_history",
+              "contribution": -0.9468,
+              "ban_rate": 0.0,
+              "year": 2025,
+              "monthly_rate": 0.1818,
+              "month": 10
+            },
+            {
+              "key": "season",
+              "contribution": 0.8254,
+              "month": 10
+            },
+            {
+              "key": "sea_temperature",
+              "contribution": 0.4918,
+              "anomaly_90d": 0.4856,
+              "anomaly_30d": 0.8247
+            },
+            {
+              "key": "enso",
+              "contribution": -0.3541,
+              "oni": 1.8,
+              "oni_month": "2026-07"
+            },
+            {
+              "key": "rainfall",
+              "contribution": 0.0431,
+              "anomaly_60d": -0.1241,
+              "anomaly_30d": -0.1851
+            }
+          ],
+          "logistic_probability": 0.1324,
+          "ensemble_probability": 0.2367
+        }
       },
       "five_day_outlook": [
         {
@@ -1192,37 +1240,43 @@ export const MOCK_LATEST_FORECAST = {
           "salinity": 33.61,
           "rainfall": 0.1
         },
-        "forecast_drivers": [
-          {
-            "key": "ban_history",
-            "contribution": -0.9498,
-            "ban_rate": 0.0,
-            "year": 2025
-          },
-          {
-            "key": "season",
-            "contribution": 0.8254,
-            "month": 10
-          },
-          {
-            "key": "sea_temperature",
-            "contribution": 0.4076,
-            "anomaly_90d": 0.4056,
-            "anomaly_30d": 0.7484
-          },
-          {
-            "key": "enso",
-            "contribution": -0.3541,
-            "oni": 1.8,
-            "oni_month": "2026-07"
-          },
-          {
-            "key": "rainfall",
-            "contribution": 0.072,
-            "anomaly_60d": -0.1609,
-            "anomaly_30d": -0.1774
-          }
-        ]
+        "forecast_drivers": {
+          "items": [
+            {
+              "key": "ban_history",
+              "contribution": -0.9498,
+              "ban_rate": 0.0,
+              "year": 2025,
+              "monthly_rate": 0.1906,
+              "month": 10
+            },
+            {
+              "key": "season",
+              "contribution": 0.8254,
+              "month": 10
+            },
+            {
+              "key": "sea_temperature",
+              "contribution": 0.4076,
+              "anomaly_90d": 0.4056,
+              "anomaly_30d": 0.7484
+            },
+            {
+              "key": "enso",
+              "contribution": -0.3541,
+              "oni": 1.8,
+              "oni_month": "2026-07"
+            },
+            {
+              "key": "rainfall",
+              "contribution": 0.072,
+              "anomaly_60d": -0.1609,
+              "anomaly_30d": -0.1774
+            }
+          ],
+          "logistic_probability": 0.1258,
+          "ensemble_probability": 0.2209
+        }
       },
       "five_day_outlook": [
         {
