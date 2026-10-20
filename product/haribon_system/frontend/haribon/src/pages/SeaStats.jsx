@@ -249,6 +249,10 @@ export default function SeaStats() {
   };
 
   const lastUpdated = forecastData?.last_updated || forecastData?.metadata?.last_updated || null;
+  const lastUpdatedDate = lastUpdated ? new Date(lastUpdated) : null;
+  const lastUpdatedShort = lastUpdatedDate && !Number.isNaN(lastUpdatedDate.getTime())
+    ? lastUpdatedDate.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : null;
 
   const rawMonthlyAlertData = (historicalData?.monthly_alerts || []).map((row) => ({
     label: row.label,
@@ -701,7 +705,9 @@ export default function SeaStats() {
                             <span className="text-xs text-gray-500">{param.unit}</span>
                           </div>
 
-                          <p className="text-[10px] text-gray-400 mt-3">Last updated: {new Date().toLocaleTimeString()}</p>
+                          {lastUpdatedShort && (
+                            <p className="text-[10px] text-gray-400 mt-3">Last updated: {lastUpdatedShort}</p>
+                          )}
                         </div>
                       </div>
                     );
