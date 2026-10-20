@@ -249,6 +249,10 @@ export default function SeaStats() {
   };
 
   const lastUpdated = forecastData?.last_updated || forecastData?.metadata?.last_updated || null;
+  const lastUpdatedDate = lastUpdated ? new Date(lastUpdated) : null;
+  const lastUpdatedShort = lastUpdatedDate && !Number.isNaN(lastUpdatedDate.getTime())
+    ? lastUpdatedDate.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+    : null;
 
   const rawMonthlyAlertData = (historicalData?.monthly_alerts || []).map((row) => ({
     label: row.label,
@@ -362,8 +366,6 @@ export default function SeaStats() {
       unit: '°C',
       value: parseMetricValue(envData['Temperature']),
       status: 'Live',
-      severity: 'Elevated',
-      accent: 'text-amber-600 bg-amber-50 border-amber-200',
     },
     {
       label: 'Salinity',
@@ -371,8 +373,6 @@ export default function SeaStats() {
       unit: 'PSU',
       value: parseMetricValue(envData['Salinity (PSU)']),
       status: 'Live',
-      severity: 'Below Normal',
-      accent: 'text-sky-700 bg-sky-50 border-sky-200',
     },
     {
       label: 'Chl-a Concentration',
@@ -380,8 +380,6 @@ export default function SeaStats() {
       unit: 'mg/m³',
       value: parseMetricValue(envData['Chlorophyll-a']),
       status: 'Live',
-      severity: 'Critical',
-      accent: 'text-emerald-700 bg-emerald-50 border-emerald-200',
     },
     {
       label: 'Precipitation',
@@ -389,8 +387,6 @@ export default function SeaStats() {
       unit: 'mm',
       value: parseMetricValue(envData['Precipitation']),
       status: '24-hour Precipitation',
-      severity: 'Heavy Rain',
-      accent: 'text-cyan-700 bg-cyan-50 border-cyan-200',
     },
     {
       label: 'Mixed Layer Depth',
@@ -398,8 +394,6 @@ export default function SeaStats() {
       unit: 'm',
       value: parseMetricValue(envData['MLD (m)']),
       status: 'Live',
-      severity: 'Variable',
-      accent: 'text-indigo-700 bg-indigo-50 border-indigo-200',
     },
     {
       label: 'NDVI',
@@ -407,8 +401,6 @@ export default function SeaStats() {
       unit: 'index',
       value: parseMetricValue(envData['NDVI']),
       status: 'Satellite',
-      severity: 'Baseline',
-      accent: 'text-lime-700 bg-lime-50 border-lime-200',
     },
     {
       label: 'U-Wind Speed',
@@ -416,8 +408,6 @@ export default function SeaStats() {
       unit: 'm/s',
       value: parseMetricValue(envData['U-Wind Speed (m/s)']),
       status: 'Live',
-      severity: 'Cross-shore',
-      accent: 'text-cyan-700 bg-cyan-50 border-cyan-200',
     },
     {
       label: 'V-Wind Speed',
@@ -425,8 +415,6 @@ export default function SeaStats() {
       unit: 'm/s',
       value: parseMetricValue(envData['V-Wind Speed (m/s)']),
       status: 'Live',
-      severity: 'Along-shore',
-      accent: 'text-cyan-700 bg-cyan-50 border-cyan-200',
     },
     {
       label: 'U Current Velocity',
@@ -434,8 +422,6 @@ export default function SeaStats() {
       unit: 'm/s',
       value: parseMetricValue(envData['U-VEL (m/s)']),
       status: 'Marine current',
-      severity: 'Transport',
-      accent: 'text-blue-700 bg-blue-50 border-blue-200',
     },
     {
       label: 'V Current Velocity',
@@ -443,8 +429,6 @@ export default function SeaStats() {
       unit: 'm/s',
       value: parseMetricValue(envData['V-VEL (m/s)']),
       status: 'Marine current',
-      severity: 'Transport',
-      accent: 'text-blue-700 bg-blue-50 border-blue-200',
     },
   ];
 
@@ -721,13 +705,9 @@ export default function SeaStats() {
                             <span className="text-xs text-gray-500">{param.unit}</span>
                           </div>
 
-                          <div className="mt-2">
-                            <span className={`inline-flex text-[10px] font-semibold px-2.5 py-1 rounded-full border whitespace-nowrap ${param.accent}`}>
-                              {param.severity}
-                            </span>
-                          </div>
-
-                          <p className="text-[10px] text-gray-400 mt-3">Last updated: {new Date().toLocaleTimeString()}</p>
+                          {lastUpdatedShort && (
+                            <p className="text-[10px] text-gray-400 mt-3">Last updated: {lastUpdatedShort}</p>
+                          )}
                         </div>
                       </div>
                     );
