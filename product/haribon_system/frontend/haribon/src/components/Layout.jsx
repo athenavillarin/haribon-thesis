@@ -67,7 +67,6 @@ export default function Layout() {
 
         {/* Footer */}
         <div className="p-8 text-xs text-gray-400 leading-relaxed border-t border-gray-200 m-6 text-center">
-          <h4 className="font-bold text-haribon-dark mb-1">Western Visayas</h4>
           <p>AI-Powered Red Tide Detection & Forecasting</p>
         </div>
       </aside>
@@ -104,9 +103,7 @@ export default function Layout() {
             </div>
             <nav className="px-3">{renderNavLinks()}</nav>
           </div>
-
           <div className="px-6 pb-8 text-center">
-            <h4 className="font-bold text-haribon-dark mb-1">Western Visayas</h4>
             <p className="text-sm text-[#2f4d51]">AI-Powered Red Tide Detection & Forecasting</p>
           </div>
         </aside>
