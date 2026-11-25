@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-11-24T10:54:45.038911+08:00",
+  "last_updated": "2026-11-25T08:39:55.989544+08:00",
   "status": "ok",
   "failed_locations": [],
   "ensemble_fallback_locations": [],
@@ -14,9 +14,9 @@
       "location": "Cancabato Bay",
       "latitude": 11.2249,
       "longitude": 125.0131,
-      "date": "2026-11-24",
+      "date": "2026-11-25",
       "risk_level": "Very Low Risk",
-      "confidence": "74.0%",
+      "confidence": "73.9%",
       "red_tide_probability": "Very Low",
       "recommendations": [
         "Conditions are favorable.",
@@ -24,15 +24,15 @@
         "Continue regular monitoring."
       ],
       "contributing_factors": {
-        "chl-a": 0.451,
-        "sst": 29.74,
-        "salinity": 34.01,
+        "chl-a": 0.622,
+        "sst": 29.72,
+        "salinity": 33.98,
         "rainfall": 29.8
       },
       "forecast_drivers": [
         {
           "key": "season",
-          "contribution": 1.121,
+          "contribution": 1.1207,
           "month": 11
         },
         {
@@ -45,9 +45,9 @@
         },
         {
           "key": "sea_temperature",
-          "contribution": 0.7249,
-          "anomaly_90d": 0.6999,
-          "anomaly_30d": 0.8208
+          "contribution": 0.7252,
+          "anomaly_90d": 0.7001,
+          "anomaly_30d": 0.8379
         },
         {
           "key": "enso",
@@ -57,22 +57,22 @@
         },
         {
           "key": "rainfall",
-          "contribution": 0.0185,
-          "anomaly_60d": 0.0583,
-          "anomaly_30d": -0.0094
+          "contribution": 0.027,
+          "anomaly_60d": 0.0757,
+          "anomaly_30d": 0.0282
         }
       ],
       "environmental_data": {
-        "Chlorophyll-a": "0.45 mg/m3",
-        "Temperature": "29.74 \u00b0C",
-        "Salinity (PSU)": "34.01 PSU",
-        "MLD (m)": "19.53 m",
+        "Chlorophyll-a": "0.62 mg/m3",
+        "Temperature": "29.72 \u00b0C",
+        "Salinity (PSU)": "33.98 PSU",
+        "MLD (m)": "17.16 m",
         "Precipitation": "29.76 mm",
         "NDVI": "0.3292",
-        "U-Wind Speed (m/s)": "-2.65 m/s",
-        "V-Wind Speed (m/s)": "-1.2 m/s",
-        "U-VEL (m/s)": "-0.041 m/s",
-        "V-VEL (m/s)": "-0.028 m/s"
+        "U-Wind Speed (m/s)": "-2.74 m/s",
+        "V-Wind Speed (m/s)": "-1.13 m/s",
+        "U-VEL (m/s)": "-0.058 m/s",
+        "V-VEL (m/s)": "-0.02 m/s"
       },
       "data_quality": {
         "quality_score": 0.91,
@@ -83,34 +83,34 @@
         "environment_data_source": "cmems_gee_merged",
         "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
         "forecasting_model": "Ensemble",
-        "base_xgboost_probability": 0.700657,
+        "base_xgboost_probability": 0.689171,
         "sequence_models_probability": null,
         "xgboost_weight_damped": false,
-        "final_probability": 0.260009,
+        "final_probability": 0.260743,
         "final_probability_source": "ensemble",
         "env_model_inputs": {
-          "thetao_roll30": 0.8208,
-          "thetao_roll60": 0.7789,
-          "thetao_roll90": 0.6999,
-          "precip_mm_day_roll30": -0.0094,
-          "precip_mm_day_roll60": 0.0583,
-          "precip_mm_day_roll90": 0.0274,
-          "doy_sin": -0.5978,
-          "doy_cos": 0.8016,
+          "thetao_roll30": 0.8379,
+          "thetao_roll60": 0.7808,
+          "thetao_roll90": 0.7001,
+          "precip_mm_day_roll30": 0.0282,
+          "precip_mm_day_roll60": 0.0757,
+          "precip_mm_day_roll90": 0.0228,
+          "doy_sin": -0.584,
+          "doy_cos": 0.8118,
           "oni": 2.16,
           "clim_rate": 0.2233,
           "site_rate_365": 0.0
         },
         "env_model_precip_sources": {
           "imerg": 53,
-          "missing": 1
+          "missing": 2
         },
         "env_model_trained_through": "2026-10-01",
-        "ensemble_logistic_probability": 0.187581,
+        "ensemble_logistic_probability": 0.188903,
         "ensemble_deep_probabilities": {
-          "lstm": 0.382766,
-          "gru": 0.333337,
-          "transformer": 0.281207
+          "lstm": 0.381534,
+          "gru": 0.334669,
+          "transformer": 0.281549
         },
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -126,16 +126,16 @@
           "vo": "observed"
         },
         "historical_positive_signal": false,
-        "days_since_last_positive": 817,
+        "days_since_last_positive": 818,
         "recent_positive_rate_90d": 0.0,
         "recent_positive_rate_365d": 0.0,
         "cmems_source": "cmems_live",
         "cmems_source_dates": {
-          "thetao": "2026-11-24",
-          "so": "2026-11-24",
-          "currents": "2026-11-24",
-          "mixed_layer": "2026-11-24",
-          "chlorophyll": "2026-11-22"
+          "thetao": "2026-11-25",
+          "so": "2026-11-25",
+          "currents": "2026-11-25",
+          "mixed_layer": "2026-11-25",
+          "chlorophyll": "2026-11-23"
         },
         "gee_available": true,
         "gee_params": [
@@ -147,65 +147,65 @@
       },
       "explanation": "Very low bloom risk; environmental conditions are currently unfavorable for red tide development.",
       "model_inputs": {
-        "CHL": 0.450698,
+        "CHL": 0.622209,
         "NDVI_daily": 0.3292,
-        "mlotst": 19.528085,
+        "mlotst": 17.159899,
         "precip_mm_day": 29.76,
-        "so": 34.006048,
-        "thetao": 29.736516,
-        "uo": -0.040856,
-        "vo": -0.02844,
-        "wind_speed_ms": 2.911,
-        "wind_u_ms": -2.654,
-        "wind_v_ms": -1.196
+        "so": 33.98086,
+        "thetao": 29.718307,
+        "uo": -0.057799,
+        "vo": -0.019643,
+        "wind_speed_ms": 2.962,
+        "wind_u_ms": -2.737,
+        "wind_v_ms": -1.131
       },
       "five_day_forecast": [
         {
           "forecast_day": 1,
-          "date": "2026-11-25",
-          "day_label": "Wed",
+          "date": "2026-11-26",
+          "day_label": "Thu",
           "risk_level": "Very Low Risk",
-          "confidence": "70.3%",
+          "confidence": "70.2%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 2,
-          "date": "2026-11-26",
-          "day_label": "Thu",
+          "date": "2026-11-27",
+          "day_label": "Fri",
           "risk_level": "Very Low Risk",
-          "confidence": "66.8%",
+          "confidence": "66.7%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 3,
-          "date": "2026-11-27",
-          "day_label": "Fri",
+          "date": "2026-11-28",
+          "day_label": "Sat",
           "risk_level": "Very Low Risk",
           "confidence": "63.4%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 4,
-          "date": "2026-11-28",
-          "day_label": "Sat",
+          "date": "2026-11-29",
+          "day_label": "Sun",
           "risk_level": "Very Low Risk",
-          "confidence": "60.3%",
+          "confidence": "60.2%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 5,
-          "date": "2026-11-29",
-          "day_label": "Sun",
+          "date": "2026-11-30",
+          "day_label": "Mon",
           "risk_level": "Very Low Risk",
-          "confidence": "57.3%",
+          "confidence": "57.2%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 6,
-          "date": "2026-11-30",
-          "day_label": "Mon",
+          "date": "2026-12-01",
+          "day_label": "Tue",
           "risk_level": "Very Low Risk",
-          "confidence": "54.4%",
+          "confidence": "54.3%",
           "probability": "Very Low"
         }
       ]
@@ -214,9 +214,9 @@
       "location": "Dumanquillas Bay",
       "latitude": 7.697,
       "longitude": 123.018,
-      "date": "2026-11-24",
+      "date": "2026-11-25",
       "risk_level": "High Risk",
-      "confidence": "88.8%",
+      "confidence": "88.9%",
       "red_tide_probability": "High",
       "recommendations": [
         "HARMFUL ALGAL BLOOM DETECTED",
@@ -224,8 +224,8 @@
         "Wait for official BFAR advisory before resuming activities."
       ],
       "contributing_factors": {
-        "chl-a": 0.607,
-        "sst": 30.5,
+        "chl-a": 0.359,
+        "sst": 30.53,
         "salinity": 32.97,
         "rainfall": 29.9
       },
@@ -240,14 +240,14 @@
         },
         {
           "key": "season",
-          "contribution": 1.121,
+          "contribution": 1.1207,
           "month": 11
         },
         {
           "key": "sea_temperature",
-          "contribution": 0.4318,
-          "anomaly_90d": 0.4204,
-          "anomaly_30d": 0.843
+          "contribution": 0.434,
+          "anomaly_90d": 0.423,
+          "anomaly_30d": 0.8587
         },
         {
           "key": "enso",
@@ -257,22 +257,22 @@
         },
         {
           "key": "rainfall",
-          "contribution": 0.0689,
-          "anomaly_60d": -0.3796,
-          "anomaly_30d": -0.4335
+          "contribution": 0.079,
+          "anomaly_60d": -0.361,
+          "anomaly_30d": -0.4205
         }
       ],
       "environmental_data": {
-        "Chlorophyll-a": "0.61 mg/m3",
-        "Temperature": "30.5 \u00b0C",
+        "Chlorophyll-a": "0.36 mg/m3",
+        "Temperature": "30.53 \u00b0C",
         "Salinity (PSU)": "32.97 PSU",
-        "MLD (m)": "11.31 m",
+        "MLD (m)": "11.49 m",
         "Precipitation": "29.93 mm",
-        "NDVI": "0.7638",
-        "U-Wind Speed (m/s)": "-0.26 m/s",
+        "NDVI": "0.7568",
+        "U-Wind Speed (m/s)": "-0.29 m/s",
         "V-Wind Speed (m/s)": "-0.28 m/s",
-        "U-VEL (m/s)": "-0.032 m/s",
-        "V-VEL (m/s)": "0.034 m/s"
+        "U-VEL (m/s)": "0.021 m/s",
+        "V-VEL (m/s)": "0.011 m/s"
       },
       "data_quality": {
         "quality_score": 1.0,
@@ -286,31 +286,31 @@
         "base_xgboost_probability": 0.626866,
         "sequence_models_probability": null,
         "xgboost_weight_damped": false,
-        "final_probability": 0.888491,
+        "final_probability": 0.888901,
         "final_probability_source": "ensemble",
         "env_model_inputs": {
-          "thetao_roll30": 0.843,
-          "thetao_roll60": 0.4573,
-          "thetao_roll90": 0.4204,
-          "precip_mm_day_roll30": -0.4335,
-          "precip_mm_day_roll60": -0.3796,
-          "precip_mm_day_roll90": -0.3868,
-          "doy_sin": -0.5978,
-          "doy_cos": 0.8016,
+          "thetao_roll30": 0.8587,
+          "thetao_roll60": 0.4722,
+          "thetao_roll90": 0.423,
+          "precip_mm_day_roll30": -0.4205,
+          "precip_mm_day_roll60": -0.361,
+          "precip_mm_day_roll90": -0.3895,
+          "doy_sin": -0.584,
+          "doy_cos": 0.8118,
           "oni": 2.16,
           "clim_rate": 0.4545,
           "site_rate_365": 1.0
         },
         "env_model_precip_sources": {
           "imerg": 53,
-          "missing": 1
+          "missing": 2
         },
         "env_model_trained_through": "2026-10-01",
-        "ensemble_logistic_probability": 0.961299,
+        "ensemble_logistic_probability": 0.961745,
         "ensemble_deep_probabilities": {
-          "lstm": 0.758368,
-          "gru": 0.870031,
-          "transformer": 0.818649
+          "lstm": 0.75877,
+          "gru": 0.871768,
+          "transformer": 0.817631
         },
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -326,16 +326,16 @@
           "vo": "observed"
         },
         "historical_positive_signal": true,
-        "days_since_last_positive": 54,
+        "days_since_last_positive": 55,
         "recent_positive_rate_90d": 1.0,
         "recent_positive_rate_365d": 1.0,
         "cmems_source": "cmems_live",
         "cmems_source_dates": {
-          "thetao": "2026-11-24",
-          "so": "2026-11-24",
-          "currents": "2026-11-24",
-          "mixed_layer": "2026-11-24",
-          "chlorophyll": "2026-11-22"
+          "thetao": "2026-11-25",
+          "so": "2026-11-25",
+          "currents": "2026-11-25",
+          "mixed_layer": "2026-11-25",
+          "chlorophyll": "2026-11-23"
         },
         "gee_available": true,
         "gee_params": [
@@ -349,63 +349,63 @@
       },
       "explanation": "Moderate bloom risk retained due to persistent recent positive red tide history in this location.",
       "model_inputs": {
-        "CHL": 0.607389,
-        "NDVI_daily": 0.7638,
-        "mlotst": 11.309447,
+        "CHL": 0.358906,
+        "NDVI_daily": 0.7568,
+        "mlotst": 11.486749,
         "precip_mm_day": 29.93,
-        "so": 32.968932,
-        "thetao": 30.504757,
-        "uo": -0.032444,
-        "vo": 0.034008,
-        "wind_speed_ms": 0.386,
-        "wind_u_ms": -0.264,
-        "wind_v_ms": -0.282
+        "so": 32.97456,
+        "thetao": 30.529744,
+        "uo": 0.020954,
+        "vo": 0.010813,
+        "wind_speed_ms": 0.403,
+        "wind_u_ms": -0.287,
+        "wind_v_ms": -0.283
       },
       "five_day_forecast": [
         {
           "forecast_day": 1,
-          "date": "2026-11-25",
-          "day_label": "Wed",
+          "date": "2026-11-26",
+          "day_label": "Thu",
           "risk_level": "High Risk",
           "confidence": "84.4%",
           "probability": "High"
         },
         {
           "forecast_day": 2,
-          "date": "2026-11-26",
-          "day_label": "Thu",
+          "date": "2026-11-27",
+          "day_label": "Fri",
           "risk_level": "High Risk",
           "confidence": "80.2%",
           "probability": "High"
         },
         {
           "forecast_day": 3,
-          "date": "2026-11-27",
-          "day_label": "Fri",
+          "date": "2026-11-28",
+          "day_label": "Sat",
           "risk_level": "High Risk",
           "confidence": "76.2%",
           "probability": "High"
         },
         {
           "forecast_day": 4,
-          "date": "2026-11-28",
-          "day_label": "Sat",
+          "date": "2026-11-29",
+          "day_label": "Sun",
           "risk_level": "Moderate Risk",
           "confidence": "72.4%",
           "probability": "Moderate"
         },
         {
           "forecast_day": 5,
-          "date": "2026-11-29",
-          "day_label": "Sun",
+          "date": "2026-11-30",
+          "day_label": "Mon",
           "risk_level": "Moderate Risk",
-          "confidence": "68.7%",
+          "confidence": "68.8%",
           "probability": "Moderate"
         },
         {
           "forecast_day": 6,
-          "date": "2026-11-30",
-          "day_label": "Mon",
+          "date": "2026-12-01",
+          "day_label": "Tue",
           "risk_level": "Moderate Risk",
           "confidence": "65.3%",
           "probability": "Moderate"
@@ -416,9 +416,9 @@
       "location": "Gigantes Islands",
       "latitude": 11.5975,
       "longitude": 123.3364,
-      "date": "2026-11-24",
+      "date": "2026-11-25",
       "risk_level": "Very Low Risk",
-      "confidence": "74.7%",
+      "confidence": "74.6%",
       "red_tide_probability": "Very Low",
       "recommendations": [
         "Conditions are favorable.",
@@ -426,15 +426,15 @@
         "Continue regular monitoring."
       ],
       "contributing_factors": {
-        "chl-a": 0.968,
-        "sst": 29.31,
-        "salinity": 34.16,
+        "chl-a": 0.72,
+        "sst": 29.27,
+        "salinity": 34.15,
         "rainfall": 0.0
       },
       "forecast_drivers": [
         {
           "key": "season",
-          "contribution": 1.121,
+          "contribution": 1.1207,
           "month": 11
         },
         {
@@ -447,9 +447,9 @@
         },
         {
           "key": "sea_temperature",
-          "contribution": 0.6541,
-          "anomaly_90d": 0.6356,
-          "anomaly_30d": 0.4359
+          "contribution": 0.6488,
+          "anomaly_90d": 0.6301,
+          "anomaly_30d": 0.4143
         },
         {
           "key": "enso",
@@ -459,25 +459,25 @@
         },
         {
           "key": "rainfall",
-          "contribution": 0.0564,
-          "anomaly_60d": -0.2024,
-          "anomaly_30d": -0.4934
+          "contribution": 0.0705,
+          "anomaly_60d": -0.169,
+          "anomaly_30d": -0.4253
         }
       ],
       "environmental_data": {
-        "Chlorophyll-a": "0.97 mg/m3",
-        "Temperature": "29.31 \u00b0C",
-        "Salinity (PSU)": "34.16 PSU",
-        "MLD (m)": "19.81 m",
+        "Chlorophyll-a": "0.72 mg/m3",
+        "Temperature": "29.27 \u00b0C",
+        "Salinity (PSU)": "34.15 PSU",
+        "MLD (m)": "19.57 m",
         "Precipitation": "0.0 mm",
         "NDVI": "0.3912",
-        "U-Wind Speed (m/s)": "-5.62 m/s",
-        "V-Wind Speed (m/s)": "-3.78 m/s",
-        "U-VEL (m/s)": "-0.126 m/s",
-        "V-VEL (m/s)": "0.017 m/s"
+        "U-Wind Speed (m/s)": "-5.7 m/s",
+        "V-Wind Speed (m/s)": "-3.61 m/s",
+        "U-VEL (m/s)": "-0.128 m/s",
+        "V-VEL (m/s)": "0.028 m/s"
       },
       "data_quality": {
-        "quality_score": 1.0,
+        "quality_score": 0.91,
         "confidence_level": "High",
         "critical_features_available": 4,
         "critical_features_total": 4,
@@ -485,34 +485,34 @@
         "environment_data_source": "cmems_gee_merged",
         "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
         "forecasting_model": "Ensemble",
-        "base_xgboost_probability": 0.931264,
+        "base_xgboost_probability": 0.928922,
         "sequence_models_probability": null,
         "xgboost_weight_damped": false,
-        "final_probability": 0.253045,
+        "final_probability": 0.254286,
         "final_probability_source": "ensemble",
         "env_model_inputs": {
-          "thetao_roll30": 0.4359,
-          "thetao_roll60": 0.6951,
-          "thetao_roll90": 0.6356,
-          "precip_mm_day_roll30": -0.4934,
-          "precip_mm_day_roll60": -0.2024,
-          "precip_mm_day_roll90": -0.2015,
-          "doy_sin": -0.5978,
-          "doy_cos": 0.8016,
+          "thetao_roll30": 0.4143,
+          "thetao_roll60": 0.6758,
+          "thetao_roll90": 0.6301,
+          "precip_mm_day_roll30": -0.4253,
+          "precip_mm_day_roll60": -0.169,
+          "precip_mm_day_roll90": -0.2055,
+          "doy_sin": -0.584,
+          "doy_cos": 0.8118,
           "oni": 2.16,
           "clim_rate": 0.203,
           "site_rate_365": 0.0
         },
         "env_model_precip_sources": {
           "imerg": 53,
-          "missing": 1
+          "missing": 2
         },
         "env_model_trained_through": "2026-10-01",
-        "ensemble_logistic_probability": 0.183637,
+        "ensemble_logistic_probability": 0.184933,
         "ensemble_deep_probabilities": {
-          "lstm": 0.339234,
-          "gru": 0.333493,
-          "transformer": 0.294631
+          "lstm": 0.337684,
+          "gru": 0.334848,
+          "transformer": 0.298385
         },
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -520,7 +520,7 @@
           "so": "observed",
           "precip_mm_day": "observed",
           "mlotst": "observed",
-          "NDVI_daily": "observed",
+          "NDVI_daily": "temporal_short_gap",
           "wind_speed_ms": "observed",
           "wind_u_ms": "observed",
           "wind_v_ms": "observed",
@@ -528,22 +528,20 @@
           "vo": "observed"
         },
         "historical_positive_signal": false,
-        "days_since_last_positive": 1070,
+        "days_since_last_positive": 1071,
         "recent_positive_rate_90d": 0.0,
         "recent_positive_rate_365d": 0.0,
         "cmems_source": "cmems_live",
         "cmems_source_dates": {
-          "thetao": "2026-11-24",
-          "so": "2026-11-24",
-          "currents": "2026-11-24",
-          "mixed_layer": "2026-11-24",
-          "chlorophyll": "2026-11-22"
+          "thetao": "2026-11-25",
+          "so": "2026-11-25",
+          "currents": "2026-11-25",
+          "mixed_layer": "2026-11-25",
+          "chlorophyll": "2026-11-23"
         },
         "gee_available": true,
         "gee_params": [
           "precip_mm_day",
-          "NDVI_daily",
-          "NDVI_raw",
           "wind_speed_ms",
           "wind_u_ms",
           "wind_v_ms"
@@ -551,65 +549,65 @@
       },
       "explanation": "Very low bloom risk; environmental conditions are currently unfavorable for red tide development.",
       "model_inputs": {
-        "CHL": 0.96799,
+        "CHL": 0.719876,
         "NDVI_daily": 0.3912,
-        "mlotst": 19.806752,
+        "mlotst": 19.568909,
         "precip_mm_day": 0.0,
-        "so": 34.160666,
-        "thetao": 29.306441,
-        "uo": -0.126147,
-        "vo": 0.016984,
-        "wind_speed_ms": 6.775,
-        "wind_u_ms": -5.621,
-        "wind_v_ms": -3.783
+        "so": 34.150662,
+        "thetao": 29.265212,
+        "uo": -0.128067,
+        "vo": 0.028455,
+        "wind_speed_ms": 6.747,
+        "wind_u_ms": -5.699,
+        "wind_v_ms": -3.613
       },
       "five_day_forecast": [
         {
           "forecast_day": 1,
-          "date": "2026-11-25",
-          "day_label": "Wed",
+          "date": "2026-11-26",
+          "day_label": "Thu",
           "risk_level": "Very Low Risk",
-          "confidence": "71.0%",
+          "confidence": "70.8%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 2,
-          "date": "2026-11-26",
-          "day_label": "Thu",
+          "date": "2026-11-27",
+          "day_label": "Fri",
           "risk_level": "Very Low Risk",
-          "confidence": "67.4%",
+          "confidence": "67.3%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 3,
-          "date": "2026-11-27",
-          "day_label": "Fri",
+          "date": "2026-11-28",
+          "day_label": "Sat",
           "risk_level": "Very Low Risk",
-          "confidence": "64.0%",
+          "confidence": "63.9%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 4,
-          "date": "2026-11-28",
-          "day_label": "Sat",
+          "date": "2026-11-29",
+          "day_label": "Sun",
           "risk_level": "Very Low Risk",
-          "confidence": "60.8%",
+          "confidence": "60.7%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 5,
-          "date": "2026-11-29",
-          "day_label": "Sun",
+          "date": "2026-11-30",
+          "day_label": "Mon",
           "risk_level": "Very Low Risk",
-          "confidence": "57.8%",
+          "confidence": "57.7%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 6,
-          "date": "2026-11-30",
-          "day_label": "Mon",
+          "date": "2026-12-01",
+          "day_label": "Tue",
           "risk_level": "Very Low Risk",
-          "confidence": "54.9%",
+          "confidence": "54.8%",
           "probability": "Very Low"
         }
       ]
@@ -618,9 +616,9 @@
       "location": "Matarinao Bay",
       "latitude": 11.23,
       "longitude": 125.55,
-      "date": "2026-11-24",
+      "date": "2026-11-25",
       "risk_level": "High Risk",
-      "confidence": "76.6%",
+      "confidence": "76.5%",
       "red_tide_probability": "High",
       "recommendations": [
         "HARMFUL ALGAL BLOOM DETECTED",
@@ -628,10 +626,10 @@
         "Wait for official BFAR advisory before resuming activities."
       ],
       "contributing_factors": {
-        "chl-a": 0.168,
-        "sst": 29.45,
-        "salinity": 34.02,
-        "rainfall": 43.4
+        "chl-a": 0.171,
+        "sst": 29.43,
+        "salinity": 33.98,
+        "rainfall": 37.1
       },
       "forecast_drivers": [
         {
@@ -644,14 +642,14 @@
         },
         {
           "key": "season",
-          "contribution": 1.121,
+          "contribution": 1.1207,
           "month": 11
         },
         {
           "key": "sea_temperature",
-          "contribution": 0.5483,
-          "anomaly_90d": 0.5383,
-          "anomaly_30d": 0.4644
+          "contribution": 0.5457,
+          "anomaly_90d": 0.5355,
+          "anomaly_30d": 0.4657
         },
         {
           "key": "enso",
@@ -661,22 +659,22 @@
         },
         {
           "key": "rainfall",
-          "contribution": 0.0122,
-          "anomaly_60d": 0.104,
-          "anomaly_30d": 0.0196
+          "contribution": 0.0209,
+          "anomaly_60d": 0.1151,
+          "anomaly_30d": 0.071
         }
       ],
       "environmental_data": {
         "Chlorophyll-a": "0.17 mg/m3",
-        "Temperature": "29.45 \u00b0C",
-        "Salinity (PSU)": "34.02 PSU",
-        "MLD (m)": "21.25 m",
-        "Precipitation": "43.41 mm",
-        "NDVI": "0.2039",
-        "U-Wind Speed (m/s)": "-4.84 m/s",
-        "V-Wind Speed (m/s)": "-2.42 m/s",
-        "U-VEL (m/s)": "-0.053 m/s",
-        "V-VEL (m/s)": "-0.121 m/s"
+        "Temperature": "29.43 \u00b0C",
+        "Salinity (PSU)": "33.98 PSU",
+        "MLD (m)": "20.54 m",
+        "Precipitation": "37.06 mm",
+        "NDVI": "-0.1604",
+        "U-Wind Speed (m/s)": "-5.01 m/s",
+        "V-Wind Speed (m/s)": "-2.2 m/s",
+        "U-VEL (m/s)": "-0.086 m/s",
+        "V-VEL (m/s)": "-0.1 m/s"
       },
       "data_quality": {
         "quality_score": 1.0,
@@ -687,34 +685,34 @@
         "environment_data_source": "cmems_gee_merged",
         "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
         "forecasting_model": "Ensemble",
-        "base_xgboost_probability": 0.885851,
+        "base_xgboost_probability": 0.885628,
         "sequence_models_probability": null,
         "xgboost_weight_damped": false,
-        "final_probability": 0.765958,
+        "final_probability": 0.765349,
         "final_probability_source": "ensemble",
         "env_model_inputs": {
-          "thetao_roll30": 0.4644,
-          "thetao_roll60": 0.6511,
-          "thetao_roll90": 0.5383,
-          "precip_mm_day_roll30": 0.0196,
-          "precip_mm_day_roll60": 0.104,
-          "precip_mm_day_roll90": 0.0744,
-          "doy_sin": -0.5978,
-          "doy_cos": 0.8016,
+          "thetao_roll30": 0.4657,
+          "thetao_roll60": 0.6428,
+          "thetao_roll90": 0.5355,
+          "precip_mm_day_roll30": 0.071,
+          "precip_mm_day_roll60": 0.1151,
+          "precip_mm_day_roll90": 0.0623,
+          "doy_sin": -0.584,
+          "doy_cos": 0.8118,
           "oni": 2.16,
           "clim_rate": 0.5455,
           "site_rate_365": 0.6822
         },
         "env_model_precip_sources": {
           "imerg": 53,
-          "missing": 1
+          "missing": 2
         },
         "env_model_trained_through": "2026-10-01",
-        "ensemble_logistic_probability": 0.839341,
+        "ensemble_logistic_probability": 0.840132,
         "ensemble_deep_probabilities": {
-          "lstm": 0.721019,
-          "gru": 0.773596,
-          "transformer": 0.583112
+          "lstm": 0.714405,
+          "gru": 0.774655,
+          "transformer": 0.582639
         },
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -730,16 +728,16 @@
           "vo": "observed"
         },
         "historical_positive_signal": true,
-        "days_since_last_positive": 54,
+        "days_since_last_positive": 55,
         "recent_positive_rate_90d": 1.0,
         "recent_positive_rate_365d": 1.0,
         "cmems_source": "cmems_live",
         "cmems_source_dates": {
-          "thetao": "2026-11-24",
-          "so": "2026-11-24",
-          "currents": "2026-11-24",
-          "mixed_layer": "2026-11-24",
-          "chlorophyll": "2026-11-22"
+          "thetao": "2026-11-25",
+          "so": "2026-11-25",
+          "currents": "2026-11-25",
+          "mixed_layer": "2026-11-25",
+          "chlorophyll": "2026-11-23"
         },
         "gee_available": true,
         "gee_params": [
@@ -753,63 +751,63 @@
       },
       "explanation": "Moderate bloom risk retained due to persistent recent positive red tide history in this location.",
       "model_inputs": {
-        "CHL": 0.167767,
-        "NDVI_daily": 0.2039,
-        "mlotst": 21.254228,
-        "precip_mm_day": 43.41,
-        "so": 34.015898,
-        "thetao": 29.44787,
-        "uo": -0.052667,
-        "vo": -0.121145,
-        "wind_speed_ms": 5.408,
-        "wind_u_ms": -4.838,
-        "wind_v_ms": -2.416
+        "CHL": 0.170692,
+        "NDVI_daily": -0.1604,
+        "mlotst": 20.542284,
+        "precip_mm_day": 37.06,
+        "so": 33.97768,
+        "thetao": 29.432477,
+        "uo": -0.086205,
+        "vo": -0.100453,
+        "wind_speed_ms": 5.469,
+        "wind_u_ms": -5.008,
+        "wind_v_ms": -2.199
       },
       "five_day_forecast": [
         {
           "forecast_day": 1,
-          "date": "2026-11-25",
-          "day_label": "Wed",
+          "date": "2026-11-26",
+          "day_label": "Thu",
           "risk_level": "High Risk",
-          "confidence": "72.8%",
+          "confidence": "72.7%",
           "probability": "High"
         },
         {
           "forecast_day": 2,
-          "date": "2026-11-26",
-          "day_label": "Thu",
+          "date": "2026-11-27",
+          "day_label": "Fri",
           "risk_level": "High Risk",
           "confidence": "69.1%",
           "probability": "High"
         },
         {
           "forecast_day": 3,
-          "date": "2026-11-27",
-          "day_label": "Fri",
+          "date": "2026-11-28",
+          "day_label": "Sat",
           "risk_level": "Moderate Risk",
-          "confidence": "65.7%",
+          "confidence": "65.6%",
           "probability": "Moderate"
         },
         {
           "forecast_day": 4,
-          "date": "2026-11-28",
-          "day_label": "Sat",
+          "date": "2026-11-29",
+          "day_label": "Sun",
           "risk_level": "Moderate Risk",
-          "confidence": "62.4%",
+          "confidence": "62.3%",
           "probability": "Moderate"
         },
         {
           "forecast_day": 5,
-          "date": "2026-11-29",
-          "day_label": "Sun",
+          "date": "2026-11-30",
+          "day_label": "Mon",
           "risk_level": "Moderate Risk",
-          "confidence": "59.3%",
+          "confidence": "59.2%",
           "probability": "Moderate"
         },
         {
           "forecast_day": 6,
-          "date": "2026-11-30",
-          "day_label": "Mon",
+          "date": "2026-12-01",
+          "day_label": "Tue",
           "risk_level": "Low Risk",
           "confidence": "56.3%",
           "probability": "Low"
@@ -820,9 +818,9 @@
       "location": "Milagros (Masbate)",
       "latitude": 12.2182,
       "longitude": 123.5094,
-      "date": "2026-11-24",
+      "date": "2026-11-25",
       "risk_level": "Low Risk",
-      "confidence": "59.1%",
+      "confidence": "58.8%",
       "red_tide_probability": "Low",
       "recommendations": [
         "Conditions are favorable.",
@@ -830,15 +828,15 @@
         "Continue regular monitoring."
       ],
       "contributing_factors": {
-        "chl-a": 0.896,
-        "sst": 29.08,
+        "chl-a": 0.727,
+        "sst": 29.04,
         "salinity": 34.35,
         "rainfall": 12.7
       },
       "forecast_drivers": [
         {
           "key": "season",
-          "contribution": 1.121,
+          "contribution": 1.1207,
           "month": 11
         },
         {
@@ -857,28 +855,28 @@
         },
         {
           "key": "sea_temperature",
-          "contribution": 0.2824,
-          "anomaly_90d": 0.2881,
-          "anomaly_30d": 0.2358
+          "contribution": 0.2819,
+          "anomaly_90d": 0.2871,
+          "anomaly_30d": 0.2319
         },
         {
           "key": "rainfall",
-          "contribution": 0.0534,
-          "anomaly_60d": -0.2259,
-          "anomaly_30d": -0.4496
+          "contribution": 0.0648,
+          "anomaly_60d": -0.2026,
+          "anomaly_30d": -0.4024
         }
       ],
       "environmental_data": {
-        "Chlorophyll-a": "0.9 mg/m3",
-        "Temperature": "29.08 \u00b0C",
+        "Chlorophyll-a": "0.73 mg/m3",
+        "Temperature": "29.04 \u00b0C",
         "Salinity (PSU)": "34.35 PSU",
-        "MLD (m)": "18.79 m",
+        "MLD (m)": "19.42 m",
         "Precipitation": "12.73 mm",
-        "NDVI": "0.7043",
-        "U-Wind Speed (m/s)": "-4.55 m/s",
-        "V-Wind Speed (m/s)": "-3.4 m/s",
-        "U-VEL (m/s)": "-0.173 m/s",
-        "V-VEL (m/s)": "0.022 m/s"
+        "NDVI": "0.7412",
+        "U-Wind Speed (m/s)": "-4.56 m/s",
+        "V-Wind Speed (m/s)": "-3.3 m/s",
+        "U-VEL (m/s)": "-0.166 m/s",
+        "V-VEL (m/s)": "0.028 m/s"
       },
       "data_quality": {
         "quality_score": 1.0,
@@ -889,34 +887,34 @@
         "environment_data_source": "cmems_gee_merged",
         "environment_imputation_strategy": "Hybrid: Gap-Type Adaptive",
         "forecasting_model": "Ensemble",
-        "base_xgboost_probability": 0.80103,
+        "base_xgboost_probability": 0.789787,
         "sequence_models_probability": null,
         "xgboost_weight_damped": false,
-        "final_probability": 0.409287,
+        "final_probability": 0.412448,
         "final_probability_source": "ensemble",
         "env_model_inputs": {
-          "thetao_roll30": 0.2358,
-          "thetao_roll60": 0.3828,
-          "thetao_roll90": 0.2881,
-          "precip_mm_day_roll30": -0.4496,
-          "precip_mm_day_roll60": -0.2259,
-          "precip_mm_day_roll90": -0.2228,
-          "doy_sin": -0.5978,
-          "doy_cos": 0.8016,
+          "thetao_roll30": 0.2319,
+          "thetao_roll60": 0.3705,
+          "thetao_roll90": 0.2871,
+          "precip_mm_day_roll30": -0.4024,
+          "precip_mm_day_roll60": -0.2026,
+          "precip_mm_day_roll90": -0.2283,
+          "doy_sin": -0.584,
+          "doy_cos": 0.8118,
           "oni": 2.16,
           "clim_rate": 0.37,
           "site_rate_365": 0.3342
         },
         "env_model_precip_sources": {
           "imerg": 53,
-          "missing": 1
+          "missing": 2
         },
         "env_model_trained_through": "2026-10-01",
-        "ensemble_logistic_probability": 0.437376,
+        "ensemble_logistic_probability": 0.440022,
         "ensemble_deep_probabilities": {
-          "lstm": 0.279591,
-          "gru": 0.475256,
-          "transformer": 0.38875
+          "lstm": 0.278802,
+          "gru": 0.476305,
+          "transformer": 0.399515
         },
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -932,16 +930,16 @@
           "vo": "observed"
         },
         "historical_positive_signal": false,
-        "days_since_last_positive": 534,
+        "days_since_last_positive": 535,
         "recent_positive_rate_90d": 0.0,
         "recent_positive_rate_365d": 0.0,
         "cmems_source": "cmems_live",
         "cmems_source_dates": {
-          "thetao": "2026-11-24",
-          "so": "2026-11-24",
-          "currents": "2026-11-24",
-          "mixed_layer": "2026-11-24",
-          "chlorophyll": "2026-11-22"
+          "thetao": "2026-11-25",
+          "so": "2026-11-25",
+          "currents": "2026-11-25",
+          "mixed_layer": "2026-11-25",
+          "chlorophyll": "2026-11-23"
         },
         "gee_available": true,
         "gee_params": [
@@ -955,65 +953,65 @@
       },
       "explanation": "Low bloom risk under current environmental conditions, but routine monitoring is still advised.",
       "model_inputs": {
-        "CHL": 0.895616,
-        "NDVI_daily": 0.7043,
-        "mlotst": 18.787183,
+        "CHL": 0.727084,
+        "NDVI_daily": 0.7412,
+        "mlotst": 19.424514,
         "precip_mm_day": 12.73,
-        "so": 34.346881,
-        "thetao": 29.080589,
-        "uo": -0.172591,
-        "vo": 0.021572,
-        "wind_speed_ms": 5.676,
-        "wind_u_ms": -4.548,
-        "wind_v_ms": -3.397
+        "so": 34.346511,
+        "thetao": 29.036945,
+        "uo": -0.166123,
+        "vo": 0.027687,
+        "wind_speed_ms": 5.631,
+        "wind_u_ms": -4.56,
+        "wind_v_ms": -3.303
       },
       "five_day_forecast": [
         {
           "forecast_day": 1,
-          "date": "2026-11-25",
-          "day_label": "Wed",
+          "date": "2026-11-26",
+          "day_label": "Thu",
           "risk_level": "Low Risk",
-          "confidence": "56.1%",
+          "confidence": "55.8%",
           "probability": "Low"
         },
         {
           "forecast_day": 2,
-          "date": "2026-11-26",
-          "day_label": "Thu",
+          "date": "2026-11-27",
+          "day_label": "Fri",
           "risk_level": "Low Risk",
-          "confidence": "53.3%",
+          "confidence": "53.0%",
           "probability": "Low"
         },
         {
           "forecast_day": 3,
-          "date": "2026-11-27",
-          "day_label": "Fri",
+          "date": "2026-11-28",
+          "day_label": "Sat",
           "risk_level": "Very Low Risk",
-          "confidence": "50.6%",
+          "confidence": "50.4%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 4,
-          "date": "2026-11-28",
-          "day_label": "Sat",
+          "date": "2026-11-29",
+          "day_label": "Sun",
           "risk_level": "Very Low Risk",
-          "confidence": "48.1%",
+          "confidence": "47.9%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 5,
-          "date": "2026-11-29",
-          "day_label": "Sun",
+          "date": "2026-11-30",
+          "day_label": "Mon",
           "risk_level": "Very Low Risk",
-          "confidence": "45.7%",
+          "confidence": "45.5%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 6,
-          "date": "2026-11-30",
-          "day_label": "Mon",
+          "date": "2026-12-01",
+          "day_label": "Tue",
           "risk_level": "Very Low Risk",
-          "confidence": "43.4%",
+          "confidence": "43.2%",
           "probability": "Very Low"
         }
       ]
@@ -1022,9 +1020,9 @@
       "location": "Pilar",
       "latitude": 11.504,
       "longitude": 122.941,
-      "date": "2026-11-24",
+      "date": "2026-11-25",
       "risk_level": "Very Low Risk",
-      "confidence": "77.4%",
+      "confidence": "77.2%",
       "red_tide_probability": "Very Low",
       "recommendations": [
         "Conditions are favorable.",
@@ -1032,15 +1030,15 @@
         "Continue regular monitoring."
       ],
       "contributing_factors": {
-        "chl-a": 1.154,
-        "sst": 29.33,
-        "salinity": 33.96,
+        "chl-a": 0.781,
+        "sst": 29.29,
+        "salinity": 33.95,
         "rainfall": 0.0
       },
       "forecast_drivers": [
         {
           "key": "season",
-          "contribution": 1.121,
+          "contribution": 1.1207,
           "month": 11
         },
         {
@@ -1053,9 +1051,9 @@
         },
         {
           "key": "sea_temperature",
-          "contribution": 0.5327,
-          "anomaly_90d": 0.5206,
-          "anomaly_30d": 0.3585
+          "contribution": 0.5282,
+          "anomaly_90d": 0.516,
+          "anomaly_30d": 0.3397
         },
         {
           "key": "enso",
@@ -1065,25 +1063,25 @@
         },
         {
           "key": "rainfall",
-          "contribution": 0.0462,
-          "anomaly_60d": -0.3319,
-          "anomaly_30d": -0.629
+          "contribution": 0.0572,
+          "anomaly_60d": -0.3105,
+          "anomaly_30d": -0.5569
         }
       ],
       "environmental_data": {
-        "Chlorophyll-a": "1.15 mg/m3",
-        "Temperature": "29.33 \u00b0C",
-        "Salinity (PSU)": "33.96 PSU",
-        "MLD (m)": "20.0 m",
+        "Chlorophyll-a": "0.78 mg/m3",
+        "Temperature": "29.29 \u00b0C",
+        "Salinity (PSU)": "33.95 PSU",
+        "MLD (m)": "19.22 m",
         "Precipitation": "0.0 mm",
         "NDVI": "0.0966",
-        "U-Wind Speed (m/s)": "-3.45 m/s",
-        "V-Wind Speed (m/s)": "-2.05 m/s",
-        "U-VEL (m/s)": "-0.127 m/s",
-        "V-VEL (m/s)": "0.016 m/s"
+        "U-Wind Speed (m/s)": "-3.53 m/s",
+        "V-Wind Speed (m/s)": "-2.0 m/s",
+        "U-VEL (m/s)": "-0.126 m/s",
+        "V-VEL (m/s)": "0.031 m/s"
       },
       "data_quality": {
-        "quality_score": 1.0,
+        "quality_score": 0.91,
         "confidence_level": "High",
         "critical_features_available": 4,
         "critical_features_total": 4,
@@ -1094,31 +1092,31 @@
         "base_xgboost_probability": 0.892806,
         "sequence_models_probability": null,
         "xgboost_weight_damped": false,
-        "final_probability": 0.226306,
+        "final_probability": 0.228223,
         "final_probability_source": "ensemble",
         "env_model_inputs": {
-          "thetao_roll30": 0.3585,
-          "thetao_roll60": 0.5635,
-          "thetao_roll90": 0.5206,
-          "precip_mm_day_roll30": -0.629,
-          "precip_mm_day_roll60": -0.3319,
-          "precip_mm_day_roll90": -0.2794,
-          "doy_sin": -0.5978,
-          "doy_cos": 0.8016,
+          "thetao_roll30": 0.3397,
+          "thetao_roll60": 0.5468,
+          "thetao_roll90": 0.516,
+          "precip_mm_day_roll30": -0.5569,
+          "precip_mm_day_roll60": -0.3105,
+          "precip_mm_day_roll90": -0.2892,
+          "doy_sin": -0.584,
+          "doy_cos": 0.8118,
           "oni": 2.16,
           "clim_rate": 0.2727,
           "site_rate_365": 0.0
         },
         "env_model_precip_sources": {
           "imerg": 53,
-          "missing": 1
+          "missing": 2
         },
         "env_model_trained_through": "2026-10-01",
-        "ensemble_logistic_probability": 0.161536,
+        "ensemble_logistic_probability": 0.162393,
         "ensemble_deep_probabilities": {
-          "lstm": 0.295894,
-          "gru": 0.298293,
-          "transformer": 0.279041
+          "lstm": 0.297789,
+          "gru": 0.300174,
+          "transformer": 0.284198
         },
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -1126,7 +1124,7 @@
           "so": "observed",
           "precip_mm_day": "observed",
           "mlotst": "observed",
-          "NDVI_daily": "observed",
+          "NDVI_daily": "temporal_short_gap",
           "wind_speed_ms": "observed",
           "wind_u_ms": "observed",
           "wind_v_ms": "observed",
@@ -1134,22 +1132,20 @@
           "vo": "observed"
         },
         "historical_positive_signal": false,
-        "days_since_last_positive": 1090,
+        "days_since_last_positive": 1091,
         "recent_positive_rate_90d": 0.0,
         "recent_positive_rate_365d": 0.0,
         "cmems_source": "cmems_live",
         "cmems_source_dates": {
-          "thetao": "2026-11-24",
-          "so": "2026-11-24",
-          "currents": "2026-11-24",
-          "mixed_layer": "2026-11-24",
-          "chlorophyll": "2026-11-22"
+          "thetao": "2026-11-25",
+          "so": "2026-11-25",
+          "currents": "2026-11-25",
+          "mixed_layer": "2026-11-25",
+          "chlorophyll": "2026-11-23"
         },
         "gee_available": true,
         "gee_params": [
           "precip_mm_day",
-          "NDVI_daily",
-          "NDVI_raw",
           "wind_speed_ms",
           "wind_u_ms",
           "wind_v_ms"
@@ -1157,65 +1153,65 @@
       },
       "explanation": "Very low bloom risk; environmental conditions are currently unfavorable for red tide development.",
       "model_inputs": {
-        "CHL": 1.154477,
+        "CHL": 0.781249,
         "NDVI_daily": 0.0966,
-        "mlotst": 20.002376,
+        "mlotst": 19.223884,
         "precip_mm_day": 0.0,
-        "so": 33.958208,
-        "thetao": 29.327316,
-        "uo": -0.127408,
-        "vo": 0.015613,
-        "wind_speed_ms": 4.014,
-        "wind_u_ms": -3.45,
-        "wind_v_ms": -2.052
+        "so": 33.947594,
+        "thetao": 29.286022,
+        "uo": -0.126101,
+        "vo": 0.030895,
+        "wind_speed_ms": 4.06,
+        "wind_u_ms": -3.534,
+        "wind_v_ms": -1.997
       },
       "five_day_forecast": [
         {
           "forecast_day": 1,
-          "date": "2026-11-25",
-          "day_label": "Wed",
+          "date": "2026-11-26",
+          "day_label": "Thu",
           "risk_level": "Very Low Risk",
-          "confidence": "73.5%",
+          "confidence": "73.3%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 2,
-          "date": "2026-11-26",
-          "day_label": "Thu",
+          "date": "2026-11-27",
+          "day_label": "Fri",
           "risk_level": "Very Low Risk",
-          "confidence": "69.8%",
+          "confidence": "69.7%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 3,
-          "date": "2026-11-27",
-          "day_label": "Fri",
+          "date": "2026-11-28",
+          "day_label": "Sat",
           "risk_level": "Very Low Risk",
-          "confidence": "66.3%",
+          "confidence": "66.2%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 4,
-          "date": "2026-11-28",
-          "day_label": "Sat",
+          "date": "2026-11-29",
+          "day_label": "Sun",
           "risk_level": "Very Low Risk",
-          "confidence": "63.0%",
+          "confidence": "62.9%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 5,
-          "date": "2026-11-29",
-          "day_label": "Sun",
+          "date": "2026-11-30",
+          "day_label": "Mon",
           "risk_level": "Very Low Risk",
-          "confidence": "59.9%",
+          "confidence": "59.7%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 6,
-          "date": "2026-11-30",
-          "day_label": "Mon",
+          "date": "2026-12-01",
+          "day_label": "Tue",
           "risk_level": "Very Low Risk",
-          "confidence": "56.9%",
+          "confidence": "56.7%",
           "probability": "Very Low"
         }
       ]
@@ -1224,9 +1220,9 @@
       "location": "President Roxas",
       "latitude": 11.496,
       "longitude": 122.914,
-      "date": "2026-11-24",
+      "date": "2026-11-25",
       "risk_level": "Very Low Risk",
-      "confidence": "76.6%",
+      "confidence": "76.4%",
       "red_tide_probability": "Very Low",
       "recommendations": [
         "Conditions are favorable.",
@@ -1234,15 +1230,15 @@
         "Continue regular monitoring."
       ],
       "contributing_factors": {
-        "chl-a": 1.165,
-        "sst": 29.34,
-        "salinity": 33.84,
+        "chl-a": 0.775,
+        "sst": 29.31,
+        "salinity": 33.83,
         "rainfall": 0.1
       },
       "forecast_drivers": [
         {
           "key": "season",
-          "contribution": 1.121,
+          "contribution": 1.1207,
           "month": 11
         },
         {
@@ -1255,9 +1251,9 @@
         },
         {
           "key": "sea_temperature",
-          "contribution": 0.5381,
-          "anomaly_90d": 0.5267,
-          "anomaly_30d": 0.3595
+          "contribution": 0.5349,
+          "anomaly_90d": 0.5231,
+          "anomaly_30d": 0.35
         },
         {
           "key": "enso",
@@ -1267,25 +1263,25 @@
         },
         {
           "key": "rainfall",
-          "contribution": 0.0422,
-          "anomaly_60d": -0.3642,
-          "anomaly_30d": -0.6571
+          "contribution": 0.053,
+          "anomaly_60d": -0.3433,
+          "anomaly_30d": -0.584
         }
       ],
       "environmental_data": {
-        "Chlorophyll-a": "1.17 mg/m3",
-        "Temperature": "29.34 \u00b0C",
-        "Salinity (PSU)": "33.84 PSU",
-        "MLD (m)": "18.36 m",
+        "Chlorophyll-a": "0.78 mg/m3",
+        "Temperature": "29.31 \u00b0C",
+        "Salinity (PSU)": "33.83 PSU",
+        "MLD (m)": "17.56 m",
         "Precipitation": "0.06 mm",
         "NDVI": "0.2037",
-        "U-Wind Speed (m/s)": "-3.0 m/s",
-        "V-Wind Speed (m/s)": "-2.22 m/s",
-        "U-VEL (m/s)": "-0.129 m/s",
-        "V-VEL (m/s)": "0.013 m/s"
+        "U-Wind Speed (m/s)": "-3.07 m/s",
+        "V-Wind Speed (m/s)": "-2.18 m/s",
+        "U-VEL (m/s)": "-0.126 m/s",
+        "V-VEL (m/s)": "0.025 m/s"
       },
       "data_quality": {
-        "quality_score": 1.0,
+        "quality_score": 0.91,
         "confidence_level": "High",
         "critical_features_available": 4,
         "critical_features_total": 4,
@@ -1296,31 +1292,31 @@
         "base_xgboost_probability": 0.821167,
         "sequence_models_probability": null,
         "xgboost_weight_damped": false,
-        "final_probability": 0.23417,
+        "final_probability": 0.236352,
         "final_probability_source": "ensemble",
         "env_model_inputs": {
-          "thetao_roll30": 0.3595,
-          "thetao_roll60": 0.5871,
-          "thetao_roll90": 0.5267,
-          "precip_mm_day_roll30": -0.6571,
-          "precip_mm_day_roll60": -0.3642,
-          "precip_mm_day_roll90": -0.2971,
-          "doy_sin": -0.5978,
-          "doy_cos": 0.8016,
+          "thetao_roll30": 0.35,
+          "thetao_roll60": 0.57,
+          "thetao_roll90": 0.5231,
+          "precip_mm_day_roll30": -0.584,
+          "precip_mm_day_roll60": -0.3433,
+          "precip_mm_day_roll90": -0.3072,
+          "doy_sin": -0.584,
+          "doy_cos": 0.8118,
           "oni": 2.16,
           "clim_rate": 0.1818,
           "site_rate_365": 0.0
         },
         "env_model_precip_sources": {
           "imerg": 53,
-          "missing": 1
+          "missing": 2
         },
         "env_model_trained_through": "2026-10-01",
-        "ensemble_logistic_probability": 0.165898,
+        "ensemble_logistic_probability": 0.166923,
         "ensemble_deep_probabilities": {
-          "lstm": 0.294589,
-          "gru": 0.31195,
-          "transformer": 0.300786
+          "lstm": 0.297183,
+          "gru": 0.313502,
+          "transformer": 0.306658
         },
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -1328,7 +1324,7 @@
           "so": "observed",
           "precip_mm_day": "observed",
           "mlotst": "observed",
-          "NDVI_daily": "observed",
+          "NDVI_daily": "temporal_short_gap",
           "wind_speed_ms": "observed",
           "wind_u_ms": "observed",
           "wind_v_ms": "observed",
@@ -1336,22 +1332,20 @@
           "vo": "observed"
         },
         "historical_positive_signal": false,
-        "days_since_last_positive": 1090,
+        "days_since_last_positive": 1091,
         "recent_positive_rate_90d": 0.0,
         "recent_positive_rate_365d": 0.0,
         "cmems_source": "cmems_live",
         "cmems_source_dates": {
-          "thetao": "2026-11-24",
-          "so": "2026-11-24",
-          "currents": "2026-11-24",
-          "mixed_layer": "2026-11-24",
-          "chlorophyll": "2026-11-22"
+          "thetao": "2026-11-25",
+          "so": "2026-11-25",
+          "currents": "2026-11-25",
+          "mixed_layer": "2026-11-25",
+          "chlorophyll": "2026-11-23"
         },
         "gee_available": true,
         "gee_params": [
           "precip_mm_day",
-          "NDVI_daily",
-          "NDVI_raw",
           "wind_speed_ms",
           "wind_u_ms",
           "wind_v_ms"
@@ -1359,65 +1353,65 @@
       },
       "explanation": "Very low bloom risk; environmental conditions are currently unfavorable for red tide development.",
       "model_inputs": {
-        "CHL": 1.16534,
+        "CHL": 0.775474,
         "NDVI_daily": 0.2037,
-        "mlotst": 18.358279,
+        "mlotst": 17.556619,
         "precip_mm_day": 0.06,
-        "so": 33.83553,
-        "thetao": 29.341787,
-        "uo": -0.129237,
-        "vo": 0.013432,
-        "wind_speed_ms": 3.732,
-        "wind_u_ms": -2.999,
-        "wind_v_ms": -2.221
+        "so": 33.826717,
+        "thetao": 29.307385,
+        "uo": -0.12633,
+        "vo": 0.025461,
+        "wind_speed_ms": 3.766,
+        "wind_u_ms": -3.071,
+        "wind_v_ms": -2.181
       },
       "five_day_forecast": [
         {
           "forecast_day": 1,
-          "date": "2026-11-25",
-          "day_label": "Wed",
+          "date": "2026-11-26",
+          "day_label": "Thu",
           "risk_level": "Very Low Risk",
-          "confidence": "72.8%",
+          "confidence": "72.5%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 2,
-          "date": "2026-11-26",
-          "day_label": "Thu",
+          "date": "2026-11-27",
+          "day_label": "Fri",
           "risk_level": "Very Low Risk",
-          "confidence": "69.1%",
+          "confidence": "68.9%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 3,
-          "date": "2026-11-27",
-          "day_label": "Fri",
+          "date": "2026-11-28",
+          "day_label": "Sat",
           "risk_level": "Very Low Risk",
-          "confidence": "65.7%",
+          "confidence": "65.5%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 4,
-          "date": "2026-11-28",
-          "day_label": "Sat",
+          "date": "2026-11-29",
+          "day_label": "Sun",
           "risk_level": "Very Low Risk",
-          "confidence": "62.4%",
+          "confidence": "62.2%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 5,
-          "date": "2026-11-29",
-          "day_label": "Sun",
+          "date": "2026-11-30",
+          "day_label": "Mon",
           "risk_level": "Very Low Risk",
-          "confidence": "59.3%",
+          "confidence": "59.1%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 6,
-          "date": "2026-11-30",
-          "day_label": "Mon",
+          "date": "2026-12-01",
+          "day_label": "Tue",
           "risk_level": "Very Low Risk",
-          "confidence": "56.3%",
+          "confidence": "56.1%",
           "probability": "Very Low"
         }
       ]
@@ -1426,9 +1420,9 @@
       "location": "Roxas City",
       "latitude": 11.5853,
       "longitude": 122.7511,
-      "date": "2026-11-24",
+      "date": "2026-11-25",
       "risk_level": "Very Low Risk",
-      "confidence": "74.4%",
+      "confidence": "74.3%",
       "red_tide_probability": "Very Low",
       "recommendations": [
         "Conditions are favorable.",
@@ -1436,15 +1430,15 @@
         "Continue regular monitoring."
       ],
       "contributing_factors": {
-        "chl-a": 1.199,
-        "sst": 29.35,
-        "salinity": 33.8,
+        "chl-a": 0.751,
+        "sst": 29.31,
+        "salinity": 33.79,
         "rainfall": 0.9
       },
       "forecast_drivers": [
         {
           "key": "season",
-          "contribution": 1.121,
+          "contribution": 1.1207,
           "month": 11
         },
         {
@@ -1457,9 +1451,9 @@
         },
         {
           "key": "sea_temperature",
-          "contribution": 0.7411,
-          "anomaly_90d": 0.7129,
-          "anomaly_30d": 0.5528
+          "contribution": 0.7309,
+          "anomaly_90d": 0.7032,
+          "anomaly_30d": 0.5352
         },
         {
           "key": "enso",
@@ -1469,25 +1463,25 @@
         },
         {
           "key": "rainfall",
-          "contribution": 0.0215,
-          "anomaly_60d": -0.3254,
-          "anomaly_30d": -0.5731
+          "contribution": 0.0312,
+          "anomaly_60d": -0.3142,
+          "anomaly_30d": -0.5102
         }
       ],
       "environmental_data": {
-        "Chlorophyll-a": "1.2 mg/m3",
-        "Temperature": "29.35 \u00b0C",
-        "Salinity (PSU)": "33.8 PSU",
-        "MLD (m)": "18.02 m",
+        "Chlorophyll-a": "0.75 mg/m3",
+        "Temperature": "29.31 \u00b0C",
+        "Salinity (PSU)": "33.79 PSU",
+        "MLD (m)": "17.35 m",
         "Precipitation": "0.93 mm",
         "NDVI": "0.6367",
-        "U-Wind Speed (m/s)": "-2.51 m/s",
-        "V-Wind Speed (m/s)": "-2.03 m/s",
-        "U-VEL (m/s)": "-0.133 m/s",
-        "V-VEL (m/s)": "0.017 m/s"
+        "U-Wind Speed (m/s)": "-2.57 m/s",
+        "V-Wind Speed (m/s)": "-2.0 m/s",
+        "U-VEL (m/s)": "-0.128 m/s",
+        "V-VEL (m/s)": "0.028 m/s"
       },
       "data_quality": {
-        "quality_score": 1.0,
+        "quality_score": 0.91,
         "confidence_level": "High",
         "critical_features_available": 4,
         "critical_features_total": 4,
@@ -1498,31 +1492,31 @@
         "base_xgboost_probability": 0.728744,
         "sequence_models_probability": null,
         "xgboost_weight_damped": false,
-        "final_probability": 0.256206,
+        "final_probability": 0.256594,
         "final_probability_source": "ensemble",
         "env_model_inputs": {
-          "thetao_roll30": 0.5528,
-          "thetao_roll60": 0.7029,
-          "thetao_roll90": 0.7129,
-          "precip_mm_day_roll30": -0.5731,
-          "precip_mm_day_roll60": -0.3254,
-          "precip_mm_day_roll90": -0.239,
-          "doy_sin": -0.5978,
-          "doy_cos": 0.8016,
+          "thetao_roll30": 0.5352,
+          "thetao_roll60": 0.6888,
+          "thetao_roll90": 0.7032,
+          "precip_mm_day_roll30": -0.5102,
+          "precip_mm_day_roll60": -0.3142,
+          "precip_mm_day_roll90": -0.2542,
+          "doy_sin": -0.584,
+          "doy_cos": 0.8118,
           "oni": 2.16,
           "clim_rate": 0.1818,
           "site_rate_365": 0.0
         },
         "env_model_precip_sources": {
           "imerg": 53,
-          "missing": 1
+          "missing": 2
         },
         "env_model_trained_through": "2026-10-01",
-        "ensemble_logistic_probability": 0.192692,
+        "ensemble_logistic_probability": 0.19257,
         "ensemble_deep_probabilities": {
-          "lstm": 0.312709,
-          "gru": 0.335159,
-          "transformer": 0.311294
+          "lstm": 0.310214,
+          "gru": 0.335911,
+          "transformer": 0.315726
         },
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -1530,7 +1524,7 @@
           "so": "observed",
           "precip_mm_day": "observed",
           "mlotst": "observed",
-          "NDVI_daily": "observed",
+          "NDVI_daily": "temporal_short_gap",
           "wind_speed_ms": "observed",
           "wind_u_ms": "observed",
           "wind_v_ms": "observed",
@@ -1538,22 +1532,20 @@
           "vo": "observed"
         },
         "historical_positive_signal": false,
-        "days_since_last_positive": 1070,
+        "days_since_last_positive": 1071,
         "recent_positive_rate_90d": 0.0,
         "recent_positive_rate_365d": 0.0,
         "cmems_source": "cmems_live",
         "cmems_source_dates": {
-          "thetao": "2026-11-24",
-          "so": "2026-11-24",
-          "currents": "2026-11-24",
-          "mixed_layer": "2026-11-24",
-          "chlorophyll": "2026-11-22"
+          "thetao": "2026-11-25",
+          "so": "2026-11-25",
+          "currents": "2026-11-25",
+          "mixed_layer": "2026-11-25",
+          "chlorophyll": "2026-11-23"
         },
         "gee_available": true,
         "gee_params": [
           "precip_mm_day",
-          "NDVI_daily",
-          "NDVI_raw",
           "wind_speed_ms",
           "wind_u_ms",
           "wind_v_ms"
@@ -1561,65 +1553,65 @@
       },
       "explanation": "Very low bloom risk; environmental conditions are currently unfavorable for red tide development.",
       "model_inputs": {
-        "CHL": 1.198595,
+        "CHL": 0.75065,
         "NDVI_daily": 0.6367,
-        "mlotst": 18.018486,
+        "mlotst": 17.352792,
         "precip_mm_day": 0.93,
-        "so": 33.79748,
-        "thetao": 29.345378,
-        "uo": -0.132616,
-        "vo": 0.016821,
-        "wind_speed_ms": 3.23,
-        "wind_u_ms": -2.51,
-        "wind_v_ms": -2.034
+        "so": 33.791505,
+        "thetao": 29.312561,
+        "uo": -0.128326,
+        "vo": 0.028408,
+        "wind_speed_ms": 3.256,
+        "wind_u_ms": -2.57,
+        "wind_v_ms": -1.999
       },
       "five_day_forecast": [
         {
           "forecast_day": 1,
-          "date": "2026-11-25",
-          "day_label": "Wed",
+          "date": "2026-11-26",
+          "day_label": "Thu",
           "risk_level": "Very Low Risk",
-          "confidence": "70.7%",
+          "confidence": "70.6%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 2,
-          "date": "2026-11-26",
-          "day_label": "Thu",
+          "date": "2026-11-27",
+          "day_label": "Fri",
           "risk_level": "Very Low Risk",
           "confidence": "67.1%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 3,
-          "date": "2026-11-27",
-          "day_label": "Fri",
+          "date": "2026-11-28",
+          "day_label": "Sat",
           "risk_level": "Very Low Risk",
-          "confidence": "63.8%",
+          "confidence": "63.7%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 4,
-          "date": "2026-11-28",
-          "day_label": "Sat",
+          "date": "2026-11-29",
+          "day_label": "Sun",
           "risk_level": "Very Low Risk",
           "confidence": "60.6%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 5,
-          "date": "2026-11-29",
-          "day_label": "Sun",
+          "date": "2026-11-30",
+          "day_label": "Mon",
           "risk_level": "Very Low Risk",
-          "confidence": "57.6%",
+          "confidence": "57.5%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 6,
-          "date": "2026-11-30",
-          "day_label": "Mon",
+          "date": "2026-12-01",
+          "day_label": "Tue",
           "risk_level": "Very Low Risk",
-          "confidence": "54.7%",
+          "confidence": "54.6%",
           "probability": "Very Low"
         }
       ]
@@ -1628,9 +1620,9 @@
       "location": "Sapian Bay",
       "latitude": 11.4936,
       "longitude": 122.6186,
-      "date": "2026-11-24",
+      "date": "2026-11-25",
       "risk_level": "Very Low Risk",
-      "confidence": "75.0%",
+      "confidence": "74.9%",
       "red_tide_probability": "Very Low",
       "recommendations": [
         "Conditions are favorable.",
@@ -1638,15 +1630,15 @@
         "Continue regular monitoring."
       ],
       "contributing_factors": {
-        "chl-a": 1.08,
-        "sst": 29.33,
+        "chl-a": 0.623,
+        "sst": 29.29,
         "salinity": 33.87,
         "rainfall": 0.3
       },
       "forecast_drivers": [
         {
           "key": "season",
-          "contribution": 1.121,
+          "contribution": 1.1207,
           "month": 11
         },
         {
@@ -1659,9 +1651,9 @@
         },
         {
           "key": "sea_temperature",
-          "contribution": 0.6943,
-          "anomaly_90d": 0.6703,
-          "anomaly_30d": 0.5919
+          "contribution": 0.6881,
+          "anomaly_90d": 0.6643,
+          "anomaly_30d": 0.5783
         },
         {
           "key": "enso",
@@ -1671,22 +1663,22 @@
         },
         {
           "key": "rainfall",
-          "contribution": 0.0442,
-          "anomaly_60d": -0.3713,
-          "anomaly_30d": -0.5548
+          "contribution": 0.0471,
+          "anomaly_60d": -0.3684,
+          "anomaly_30d": -0.4929
         }
       ],
       "environmental_data": {
-        "Chlorophyll-a": "1.08 mg/m3",
-        "Temperature": "29.33 \u00b0C",
+        "Chlorophyll-a": "0.62 mg/m3",
+        "Temperature": "29.29 \u00b0C",
         "Salinity (PSU)": "33.87 PSU",
-        "MLD (m)": "19.13 m",
+        "MLD (m)": "18.81 m",
         "Precipitation": "0.28 mm",
-        "NDVI": "0.861",
-        "U-Wind Speed (m/s)": "-2.22 m/s",
-        "V-Wind Speed (m/s)": "-1.62 m/s",
-        "U-VEL (m/s)": "-0.135 m/s",
-        "V-VEL (m/s)": "0.033 m/s"
+        "NDVI": "0.8576",
+        "U-Wind Speed (m/s)": "-2.25 m/s",
+        "V-Wind Speed (m/s)": "-1.57 m/s",
+        "U-VEL (m/s)": "-0.13 m/s",
+        "V-VEL (m/s)": "0.05 m/s"
       },
       "data_quality": {
         "quality_score": 1.0,
@@ -1700,31 +1692,31 @@
         "base_xgboost_probability": 0.806954,
         "sequence_models_probability": null,
         "xgboost_weight_damped": false,
-        "final_probability": 0.250029,
+        "final_probability": 0.251005,
         "final_probability_source": "ensemble",
         "env_model_inputs": {
-          "thetao_roll30": 0.5919,
-          "thetao_roll60": 0.6961,
-          "thetao_roll90": 0.6703,
-          "precip_mm_day_roll30": -0.5548,
-          "precip_mm_day_roll60": -0.3713,
-          "precip_mm_day_roll90": -0.3206,
-          "doy_sin": -0.5978,
-          "doy_cos": 0.8016,
+          "thetao_roll30": 0.5783,
+          "thetao_roll60": 0.6854,
+          "thetao_roll90": 0.6643,
+          "precip_mm_day_roll30": -0.4929,
+          "precip_mm_day_roll60": -0.3684,
+          "precip_mm_day_roll90": -0.3315,
+          "doy_sin": -0.584,
+          "doy_cos": 0.8118,
           "oni": 2.16,
           "clim_rate": 0.2364,
           "site_rate_365": 0.0
         },
         "env_model_precip_sources": {
           "imerg": 53,
-          "missing": 1
+          "missing": 2
         },
         "env_model_trained_through": "2026-10-01",
-        "ensemble_logistic_probability": 0.186177,
+        "ensemble_logistic_probability": 0.185652,
         "ensemble_deep_probabilities": {
-          "lstm": 0.304587,
-          "gru": 0.326416,
-          "transformer": 0.31064
+          "lstm": 0.305744,
+          "gru": 0.327995,
+          "transformer": 0.315336
         },
         "environment_imputation_sources": {
           "CHL": "observed",
@@ -1740,16 +1732,16 @@
           "vo": "observed"
         },
         "historical_positive_signal": false,
-        "days_since_last_positive": 1070,
+        "days_since_last_positive": 1071,
         "recent_positive_rate_90d": 0.0,
         "recent_positive_rate_365d": 0.0,
         "cmems_source": "cmems_live",
         "cmems_source_dates": {
-          "thetao": "2026-11-24",
-          "so": "2026-11-24",
-          "currents": "2026-11-24",
-          "mixed_layer": "2026-11-24",
-          "chlorophyll": "2026-11-22"
+          "thetao": "2026-11-25",
+          "so": "2026-11-25",
+          "currents": "2026-11-25",
+          "mixed_layer": "2026-11-25",
+          "chlorophyll": "2026-11-23"
         },
         "gee_available": true,
         "gee_params": [
@@ -1763,63 +1755,63 @@
       },
       "explanation": "Very low bloom risk; environmental conditions are currently unfavorable for red tide development.",
       "model_inputs": {
-        "CHL": 1.080333,
-        "NDVI_daily": 0.861,
-        "mlotst": 19.125417,
+        "CHL": 0.62314,
+        "NDVI_daily": 0.8576,
+        "mlotst": 18.811979,
         "precip_mm_day": 0.28,
-        "so": 33.869323,
-        "thetao": 29.330524,
-        "uo": -0.135289,
-        "vo": 0.033266,
-        "wind_speed_ms": 2.744,
-        "wind_u_ms": -2.218,
-        "wind_v_ms": -1.616
+        "so": 33.870452,
+        "thetao": 29.288079,
+        "uo": -0.130033,
+        "vo": 0.04991,
+        "wind_speed_ms": 2.742,
+        "wind_u_ms": -2.245,
+        "wind_v_ms": -1.573
       },
       "five_day_forecast": [
         {
           "forecast_day": 1,
-          "date": "2026-11-25",
-          "day_label": "Wed",
+          "date": "2026-11-26",
+          "day_label": "Thu",
           "risk_level": "Very Low Risk",
           "confidence": "71.2%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 2,
-          "date": "2026-11-26",
-          "day_label": "Thu",
+          "date": "2026-11-27",
+          "day_label": "Fri",
           "risk_level": "Very Low Risk",
-          "confidence": "67.7%",
+          "confidence": "67.6%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 3,
-          "date": "2026-11-27",
-          "day_label": "Fri",
+          "date": "2026-11-28",
+          "day_label": "Sat",
           "risk_level": "Very Low Risk",
-          "confidence": "64.3%",
+          "confidence": "64.2%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 4,
-          "date": "2026-11-28",
-          "day_label": "Sat",
+          "date": "2026-11-29",
+          "day_label": "Sun",
           "risk_level": "Very Low Risk",
-          "confidence": "61.1%",
+          "confidence": "61.0%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 5,
-          "date": "2026-11-29",
-          "day_label": "Sun",
+          "date": "2026-11-30",
+          "day_label": "Mon",
           "risk_level": "Very Low Risk",
           "confidence": "58.0%",
           "probability": "Very Low"
         },
         {
           "forecast_day": 6,
-          "date": "2026-11-30",
-          "day_label": "Mon",
+          "date": "2026-12-01",
+          "day_label": "Tue",
           "risk_level": "Very Low Risk",
           "confidence": "55.1%",
           "probability": "Very Low"
